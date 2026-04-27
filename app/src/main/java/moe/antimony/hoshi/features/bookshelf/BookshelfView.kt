@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import moe.antimony.hoshi.epub.Bookmark
 import moe.antimony.hoshi.epub.BookStorage
 import moe.antimony.hoshi.epub.EpubBook
 import moe.antimony.hoshi.epub.EpubBookParser
@@ -56,6 +57,7 @@ fun BookshelfView(
     val bookStorage = remember { BookStorage(context.filesDir) }
     var bookFile by remember { mutableStateOf<File?>(null) }
     var book by remember { mutableStateOf<EpubBook?>(null) }
+    var bookmark by remember { mutableStateOf<Bookmark?>(null) }
     var isReading by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -69,6 +71,7 @@ fun BookshelfView(
             }.onSuccess {
                 bookFile = file
                 book = it
+                bookmark = bookStorage.loadBookmark(file)
                 isReading = openReader
             }.onFailure {
                 errorMessage = it.localizedMessage ?: "Failed to open EPUB."
@@ -123,6 +126,21 @@ fun BookshelfView(
     if (isReading && book != null) {
         ReaderWebView(
             book = requireNotNull(book),
+            initialChapterIndex = bookmark?.chapterIndex ?: 0,
+            initialProgress = bookmark?.progress ?: 0.0,
+            onSaveBookmark = { chapterIndex, progress ->
+                val file = bookFile ?: return@ReaderWebView
+                val savedBookmark = Bookmark(
+                    chapterIndex = chapterIndex,
+                    progress = progress,
+                    characterCount = 0,
+                    lastModified = bookStorage.currentAppleReferenceDateSeconds(),
+                )
+                bookmark = savedBookmark
+                scope.launch(Dispatchers.IO) {
+                    bookStorage.saveBookmark(file, savedBookmark)
+                }
+            },
             onClose = { isReading = false },
             modifier = modifier.fillMaxSize(),
         )

@@ -9,16 +9,43 @@ internal object ReaderPaginationScripts {
     fun paginateInvocation(direction: ReaderNavigationDirection): String =
         "window.hoshiReader.paginate('${direction.jsValue}')"
 
+    fun progressInvocation(): String =
+        "window.hoshiReader.calculateProgress()"
+
     fun didScroll(result: String?): Boolean =
         result?.trim()?.trim('"') == "scrolled"
+
+    fun doubleResult(result: String?): Double? =
+        result?.trim()?.trim('"')?.toDoubleOrNull()
 
     fun shellScript(initialProgress: Double = 0.0): String = """
         <script>
         window.hoshiReader = {
           pageHeight: 0,
           pageWidth: 0,
+          ttuRegexNegated: /[^0-9A-Za-z○◯々-〇〻ぁ-ゖゝ-ゞァ-ヺー０-９Ａ-Ｚａ-ｚｦ-ﾝ\p{Radical}\p{Unified_Ideograph}]+/gimu,
           isVertical: function() {
             return window.getComputedStyle(document.body).writingMode === "vertical-rl";
+          },
+          isFurigana: function(node) {
+            var el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+            return !!(el && el.closest('rt, rp'));
+          },
+          normalizeText: function(text) {
+            return (text || '').replace(this.ttuRegexNegated, '');
+          },
+          countChars: function(text) {
+            return Array.from(this.normalizeText(text)).length;
+          },
+          createWalker: function(rootNode) {
+            var root = rootNode || document.body;
+            return document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+              acceptNode: (n) => this.isFurigana(n) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+            });
+          },
+          getRect: function(target) {
+            var rect = target.getClientRects()[0];
+            return rect || target.getBoundingClientRect();
           },
           getScrollContext: function() {
             var vertical = this.isVertical();
@@ -40,6 +67,29 @@ internal object ReaderPaginationScripts {
             }
             return clamped;
           },
+          alignToPage: function(context, offset) {
+            return Math.floor(Math.max(0, offset) / context.pageSize) * context.pageSize;
+          },
+          calculateProgress: function() {
+            var vertical = this.isVertical();
+            var walker = this.createWalker();
+            var totalChars = 0;
+            var exploredChars = 0;
+            var node;
+            while (node = walker.nextNode()) {
+              var nodeLen = this.countChars(node.textContent);
+              totalChars += nodeLen;
+              if (nodeLen > 0) {
+                var range = document.createRange();
+                range.selectNodeContents(node);
+                var rect = this.getRect(range);
+                if ((vertical ? rect.top : rect.left) < 0) {
+                  exploredChars += nodeLen;
+                }
+              }
+            }
+            return totalChars > 0 ? exploredChars / totalChars : 0;
+          },
           restoreProgress: function(progress) {
             var context = this.getScrollContext();
             if (context.pageSize <= 0 || progress <= 0) {
@@ -51,8 +101,35 @@ internal object ReaderPaginationScripts {
               this.setPagePosition(context, Math.max(0, lastPage));
               return;
             }
-            var target = Math.floor((context.maxScroll * progress) / context.pageSize) * context.pageSize;
-            this.setPagePosition(context, target);
+            var walker = this.createWalker();
+            var totalChars = 0;
+            var node;
+            while (node = walker.nextNode()) {
+              totalChars += this.countChars(node.textContent);
+            }
+            var targetCharCount = Math.ceil(totalChars * progress);
+            var runningSum = 0;
+            var targetNode = null;
+            walker = this.createWalker();
+            while (node = walker.nextNode()) {
+              runningSum += this.countChars(node.textContent);
+              if (runningSum > targetCharCount) {
+                targetNode = node;
+                break;
+              }
+            }
+            if (targetNode) {
+              var range = document.createRange();
+              range.setStart(targetNode, 0);
+              range.setEnd(targetNode, Math.min(1, targetNode.textContent.length));
+              var rect = this.getRect(range);
+              var currentScroll = this.getPagePosition(context);
+              var anchor = (context.vertical ? rect.top : rect.left) + currentScroll;
+              var targetScroll = this.alignToPage(context, anchor);
+              this.setPagePosition(context, targetScroll);
+            } else {
+              this.setPagePosition(context, 0);
+            }
           },
           paginate: function(direction) {
             var context = this.getScrollContext();

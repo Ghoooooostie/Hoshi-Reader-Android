@@ -29,10 +29,21 @@ import moe.antimony.hoshi.epub.EpubBook
 @Composable
 fun ReaderWebView(
     book: EpubBook,
+    initialChapterIndex: Int = 0,
+    initialProgress: Double = 0.0,
+    onSaveBookmark: (chapterIndex: Int, progress: Double) -> Unit = { _, _ -> },
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var chapterPosition by remember(book) { mutableStateOf(ReaderChapterPosition(index = 0)) }
+    val clampedInitialIndex = initialChapterIndex.coerceIn(0, book.chapters.lastIndex)
+    var chapterPosition by remember(book) {
+        mutableStateOf(
+            ReaderChapterPosition(
+                index = clampedInitialIndex,
+                progress = initialProgress.coerceIn(0.0, 1.0),
+            ),
+        )
+    }
     var webView by remember { mutableStateOf<WebView?>(null) }
 
     Scaffold(
@@ -67,6 +78,7 @@ fun ReaderWebView(
                     val next = chapterPosition.nextOrNull(book.chapters.lastIndex)
                     if (next != null) {
                         chapterPosition = next
+                        onSaveBookmark(next.index, next.progress)
                         true
                     } else {
                         false
@@ -76,10 +88,14 @@ fun ReaderWebView(
                     val previous = chapterPosition.previousOrNull()
                     if (previous != null) {
                         chapterPosition = previous
+                        onSaveBookmark(previous.index, previous.progress)
                         true
                     } else {
                         false
                     }
+                },
+                onSaveBookmark = { progress ->
+                    onSaveBookmark(chapterPosition.index, progress)
                 },
                 modifier = Modifier.fillMaxSize(),
             )
@@ -96,6 +112,7 @@ private fun ChapterWebView(
     onWebViewReady: (WebView) -> Unit,
     onNextChapter: () -> Boolean,
     onPreviousChapter: () -> Boolean,
+    onSaveBookmark: (progress: Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val chapter = book.chapters[chapterPosition.index]
@@ -118,11 +135,11 @@ private fun ChapterWebView(
                 webViewClient = EpubWebViewClient(book)
                 setOnTouchListener(object : SwipePageTouchListener(context) {
                     override fun onLeftSwipe() {
-                        navigatePage(ReaderNavigationDirection.Backward, onPreviousChapter)
+                        navigatePage(ReaderNavigationDirection.Backward, onPreviousChapter, onSaveBookmark)
                     }
 
                     override fun onRightSwipe() {
-                        navigatePage(ReaderNavigationDirection.Forward, onNextChapter)
+                        navigatePage(ReaderNavigationDirection.Forward, onNextChapter, onSaveBookmark)
                     }
                 })
                 onWebViewReady(this)
@@ -156,9 +173,14 @@ private fun String.injectReaderShell(initialProgress: Double): String {
 private fun WebView.navigatePage(
     direction: ReaderNavigationDirection,
     onLimit: () -> Boolean,
+    onScrolled: (progress: Double) -> Unit,
 ) {
     evaluateJavascript(ReaderPaginationScripts.paginateInvocation(direction)) { result ->
-        if (!ReaderPaginationScripts.didScroll(result)) {
+        if (ReaderPaginationScripts.didScroll(result)) {
+            evaluateJavascript(ReaderPaginationScripts.progressInvocation()) { progressResult ->
+                ReaderPaginationScripts.doubleResult(progressResult)?.let(onScrolled)
+            }
+        } else {
             onLimit()
         }
     }

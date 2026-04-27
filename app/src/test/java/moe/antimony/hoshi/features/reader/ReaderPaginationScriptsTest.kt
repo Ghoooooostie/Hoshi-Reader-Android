@@ -76,6 +76,27 @@ class ReaderPaginationScriptsTest {
     }
 
     @Test
+    fun exposesCharacterBasedProgressCalculationLikeIos() {
+        val script = ReaderPaginationScripts.shellScript()
+
+        assertTrue(script.contains("calculateProgress: function()"))
+        assertTrue(script.contains("var exploredChars = 0"))
+        assertTrue(script.contains("range.selectNodeContents(node)"))
+        assertTrue(script.contains("return totalChars > 0 ? exploredChars / totalChars : 0"))
+    }
+
+    @Test
+    fun restoresProgressByCharacterPositionLikeIos() {
+        val script = ReaderPaginationScripts.shellScript()
+
+        assertTrue(script.contains("var targetCharCount = Math.ceil(totalChars * progress)"))
+        assertTrue(script.contains("if (runningSum > targetCharCount)"))
+        assertTrue(script.contains("range.setStart(targetNode, 0)"))
+        assertTrue(script.contains("var anchor = (context.vertical ? rect.top : rect.left)"))
+        assertTrue(script.contains("var targetScroll = this.alignToPage(context, anchor)"))
+    }
+
+    @Test
     fun appendsTrailingSpacerUsingIosDefaultVerticalLayout() {
         val script = ReaderPaginationScripts.shellScript()
 

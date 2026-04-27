@@ -14,10 +14,11 @@
 
 ## Roadmap
 
-1. `in_progress` - Stabilize EPUB reading main flow
+1. `done` - Stabilize EPUB reading main flow
    - Save and restore reader position using the iOS `bookmark.json` shape.
    - Preserve iOS WebView paging semantics: page scroll first, chapter transition only at boundaries.
    - Keep reverse chapter transitions landing at the previous chapter end.
+   - Verified on emulator with `testdata/test.epub`: saved `chapterIndex=9`, `progress=0.2734952481520591`, relaunched app, reopened reader, restored to `item/xhtml/p-003.xhtml` with `scrollTop=1668` and matching progress.
 
 2. `todo` - Bookshelf and book metadata
    - Move from a single `current.epub` directory to multi-book storage.
