@@ -7,6 +7,11 @@ internal object ReaderSelectionScripts {
     fun highlightInvocation(count: Int): String =
         "window.hoshiSelection.highlightSelection($count)"
 
+    fun didSelectNothing(result: String?): Boolean =
+        result?.trim()
+            ?.let { it == "null" || it == "undefined" }
+            ?: true
+
     fun script(): String = """
         <script>
         window.hoshiSelection = {

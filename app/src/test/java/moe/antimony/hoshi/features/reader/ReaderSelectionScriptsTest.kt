@@ -29,4 +29,12 @@ class ReaderSelectionScriptsTest {
     fun convertsAndroidPixelsToWebViewCssPixels() {
         assertEquals(333.33334f, androidPixelsToCssPixels(1000f, 3f), 0.0001f)
     }
+
+    @Test
+    fun recognizesNullSelectionResultForTapOutside() {
+        assertTrue(ReaderSelectionScripts.didSelectNothing("null"))
+        assertTrue(ReaderSelectionScripts.didSelectNothing(null))
+        assertTrue(ReaderSelectionScripts.didSelectNothing("undefined"))
+        assertTrue(!ReaderSelectionScripts.didSelectNothing("\"猫\""))
+    }
 }

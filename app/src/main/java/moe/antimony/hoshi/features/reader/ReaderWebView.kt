@@ -144,11 +144,13 @@ fun ReaderWebView(
                 },
                 readerSettings = effectiveSettings,
                 onTextSelected = handleTextSelected,
+                onClearLookupPopup = { lookupPopup = null },
                 modifier = Modifier.fillMaxSize(),
             )
             lookupPopup?.let { popup ->
                 LookupPopupView(
                     state = popup,
+                    onSwipeDismiss = { lookupPopup = null },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -178,6 +180,7 @@ private fun ChapterWebView(
     onSaveBookmark: (progress: Double) -> Unit,
     readerSettings: ReaderSettings,
     onTextSelected: (ReaderSelectionData) -> Int?,
+    onClearLookupPopup: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val chapter = book.chapters[chapterPosition.index]
@@ -211,15 +214,20 @@ private fun ChapterWebView(
                                 y = androidPixelsToCssPixels(y, density),
                                 maxLength = MAX_SELECTION_LENGTH,
                             ),
-                            null,
-                        )
+                        ) { result ->
+                            if (ReaderSelectionScripts.didSelectNothing(result)) {
+                                onClearLookupPopup()
+                            }
+                        }
                     }
 
                     override fun onLeftSwipe() {
+                        onClearLookupPopup()
                         navigatePage(ReaderNavigationDirection.Backward, onPreviousChapter, onSaveBookmark)
                     }
 
                     override fun onRightSwipe() {
+                        onClearLookupPopup()
                         navigatePage(ReaderNavigationDirection.Forward, onNextChapter, onSaveBookmark)
                     }
                 })

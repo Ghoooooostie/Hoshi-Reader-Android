@@ -48,8 +48,10 @@
    - `done` - Connect lookup to `third_party/hoshidicts-kotlin-bridge`.
    - `done` - Trigger lookup from WebView selection results.
    - `done` - Add first-pass popup positioning using iOS `PopupLayout` geometry.
-   - `todo` - Replace simplified Compose glossary rendering with iOS-aligned PopupWebView rendering for structured Yomitan content, dictionary CSS, media, nested lookups, swipe dismissal, and tap-outside dismissal.
+   - `done` - Close lookup popup from the same Reader-level tap-outside and page-turn paths as iOS, and add popup-level horizontal swipe dismissal for gestures that start on the popup itself.
+   - `todo` - Replace simplified Compose glossary rendering with iOS-aligned PopupWebView rendering for structured Yomitan content, dictionary CSS, media, and nested lookups.
    - Verified on emulator with `testdata/test.epub` and imported `testdata/JMdict_english.zip`: opened a vertical text chapter, tapped `お冷や`, and confirmed a popup appears over the reader with `お冷や`, reading `おひや`, and JMdict glossary content.
+   - Verified on emulator with `testdata/test.epub` and imported `testdata/JMdict_english.zip`: tapped `お冷や`, confirmed the popup reading `ひや` appears, then confirmed popup-level horizontal swipe, tap outside the popup, and Reader page swipe each dismiss the popup without leaving the reading node visible.
 
 6. `in_progress` - Dictionary import and management
    - `done` - Build Android native `hoshidicts_jni` from `third_party/hoshidicts-kotlin-bridge` while linking to `third_party/hoshidicts-gplv3`.
