@@ -146,20 +146,21 @@ fun ReaderWebView(
         }
     }
     val clampedInitialIndex = initialChapterIndex.coerceIn(0, book.chapters.lastIndex)
-    var chapterPosition by remember(book) {
+    var readerPosition by remember(book) {
         mutableStateOf(
-            ReaderChapterPosition(
-                index = clampedInitialIndex,
-                progress = initialProgress.coerceIn(0.0, 1.0),
+            ReaderPositionState(
+                ReaderChapterPosition(
+                    index = clampedInitialIndex,
+                    progress = initialProgress.coerceIn(0.0, 1.0),
+                ),
             ),
         )
     }
-    var displayedChapterPosition by remember(book) { mutableStateOf(chapterPosition) }
     var webView by remember { mutableStateOf<WebView?>(null) }
-    val chromeState = remember(book, displayedChapterPosition) {
+    val chromeState = remember(book, readerPosition.displayedPosition) {
         ReaderChromeState(
             title = book.title,
-            currentCharacter = book.characterCountAt(displayedChapterPosition.index, displayedChapterPosition.progress),
+            currentCharacter = book.characterCountAt(readerPosition.displayedPosition.index, readerPosition.displayedPosition.progress),
             totalCharacters = book.bookInfo.characterCount,
         )
     }
@@ -197,13 +198,12 @@ fun ReaderWebView(
         ) {
             ChapterWebView(
                 book = book,
-                chapterPosition = chapterPosition,
+                chapterPosition = readerPosition.loadPosition,
                 onWebViewReady = { webView = it },
                 onNextChapter = {
-                    val next = chapterPosition.nextOrNull(book.chapters.lastIndex)
+                    val next = readerPosition.loadPosition.nextOrNull(book.chapters.lastIndex)
                     if (next != null) {
-                        chapterPosition = next
-                        displayedChapterPosition = next
+                        readerPosition = readerPosition.jumpTo(next)
                         onSaveBookmark(next.index, next.progress)
                         true
                     } else {
@@ -211,10 +211,9 @@ fun ReaderWebView(
                     }
                 },
                 onPreviousChapter = {
-                    val previous = chapterPosition.previousOrNull()
+                    val previous = readerPosition.loadPosition.previousOrNull()
                     if (previous != null) {
-                        chapterPosition = previous
-                        displayedChapterPosition = previous
+                        readerPosition = readerPosition.jumpTo(previous)
                         onSaveBookmark(previous.index, previous.progress)
                         true
                     } else {
@@ -222,8 +221,9 @@ fun ReaderWebView(
                     }
                 },
                 onSaveBookmark = { progress ->
-                    displayedChapterPosition = chapterPosition.copy(progress = progress)
-                    onSaveBookmark(chapterPosition.index, progress)
+                    val updatedPosition = readerPosition.recordPageProgress(progress)
+                    readerPosition = updatedPosition
+                    onSaveBookmark(updatedPosition.displayedPosition.index, updatedPosition.displayedPosition.progress)
                 },
                 readerSettings = effectiveSettings,
                 onTextSelected = handleTextSelected,
@@ -280,6 +280,7 @@ fun ReaderWebView(
         ReaderAppearanceSheet(
             settings = effectiveSettings,
             onSettingsChange = {
+                readerPosition = readerPosition.prepareReloadAtDisplayedPosition()
                 effectiveSettings = it
                 onReaderSettingsChange(it)
             },
@@ -290,11 +291,10 @@ fun ReaderWebView(
     if (showChapters) {
         ReaderChapterSheet(
             book = book,
-            currentPosition = displayedChapterPosition,
+            currentPosition = readerPosition.displayedPosition,
             onJump = { target ->
                 lookupPopups = emptyList()
-                chapterPosition = target
-                displayedChapterPosition = target
+                readerPosition = readerPosition.jumpTo(target)
                 onSaveBookmark(target.index, target.progress)
                 showChapters = false
             },

@@ -9,4 +9,7 @@ internal data class ReaderChapterPosition(
 
     fun previousOrNull(): ReaderChapterPosition? =
         if (index > 0) copy(index = index - 1, progress = 1.0) else null
+
+    fun withProgress(progress: Double): ReaderChapterPosition =
+        copy(progress = progress.coerceIn(0.0, 1.0))
 }
