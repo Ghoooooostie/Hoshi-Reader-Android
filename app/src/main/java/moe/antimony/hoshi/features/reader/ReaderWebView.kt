@@ -164,45 +164,55 @@ fun ReaderWebView(
             .fillMaxSize()
             .background(Color(effectiveSettings.backgroundColor)),
     ) {
-        ChapterWebView(
-            book = book,
-            chapterPosition = chapterPosition,
-            onWebViewReady = { webView = it },
-            onNextChapter = {
-                val next = chapterPosition.nextOrNull(book.chapters.lastIndex)
-                if (next != null) {
-                    chapterPosition = next
-                    displayedChapterPosition = next
-                    onSaveBookmark(next.index, next.progress)
-                    true
-                } else {
-                    false
-                }
-            },
-            onPreviousChapter = {
-                val previous = chapterPosition.previousOrNull()
-                if (previous != null) {
-                    chapterPosition = previous
-                    displayedChapterPosition = previous
-                    onSaveBookmark(previous.index, previous.progress)
-                    true
-                } else {
-                    false
-                }
-            },
-            onSaveBookmark = { progress ->
-                displayedChapterPosition = chapterPosition.copy(progress = progress)
-                onSaveBookmark(chapterPosition.index, progress)
-            },
-            readerSettings = effectiveSettings,
-            onTextSelected = handleTextSelected,
-            onClearLookupPopup = { lookupPopups = emptyList() },
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .padding(top = ReaderWebViewTopPadding, bottom = ReaderWebViewBottomPadding),
-        )
+        ) {
+            ChapterWebView(
+                book = book,
+                chapterPosition = chapterPosition,
+                onWebViewReady = { webView = it },
+                onNextChapter = {
+                    val next = chapterPosition.nextOrNull(book.chapters.lastIndex)
+                    if (next != null) {
+                        chapterPosition = next
+                        displayedChapterPosition = next
+                        onSaveBookmark(next.index, next.progress)
+                        true
+                    } else {
+                        false
+                    }
+                },
+                onPreviousChapter = {
+                    val previous = chapterPosition.previousOrNull()
+                    if (previous != null) {
+                        chapterPosition = previous
+                        displayedChapterPosition = previous
+                        onSaveBookmark(previous.index, previous.progress)
+                        true
+                    } else {
+                        false
+                    }
+                },
+                onSaveBookmark = { progress ->
+                    displayedChapterPosition = chapterPosition.copy(progress = progress)
+                    onSaveBookmark(chapterPosition.index, progress)
+                },
+                readerSettings = effectiveSettings,
+                onTextSelected = handleTextSelected,
+                onClearLookupPopup = { lookupPopups = emptyList() },
+                modifier = Modifier.fillMaxSize(),
+            )
+            LookupPopupStackView(
+                popups = lookupPopups,
+                onPopupsChange = { lookupPopups = it },
+                lookupChildPopup = ::lookupChildPopup,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         ReaderTopInfo(
             state = chromeState,
             colors = readerChromeColors(effectiveSettings),
@@ -222,12 +232,6 @@ fun ReaderWebView(
                 showAppearance = true
             },
             modifier = Modifier.align(Alignment.BottomCenter),
-        )
-        LookupPopupStackView(
-            popups = lookupPopups,
-            onPopupsChange = { lookupPopups = it },
-            lookupChildPopup = ::lookupChildPopup,
-            modifier = Modifier.fillMaxSize(),
         )
         webView?.let { _ -> Unit }
     }

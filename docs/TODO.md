@@ -58,6 +58,7 @@
    - `done` - Align Dictionary tab search chrome with iOS: floating glass-style search capsule, search icon, compact circular clear button, and WebView result spacer so entries do not render under the search field.
    - `done` - Align Dictionary tab popup interaction with iOS `PopupWebView`: intercept internal `hoshi-popup://` messages, inject iOS `selection.js`, and support nested lookup popups from selected definition text.
    - `done` - Share the iOS-style lookup popup stack between Dictionary and Reader, including child popup dismissal and popup-local selection coordinate conversion.
+   - `done` - Align Reader popup coordinate space with iOS by rendering popup stack in the same padded content layer as the chapter WebView, so first lookup popups stay below the system status area.
    - `done` - Add first-pass popup positioning using iOS `PopupLayout` geometry.
    - `done` - Close lookup popup from the same Reader-level tap-outside and page-turn paths as iOS, and add popup-level horizontal swipe dismissal for gestures that start on the popup itself.
    - `done` - Replace raw Compose glossary text with a popup WebView renderer that expands Yomitan structured-content JSON into HTML without adding search or other extra capabilities.
@@ -71,6 +72,7 @@
    - Verified on emulator with imported `testdata/MK3.zip`: searched `test` again after the search chrome change and confirmed the first result starts below the search capsule while the clear affordance renders as a compact circular x.
    - Verified on emulator with imported `testdata/MK3.zip`: searched `test`, tapped definition text to open a nested `試験` popup, tapped inside that popup to open a second nested popup, and confirmed tap-outside no longer navigates to `hoshi-popup://tapOutside` or shows `Webpage not available`.
    - Verified on emulator with imported `testdata/MK3.zip` and `testdata/test.epub`: opened the reader, tapped vertical正文 `える` to create the root popup, tapped popup definition text `簡にして要を得る` to create a second popup, then tapped `要点` in that popup to create a third popup without the stack closing unexpectedly.
+   - Verified on emulator with imported `testdata/MK3.zip` and `testdata/test.epub`: opened the reader, tapped vertical正文 `える`, confirmed the first popup WebView bounds are `[18,390][817,1140]` while the chapter WebView bounds are `[0,372][1280,2496]`, and confirmed a nested popup still opens from `簡にして要を得る`.
 
 6. `in_progress` - Dictionary import and management
    - `done` - Build Android native `hoshidicts_jni` from `third_party/hoshidicts-kotlin-bridge` while linking to `third_party/hoshidicts-gplv3`.
