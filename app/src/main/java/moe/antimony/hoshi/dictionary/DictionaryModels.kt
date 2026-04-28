@@ -37,7 +37,7 @@ data class DictionaryIndex(
     val title: String,
     val format: Int,
     val revision: String,
-    val isUpdatable: Boolean,
-    val indexUrl: String,
-    val downloadUrl: String,
+    val isUpdatable: Boolean = false,
+    val indexUrl: String = "",
+    val downloadUrl: String = "",
 )

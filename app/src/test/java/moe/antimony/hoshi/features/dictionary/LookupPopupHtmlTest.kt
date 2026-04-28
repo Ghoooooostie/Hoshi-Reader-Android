@@ -1,6 +1,7 @@
 package moe.antimony.hoshi.features.dictionary
 
 import de.manhhao.hoshi.FrequencyEntry
+import de.manhhao.hoshi.Frequency
 import de.manhhao.hoshi.GlossaryEntry
 import de.manhhao.hoshi.LookupResult
 import de.manhhao.hoshi.PitchEntry
@@ -68,10 +69,49 @@ class LookupPopupHtmlTest {
         assertTrue(html.contains(""""rules":[]"""))
     }
 
+    @Test
+    fun serializesFrequencyAndPitchMetadataUsingIosPopupShape() {
+        val html = LookupPopupHtml.render(
+            listOf(
+                lookupResult(
+                    expression = "食べる",
+                    reading = "たべる",
+                    glossary = "eat",
+                    frequencies = arrayOf(
+                        FrequencyEntry(
+                            dictName = "Jiten",
+                            frequencies = arrayOf(Frequency(value = 1139, displayValue = "1,139")),
+                        ),
+                    ),
+                    pitches = arrayOf(
+                        PitchEntry(
+                            dictName = "アクセント辞典",
+                            pitchPositions = intArrayOf(2),
+                        ),
+                    ),
+                ),
+            ),
+            assets = LookupPopupAssets(
+                popupJs = "",
+                popupCss = "",
+            ),
+        )
+
+        assertTrue(html.contains(""""frequencies":[{""""))
+        assertTrue(html.contains(""""dictionary":"Jiten""""))
+        assertTrue(html.contains(""""value":1139"""))
+        assertTrue(html.contains(""""displayValue":"1,139""""))
+        assertTrue(html.contains(""""pitches":[{""""))
+        assertTrue(html.contains(""""dictionary":"アクセント辞典""""))
+        assertTrue(html.contains(""""pitchPositions":[2]"""))
+    }
+
     private fun lookupResult(
         expression: String,
         reading: String,
         glossary: String,
+        frequencies: Array<FrequencyEntry> = emptyArray(),
+        pitches: Array<PitchEntry> = emptyArray(),
     ): LookupResult = LookupResult(
         expression,
         expression,
@@ -88,8 +128,8 @@ class LookupPopupHtmlTest {
                     termTags = "",
                 ),
             ),
-            frequencies = emptyArray<FrequencyEntry>(),
-            pitches = emptyArray<PitchEntry>(),
+            frequencies = frequencies,
+            pitches = pitches,
         ),
         0,
     )

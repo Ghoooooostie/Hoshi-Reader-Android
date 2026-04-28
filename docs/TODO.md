@@ -8,6 +8,7 @@
 - iOS is the only source of truth for user-visible UI and interaction behavior.
 - If Android behavior differs from iOS, inspect the iOS implementation first and remove the difference instead of adding isolated compatibility patches.
 - Use `testdata/test.epub` and `testdata/test2.epub` for EPUB reader validation and `testdata/JMdict_english.zip` for Yomitan dictionary validation.
+- Use `testdata/freq.zip` and `testdata/pitch.zip` when validating frequency and pitch dictionary support.
 - Each implemented feature must be verified in an Android emulator before commit.
 - Each implemented feature commit must include the matching status update in this file.
 - If a feature is blocked, mark it as `blocked`, record the blocker, and continue with the next feasible item.
@@ -83,11 +84,13 @@
    - `done` - Import `testdata/JMdict_english.zip` through the GPLv3 `hoshidicts` bridge.
    - `done` - Persist iOS-shaped `Dictionaries/config.json` and list imported term dictionaries.
    - `done` - Align term dictionary enable/disable and swipe-to-delete with iOS `DictionaryView` list behavior.
-   - `todo` - Align type picker, reordering, and detailed import/update state with iOS `DictionaryView`.
+   - `done` - Add iOS-aligned Term/Frequency/Pitch type picker and import-type menu, and route import/list/toggle/delete through the selected dictionary type.
+   - `todo` - Align reordering and detailed import/update state with iOS `DictionaryView`.
    - Do not reimplement Yomitan import or dictionary media handling outside the bridge.
    - Verified on emulator with `testdata/JMdict_english.zip`: imported through DocumentsUI, confirmed dictionary list shows `JMdict [2026-04-27]`, confirmed private files `Dictionaries/Term/JMdict [2026-04-27]/index.json`, `blobs.bin`, `hash.table`, and `Dictionaries/config.json`, and temporarily verified native lookup query returned `猫` for lookup text `猫` before removing the debug UI.
    - Verified on emulator with `testdata/JMdict_english.zip`: toggled `JMdict [2026-04-27]` off and confirmed `Dictionaries/config.json` wrote `"isEnabled": false`, swiped the row from right to left and confirmed `Dictionaries/Term` was empty with an empty config, then reimported the zip through DocumentsUI and confirmed the row and enabled config were restored.
    - Verified on emulator with `testdata/MK3.zip`: imported through DocumentsUI, confirmed dictionary list shows `明鏡国語辞典 第三版`, and confirmed private files plus `Dictionaries/config.json` are written under app storage.
+   - Verified on emulator with existing `testdata/MK3.zip`, imported `testdata/freq.zip` as Frequency and `testdata/pitch.zip` as Pitch through the iOS-style import menu, confirmed the type picker lists `Jiten` under Frequency and `アクセント辞典` under Pitch, then ran an app-process instrumentation lookup for `食べる` and confirmed native results include both frequency and pitch metadata.
 
 7. `todo` - Highlights and notes foundation
    - Store highlight anchors based on WebView range data.

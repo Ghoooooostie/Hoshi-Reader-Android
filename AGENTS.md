@@ -105,7 +105,8 @@ git -C third_party/hoshidicts-gplv3 submodule update --init --recursive
 ## 测试数据
 
 - EPUB 测试书籍：`testdata/test.epub`、`testdata/test2.epub`
-- Yomitan 测试辞典：`testdata/JMdict_english.zip`
+- Yomitan 测试辞典：`testdata/JMdict_english.zip`、`testdata/MK3.zip`、`testdata/freq.zip`、`testdata/pitch.zip`
+- 频率和音调辞典验证时，应参考 iOS `DictionaryView` 的 Term/Frequency/Pitch 类型选择逻辑，分别以 Frequency 和 Pitch 类型导入；不要把 meta dictionaries 当成 Term 兜底导入。
 - 调试导入流程时，应通过 Android 系统文件选择器选择 `testdata` 中的文件；需要命令行辅助时，先把样本推送到模拟器 Downloads，再通过 DocumentsUI 选择。
 
 ## 集成注意事项

@@ -30,6 +30,30 @@ class DictionaryManagerTest {
     }
 
     @Test
+    fun dictionaryIndexAcceptsYomitanMetaDictionariesWithMissingUpdateFields() {
+        val json = Json { ignoreUnknownKeys = true }
+
+        val index = json.decodeFromString<DictionaryIndex>(
+            """
+                {
+                  "title": "アクセント辞典",
+                  "format": 3,
+                  "revision": "pitch1",
+                  "sequenced": false,
+                  "author": "Sayash"
+                }
+            """.trimIndent(),
+        )
+
+        assertEquals("アクセント辞典", index.title)
+        assertEquals(3, index.format)
+        assertEquals("pitch1", index.revision)
+        assertEquals(false, index.isUpdatable)
+        assertEquals("", index.indexUrl)
+        assertEquals("", index.downloadUrl)
+    }
+
+    @Test
     fun collectDictionariesPreservesConfigOrderAndAppendsUnconfiguredImports() {
         val stored = listOf(
             dictionaryInfo(title = "Unconfigured", fileName = "Unconfigured"),

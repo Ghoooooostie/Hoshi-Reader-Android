@@ -10,7 +10,10 @@ class DictionaryRepository(
     private val filesDir: File,
     private val cacheDir: File,
 ) {
-    private val json = Json { prettyPrint = true }
+    private val json = Json {
+        prettyPrint = true
+        ignoreUnknownKeys = true
+    }
     private val dictionariesDir = File(filesDir, "Dictionaries")
     private val configFile = File(dictionariesDir, "config.json")
 
