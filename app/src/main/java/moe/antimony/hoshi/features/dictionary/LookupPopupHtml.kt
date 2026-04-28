@@ -30,8 +30,21 @@ internal object LookupPopupHtml {
     fun render(
         results: List<LookupResult>,
         assets: LookupPopupAssets,
+        dictionaryStyles: Map<String, String> = emptyMap(),
+        topSpacerPx: Int = 0,
     ): String {
         val entries = entriesJson(results)
+        val styles = dictionaryStylesJson(dictionaryStyles)
+        val topSpacer = if (topSpacerPx > 0) {
+            """<div style="height: ${topSpacerPx}px;"></div>"""
+        } else {
+            ""
+        }
+        val entriesContainer = if (topSpacerPx > 0) {
+            """<div id="entries-container" style="min-height: 100vh;"></div>"""
+        } else {
+            """<div id="entries-container"></div>"""
+        }
         return """
             <!DOCTYPE html>
             <html>
@@ -87,11 +100,10 @@ internal object LookupPopupHtml {
                     window.compactGlossariesAnki = false;
                     window.customCSS = "";
                     window.swipeThreshold = 80;
-                    window.dictionaryStyles = {};
+                    window.dictionaryStyles = $styles;
                     window.lookupEntries = $entries;
                     window.entryCount = window.lookupEntries.length;
                 </script>
-                <div id="entries-container"></div>
                 <script>
                     (function() {
                         var startX, startY;
@@ -109,6 +121,8 @@ internal object LookupPopupHtml {
                         });
                     })();
                 </script>
+                $topSpacer
+                $entriesContainer
                 <div class="overlay">
                     <div class="overlay-close" onclick="closeOverlay()">x</div>
                     <div class="overlay-content"></div>
@@ -123,6 +137,13 @@ internal object LookupPopupHtml {
         buildJsonArray {
             results.forEach { result ->
                 add(result.toEntryJson())
+            }
+        }
+
+    private fun dictionaryStylesJson(styles: Map<String, String>): JsonObject =
+        buildJsonObject {
+            styles.forEach { (dictionary, css) ->
+                put(dictionary, css)
             }
         }
 

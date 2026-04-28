@@ -54,6 +54,8 @@
 5. `in_progress` - Dictionary lookup popup
    - `done` - Connect lookup to `third_party/hoshidicts-kotlin-bridge`.
    - `done` - Trigger lookup from WebView selection results.
+   - `done` - Add iOS-aligned Dictionary tab lookup: submit a search query, use `LookupEngine`, and render results through the existing popup WebView HTML/JS/CSS pipeline.
+   - `done` - Align Dictionary tab search chrome with iOS: floating glass-style search capsule, search icon, compact circular clear button, and WebView result spacer so entries do not render under the search field.
    - `done` - Add first-pass popup positioning using iOS `PopupLayout` geometry.
    - `done` - Close lookup popup from the same Reader-level tap-outside and page-turn paths as iOS, and add popup-level horizontal swipe dismissal for gestures that start on the popup itself.
    - `done` - Replace raw Compose glossary text with a popup WebView renderer that expands Yomitan structured-content JSON into HTML without adding search or other extra capabilities.
@@ -63,6 +65,8 @@
    - Verified on emulator with `testdata/test.epub` and imported `testdata/JMdict_english.zip`: tapped `お冷や`, confirmed the popup reading `ひや` appears, then confirmed popup-level horizontal swipe, tap outside the popup, and Reader page swipe each dismiss the popup without leaving the reading node visible.
    - Verified on emulator with `testdata/test.epub` and imported `testdata/JMdict_english.zip`: tapped `お冷や`, inspected the popup WebView through Chrome DevTools Protocol, and confirmed it renders `冷や`, `ひや`, `cold water`, and `JMdict [2026-04-27]` as HTML while no longer showing raw `structured-content` JSON; also rechecked popup WebView horizontal swipe dismissal.
    - Verified on emulator with `testdata/test.epub` and imported `testdata/JMdict_english.zip`: inspected the popup WebView DOM and confirmed iOS-generated structure is present (`.entry-header`, `.expression ruby`, `details.glossary-group`, `.dict-label .dict-name`, `.glossary-content`, `.mine-button`) and raw `structured-content` JSON is absent; rechecked popup horizontal swipe dismissal after switching to the iOS JS/CSS pipeline.
+   - Verified on emulator with `testdata/MK3.zip`: cleared app data, imported MK3 through Android DocumentsUI, opened Dictionary tab, searched `test`, and confirmed the result WebView renders `テスト [test]` with `明鏡国語辞典 第三版` glossary content.
+   - Verified on emulator with imported `testdata/MK3.zip`: searched `test` again after the search chrome change and confirmed the first result starts below the search capsule while the clear affordance renders as a compact circular x.
 
 6. `in_progress` - Dictionary import and management
    - `done` - Build Android native `hoshidicts_jni` from `third_party/hoshidicts-kotlin-bridge` while linking to `third_party/hoshidicts-gplv3`.
@@ -73,6 +77,7 @@
    - Do not reimplement Yomitan import or dictionary media handling outside the bridge.
    - Verified on emulator with `testdata/JMdict_english.zip`: imported through DocumentsUI, confirmed dictionary list shows `JMdict [2026-04-27]`, confirmed private files `Dictionaries/Term/JMdict [2026-04-27]/index.json`, `blobs.bin`, `hash.table`, and `Dictionaries/config.json`, and temporarily verified native lookup query returned `猫` for lookup text `猫` before removing the debug UI.
    - Verified on emulator with `testdata/JMdict_english.zip`: toggled `JMdict [2026-04-27]` off and confirmed `Dictionaries/config.json` wrote `"isEnabled": false`, swiped the row from right to left and confirmed `Dictionaries/Term` was empty with an empty config, then reimported the zip through DocumentsUI and confirmed the row and enabled config were restored.
+   - Verified on emulator with `testdata/MK3.zip`: imported through DocumentsUI, confirmed dictionary list shows `明鏡国語辞典 第三版`, and confirmed private files plus `Dictionaries/config.json` are written under app storage.
 
 7. `todo` - Highlights and notes foundation
    - Store highlight anchors based on WebView range data.

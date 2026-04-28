@@ -79,6 +79,7 @@ import moe.antimony.hoshi.epub.Bookmark
 import moe.antimony.hoshi.epub.EpubBook
 import moe.antimony.hoshi.epub.EpubBookParser
 import moe.antimony.hoshi.features.dictionary.DictionaryView
+import moe.antimony.hoshi.features.dictionary.DictionarySearchView
 import moe.antimony.hoshi.features.reader.ReaderSettings
 import moe.antimony.hoshi.features.reader.ReaderSettingsStore
 import moe.antimony.hoshi.features.reader.ReaderWebView
@@ -280,8 +281,7 @@ fun BookshelfView(
                 onContextMenuEntryChange = { contextMenuEntry = it },
                 onDeleteCandidate = { deleteCandidate = it },
             )
-            MainTab.Dictionary -> DictionaryView(
-                onClose = { selectedTab = MainTab.Books },
+            MainTab.Dictionary -> DictionarySearchView(
                 modifier = contentModifier.fillMaxSize(),
             )
             MainTab.Settings -> SettingsTab(

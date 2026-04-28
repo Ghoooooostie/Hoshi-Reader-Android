@@ -1,0 +1,313 @@
+package moe.antimony.hoshi.features.dictionary
+
+import android.annotation.SuppressLint
+import android.webkit.WebView
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import de.manhhao.hoshi.LookupResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import moe.antimony.hoshi.dictionary.DictionaryRepository
+import moe.antimony.hoshi.dictionary.LookupEngine
+
+private const val DictionarySearchTopSpacerPx = 118
+
+internal data class DictionarySearchRenderState(
+    val lastQuery: String,
+    val html: String,
+    val hasResults: Boolean,
+)
+
+internal object DictionarySearchContent {
+    fun runLookup(
+        query: String,
+        lookup: (String) -> List<LookupResult>,
+        assets: LookupPopupAssets,
+        dictionaryStyles: Map<String, String> = emptyMap(),
+    ): DictionarySearchRenderState {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            return DictionarySearchRenderState(lastQuery = "", html = "", hasResults = false)
+        }
+        val results = lookup(trimmed)
+        if (results.isEmpty()) {
+            return DictionarySearchRenderState(lastQuery = trimmed, html = "", hasResults = false)
+        }
+        return DictionarySearchRenderState(
+            lastQuery = trimmed,
+            html = LookupPopupHtml.render(
+                results = results,
+                assets = assets,
+                dictionaryStyles = dictionaryStyles,
+                topSpacerPx = DictionarySearchTopSpacerPx,
+            ),
+            hasResults = true,
+        )
+    }
+}
+
+@Composable
+fun DictionarySearchView(
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val assets = remember(context) { LookupPopupAssets.load(context) }
+    val repository = remember { DictionaryRepository(context.filesDir, context.cacheDir) }
+    var query by remember { mutableStateOf("") }
+    var html by remember { mutableStateOf("") }
+    var hasSearched by remember { mutableStateOf(false) }
+    var isSearching by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    fun runLookup() {
+        scope.launch {
+            isSearching = true
+            errorMessage = null
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    repository.rebuildLookupQuery()
+                    val styles = LookupEngine.getStyles().associate { it.dictName to it.styles }
+                    DictionarySearchContent.runLookup(
+                        query = query,
+                        lookup = { LookupEngine.lookup(it) },
+                        assets = assets,
+                        dictionaryStyles = styles,
+                    )
+                }
+            }.onSuccess { state ->
+                html = state.html
+                hasSearched = true
+            }.onFailure {
+                html = ""
+                hasSearched = true
+                errorMessage = it.localizedMessage ?: "Lookup failed."
+            }
+            isSearching = false
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            runCatching { repository.rebuildLookupQuery() }
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F8)),
+    ) {
+        when {
+            html.isNotBlank() -> DictionaryResultWebView(
+                html = html,
+                modifier = Modifier.fillMaxSize(),
+            )
+            errorMessage != null -> DictionarySearchMessage(
+                text = requireNotNull(errorMessage),
+                modifier = Modifier.fillMaxSize(),
+            )
+            hasSearched && !isSearching -> DictionarySearchMessage(
+                text = "",
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        DictionarySearchBar(
+            query = query,
+            isSearching = isSearching,
+            onQueryChange = { query = it },
+            onSubmit = ::runLookup,
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+        )
+    }
+}
+
+@Composable
+private fun DictionarySearchBar(
+    query: String,
+    isSearching: Boolean,
+    onQueryChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = CircleShape,
+        color = Color.White.copy(alpha = 0.86f),
+        shadowElevation = 8.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(start = 16.dp, end = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SearchGlyph(modifier = Modifier.size(20.dp))
+            Box(modifier = Modifier.weight(1f)) {
+                if (query.isEmpty()) {
+                    Text(
+                        text = "Search",
+                        color = Color(0xFF8E8E93),
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                }
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onPreviewKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
+                                onSubmit()
+                                true
+                            } else {
+                                false
+                            }
+                        },
+                    enabled = !isSearching,
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.titleLarge.copy(color = Color(0xFF30323D)),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
+                )
+            }
+            if (query.isNotEmpty()) {
+                IconButton(
+                    onClick = { onQueryChange("") },
+                    modifier = Modifier.size(34.dp),
+                ) {
+                    ClearGlyph(modifier = Modifier.size(24.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchGlyph(modifier: Modifier = Modifier) {
+    val color = Color(0xFF8E8E93)
+    Canvas(modifier = modifier) {
+        val strokeWidth = 2.dp.toPx()
+        drawCircle(
+            color = color,
+            radius = size.minDimension * 0.32f,
+            center = Offset(size.width * 0.43f, size.height * 0.43f),
+            style = Stroke(width = strokeWidth),
+        )
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.64f, size.height * 0.64f),
+            end = Offset(size.width * 0.88f, size.height * 0.88f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
+private fun ClearGlyph(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val strokeWidth = 1.8.dp.toPx()
+        drawCircle(color = Color(0xFFE1E1E6), radius = size.minDimension / 2f)
+        drawLine(
+            color = Color(0xFF8E8E93),
+            start = Offset(size.width * 0.34f, size.height * 0.34f),
+            end = Offset(size.width * 0.66f, size.height * 0.66f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color = Color(0xFF8E8E93),
+            start = Offset(size.width * 0.66f, size.height * 0.34f),
+            end = Offset(size.width * 0.34f, size.height * 0.66f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
+private fun DictionarySearchMessage(text: String, modifier: Modifier = Modifier) {
+    if (text.isBlank()) return
+    Column(
+        modifier = modifier.padding(top = 112.dp, start = 28.dp, end = 28.dp),
+    ) {
+        Text(text = text, color = MaterialTheme.colorScheme.error)
+    }
+}
+
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+private fun DictionaryResultWebView(
+    html: String,
+    modifier: Modifier = Modifier,
+) {
+    AndroidView(
+        modifier = modifier.fillMaxSize(),
+        factory = { context ->
+            WebView(context).apply {
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = false
+                settings.allowFileAccess = false
+                settings.allowContentAccess = false
+                isVerticalScrollBarEnabled = false
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            }
+        },
+        update = { webView ->
+            webView.loadDataWithBaseURL(
+                "https://hoshi.local/dictionary/",
+                html,
+                "text/html",
+                "UTF-8",
+                null,
+            )
+        },
+    )
+}
