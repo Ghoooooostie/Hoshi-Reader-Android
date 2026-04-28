@@ -15,7 +15,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,6 +23,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -33,15 +34,30 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,11 +72,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
@@ -304,6 +318,22 @@ private fun BoxScope.ReaderBottomChrome(
     modifier: Modifier = Modifier,
 ) {
     val colors = readerChromeColors(settings)
+    if (menuExpanded) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxSize()
+                .clickable(onClick = onDismissMenu),
+        )
+        ReaderMenuCard(
+            colors = colors,
+            onAppearance = onAppearance,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
+                .padding(end = 24.dp, bottom = 92.dp),
+        )
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -312,20 +342,91 @@ private fun BoxScope.ReaderBottomChrome(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ReaderGlassButton(colors = colors, onClick = onClose) {
-            ChevronLeftGlyph(Color(colors.buttonContent))
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = "Back",
+                modifier = Modifier.size(34.dp),
+                tint = Color(colors.buttonContent),
+            )
         }
         Spacer(Modifier.weight(1f))
-        Box {
-            ReaderGlassButton(colors = colors, onClick = onMenu) {
-                SlidersGlyph(Color(colors.buttonContent))
-            }
-            DropdownMenu(expanded = menuExpanded, onDismissRequest = onDismissMenu) {
-                DropdownMenuItem(
-                    text = { Text("Appearance") },
-                    onClick = onAppearance,
-                )
-            }
+        ReaderGlassButton(colors = colors, onClick = onMenu) {
+            Icon(
+                imageVector = Icons.Rounded.Tune,
+                contentDescription = "Reader Menu",
+                modifier = Modifier.size(30.dp),
+                tint = Color(colors.buttonContent),
+            )
         }
+    }
+}
+
+@Composable
+private fun ReaderMenuCard(
+    colors: ReaderChromeColors,
+    onAppearance: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .width(276.dp)
+            .shadow(
+                elevation = 24.dp,
+                shape = RoundedCornerShape(28.dp),
+                ambientColor = Color.Black.copy(alpha = 0.18f),
+                spotColor = Color.Black.copy(alpha = 0.18f),
+            )
+            .border(BorderStroke(1.dp, Color(colors.menuBorder)), RoundedCornerShape(28.dp)),
+        shape = RoundedCornerShape(28.dp),
+        color = Color(colors.menuContainer),
+        tonalElevation = 8.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 10.dp),
+        ) {
+            ReaderMenuItem(
+                text = "Appearance",
+                icon = {
+                    Icon(
+                        imageVector = Icons.Rounded.Palette,
+                        contentDescription = null,
+                        tint = Color(colors.menuContent),
+                    )
+                },
+                colors = colors,
+                onClick = onAppearance,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReaderMenuItem(
+    text: String,
+    icon: @Composable () -> Unit,
+    colors: ReaderChromeColors,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 22.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        Box(
+            modifier = Modifier.size(30.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            icon()
+        }
+        Text(
+            text = text,
+            color = Color(colors.menuContent),
+            style = MaterialTheme.typography.titleLarge,
+        )
     }
 }
 
@@ -339,7 +440,7 @@ private fun ReaderGlassButton(
         modifier = Modifier
             .shadow(18.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.18f), spotColor = Color.Black.copy(alpha = 0.18f))
             .border(BorderStroke(1.dp, Color(colors.buttonBorder)), CircleShape)
-            .size(60.dp),
+            .size(64.dp),
         shape = CircleShape,
         color = Color(colors.buttonContainer),
         tonalElevation = 6.dp,
@@ -348,37 +449,11 @@ private fun ReaderGlassButton(
         Row(
             modifier = Modifier
                 .clickable(onClick = onClick)
-                .padding(horizontal = 22.dp),
+                .padding(horizontal = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
             content = content,
         )
-    }
-}
-
-@Composable
-private fun ChevronLeftGlyph(color: Color) {
-    Canvas(modifier = Modifier.size(30.dp)) {
-        val stroke = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
-        val path = Path().apply {
-            moveTo(size.width * 0.64f, size.height * 0.12f)
-            lineTo(size.width * 0.28f, size.height * 0.50f)
-            lineTo(size.width * 0.64f, size.height * 0.88f)
-        }
-        drawPath(path, color, style = stroke)
-    }
-}
-
-@Composable
-private fun SlidersGlyph(color: Color) {
-    Canvas(modifier = Modifier.size(30.dp)) {
-        val stroke = Stroke(width = 2.6.dp.toPx(), cap = StrokeCap.Round)
-        val yValues = listOf(size.height * 0.22f, size.height * 0.50f, size.height * 0.78f)
-        val knobXs = listOf(size.width * 0.62f, size.width * 0.38f, size.width * 0.70f)
-        yValues.forEachIndexed { index, y ->
-            drawLine(color, start = androidx.compose.ui.geometry.Offset(size.width * 0.18f, y), end = androidx.compose.ui.geometry.Offset(size.width * 0.82f, y), strokeWidth = stroke.width, cap = StrokeCap.Round)
-            drawCircle(color, radius = 4.2.dp.toPx(), center = androidx.compose.ui.geometry.Offset(knobXs[index], y), style = Stroke(width = stroke.width))
-        }
     }
 }
 
@@ -502,121 +577,153 @@ private fun ReaderAppearanceSheet(
             .filter { it.isNotBlank() }
             .distinct()
     }
+    val sheetBackground = when (settings.theme) {
+        ReaderTheme.Dark -> Color(0xFF1E1E1E)
+        ReaderTheme.Sepia -> Color(0xFFF6EBD8)
+        ReaderTheme.Light, ReaderTheme.System -> Color(0xFFF7F6FA)
+    }
+    val groupColor = when (settings.theme) {
+        ReaderTheme.Dark -> Color(0xFF2A2A2A)
+        ReaderTheme.Sepia -> Color(0xFFFFF8EC)
+        ReaderTheme.Light, ReaderTheme.System -> Color.White
+    }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = sheetBackground,
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Appearance", style = MaterialTheme.typography.titleLarge)
-            SegmentedRow(
-                label = "Theme",
-                options = ReaderTheme.entries.map { it.label },
-                selected = settings.theme.label,
-                onSelected = { label ->
-                    ReaderTheme.entries.firstOrNull { it.label == label }?.let {
-                        onSettingsChange(settings.copy(theme = it))
-                    }
-                },
-            )
-            SegmentedRow(
-                label = "Text Orientation",
-                options = listOf("縦", "横"),
-                selected = if (settings.verticalWriting) "縦" else "横",
-                onSelected = { label ->
-                    onSettingsChange(settings.copy(verticalWriting = label == "縦"))
-                },
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Font", style = MaterialTheme.typography.labelLarge)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box {
-                        TextButton(onClick = { fontMenuExpanded = true }) {
-                            Text(settings.selectedFont)
-                        }
-                        DropdownMenu(
-                            expanded = fontMenuExpanded,
-                            onDismissRequest = { fontMenuExpanded = false },
-                        ) {
-                            fontOptions.forEach { fontName ->
-                                DropdownMenuItem(
-                                    text = { Text(fontName) },
-                                    onClick = {
-                                        fontMenuExpanded = false
-                                        onSettingsChange(settings.copy(selectedFont = fontName))
-                                    },
-                                )
-                            }
-                        }
-                    }
-                    if (!fontManager.isDefaultFont(settings.selectedFont)) {
-                        TextButton(onClick = { fontToDelete = settings.selectedFont }) {
-                            Text("Delete")
-                        }
-                    }
-                }
-                Button(
-                    onClick = { fontImporter.launch(fontMimeTypes) },
-                    enabled = !isImportingFont,
-                ) {
-                    Text(if (isImportingFont) "Importing..." else "Import Font")
-                }
-            }
-            StepperRow(
-                label = "Font Size",
-                value = settings.fontSize.toString(),
-                onDecrease = {
-                    onSettingsChange(settings.copy(fontSize = (settings.fontSize - 1).coerceAtLeast(16)))
-                },
-                onIncrease = {
-                    onSettingsChange(settings.copy(fontSize = (settings.fontSize + 1).coerceAtMost(40)))
-                },
-            )
-            StepperRow(
-                label = "Horizontal Padding",
-                value = "${settings.horizontalPadding}%",
-                onDecrease = {
-                    onSettingsChange(settings.copy(horizontalPadding = (settings.horizontalPadding - 1).coerceAtLeast(0)))
-                },
-                onIncrease = {
-                    onSettingsChange(settings.copy(horizontalPadding = (settings.horizontalPadding + 1).coerceAtMost(50)))
-                },
-            )
-            StepperRow(
-                label = "Vertical Padding",
-                value = "${settings.verticalPadding}%",
-                onDecrease = {
-                    onSettingsChange(settings.copy(verticalPadding = (settings.verticalPadding - 1).coerceAtLeast(0)))
-                },
-                onIncrease = {
-                    onSettingsChange(settings.copy(verticalPadding = (settings.verticalPadding + 1).coerceAtMost(50)))
-                },
-            )
-            Column {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Line Height")
-                    Text(String.format(java.util.Locale.US, "%.2f", settings.lineHeight))
-                }
-                Slider(
-                    value = settings.lineHeight.toFloat(),
-                    onValueChange = { value ->
-                        onSettingsChange(settings.copy(lineHeight = (kotlin.math.round(value * 20) / 20.0)))
-                    },
-                    valueRange = 1.0f..2.5f,
-                    steps = 29,
+            item {
+                Text(
+                    text = "Appearance",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
                 )
             }
-            Button(
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Done")
+            item {
+                ReaderAppearanceGroup(color = groupColor) {
+                    SegmentedRow(
+                        label = "Theme",
+                        options = ReaderTheme.entries.map { it.label },
+                        selected = settings.theme.label,
+                        onSelected = { label ->
+                            ReaderTheme.entries.firstOrNull { it.label == label }?.let {
+                                onSettingsChange(settings.copy(theme = it))
+                            }
+                        },
+                    )
+                    ReaderAppearanceDivider()
+                    SegmentedRow(
+                        label = "Text Orientation",
+                        options = listOf("縦", "横"),
+                        selected = if (settings.verticalWriting) "縦" else "横",
+                        onSelected = { label ->
+                            onSettingsChange(settings.copy(verticalWriting = label == "縦"))
+                        },
+                    )
+                }
+            }
+            item {
+                ReaderAppearanceGroup(color = groupColor) {
+                    ReaderFontRow(
+                        settings = settings,
+                        fontOptions = fontOptions,
+                        fontMenuExpanded = fontMenuExpanded,
+                        onFontMenuExpandedChange = { fontMenuExpanded = it },
+                        onFontSelected = { fontName ->
+                            fontMenuExpanded = false
+                            onSettingsChange(settings.copy(selectedFont = fontName))
+                        },
+                        canDeleteFont = !fontManager.isDefaultFont(settings.selectedFont),
+                        onDeleteFont = { fontToDelete = settings.selectedFont },
+                    )
+                    ReaderAppearanceDivider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Import Font", style = MaterialTheme.typography.bodyLarge)
+                        Button(
+                            onClick = { fontImporter.launch(fontMimeTypes) },
+                            enabled = !isImportingFont,
+                        ) {
+                            Text(if (isImportingFont) "Importing..." else "Import")
+                        }
+                    }
+                }
+            }
+            item {
+                ReaderAppearanceGroup(color = groupColor) {
+                    StepperRow(
+                        label = "Font Size",
+                        value = settings.fontSize.toString(),
+                        onDecrease = {
+                            onSettingsChange(settings.copy(fontSize = (settings.fontSize - 1).coerceAtLeast(16)))
+                        },
+                        onIncrease = {
+                            onSettingsChange(settings.copy(fontSize = (settings.fontSize + 1).coerceAtMost(40)))
+                        },
+                    )
+                    ReaderAppearanceDivider()
+                    StepperRow(
+                        label = "Horizontal Padding",
+                        value = "${settings.horizontalPadding}%",
+                        onDecrease = {
+                            onSettingsChange(settings.copy(horizontalPadding = (settings.horizontalPadding - 1).coerceAtLeast(0)))
+                        },
+                        onIncrease = {
+                            onSettingsChange(settings.copy(horizontalPadding = (settings.horizontalPadding + 1).coerceAtMost(50)))
+                        },
+                    )
+                    ReaderAppearanceDivider()
+                    StepperRow(
+                        label = "Vertical Padding",
+                        value = "${settings.verticalPadding}%",
+                        onDecrease = {
+                            onSettingsChange(settings.copy(verticalPadding = (settings.verticalPadding - 1).coerceAtLeast(0)))
+                        },
+                        onIncrease = {
+                            onSettingsChange(settings.copy(verticalPadding = (settings.verticalPadding + 1).coerceAtMost(50)))
+                        },
+                    )
+                    ReaderAppearanceDivider()
+                    Column(
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Line Height", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                String.format(java.util.Locale.US, "%.2f", settings.lineHeight),
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                        }
+                        Slider(
+                            value = settings.lineHeight.toFloat(),
+                            onValueChange = { value ->
+                                onSettingsChange(settings.copy(lineHeight = (kotlin.math.round(value * 20) / 20.0)))
+                            },
+                            valueRange = 1.0f..2.5f,
+                            steps = 29,
+                        )
+                    }
+                }
+            }
+            item {
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Done")
+                }
             }
         }
     }
@@ -662,23 +769,91 @@ private fun SegmentedRow(
     selected: String,
     onSelected: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(label, style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            options.forEach { option ->
-                val active = option == selected
-                if (active) {
-                    Button(onClick = { onSelected(option) }) {
-                        Text(option)
-                    }
-                } else {
-                    TextButton(onClick = { onSelected(option) }) {
-                        Text(option)
-                    }
+    Column(
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            options.forEachIndexed { index, option ->
+                SegmentedButton(
+                    selected = option == selected,
+                    onClick = { onSelected(option) },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                ) {
+                    Text(option)
                 }
             }
         }
     }
+}
+
+@Composable
+private fun ReaderFontRow(
+    settings: ReaderSettings,
+    fontOptions: List<String>,
+    fontMenuExpanded: Boolean,
+    onFontMenuExpandedChange: (Boolean) -> Unit,
+    onFontSelected: (String) -> Unit,
+    canDeleteFont: Boolean,
+    onDeleteFont: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text("Font", style = MaterialTheme.typography.bodyLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                TextButton(onClick = { onFontMenuExpandedChange(true) }) {
+                    Text(settings.selectedFont)
+                }
+                DropdownMenu(
+                    expanded = fontMenuExpanded,
+                    onDismissRequest = { onFontMenuExpandedChange(false) },
+                ) {
+                    fontOptions.forEach { fontName ->
+                        DropdownMenuItem(
+                            text = { Text(fontName) },
+                            onClick = { onFontSelected(fontName) },
+                        )
+                    }
+                }
+            }
+            if (canDeleteFont) {
+                TextButton(onClick = onDeleteFont) {
+                    Text("Delete")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReaderAppearanceGroup(
+    color: Color,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = color,
+        tonalElevation = 1.dp,
+    ) {
+        Column(content = content)
+    }
+}
+
+@Composable
+private fun ReaderAppearanceDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 20.dp),
+        color = Color(0xFFE4E2E8),
+    )
 }
 
 @Composable
@@ -689,17 +864,41 @@ private fun StepperRow(
     onIncrease: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TextButton(onClick = onDecrease) {
-                Text("-")
-            }
-            Text(value)
-            TextButton(onClick = onIncrease) {
-                Text("+")
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(value, style = MaterialTheme.typography.bodyLarge)
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFFE2E1E7),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onDecrease) {
+                        Icon(
+                            imageVector = Icons.Rounded.Remove,
+                            contentDescription = "Decrease",
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(width = 1.dp, height = 28.dp)
+                            .background(Color(0xFF7D7A85).copy(alpha = 0.35f)),
+                    )
+                    IconButton(onClick = onIncrease) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = "Increase",
+                        )
+                    }
+                }
             }
         }
     }
