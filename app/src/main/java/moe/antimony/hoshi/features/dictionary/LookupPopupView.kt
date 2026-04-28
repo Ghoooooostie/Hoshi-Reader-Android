@@ -93,6 +93,7 @@ fun LookupPopupView(
         ).calculate()
         val frameX = frame.centerX - frame.width / 2
         val frameY = frame.centerY - frame.height / 2
+        val popupBackground = if (state.darkMode) Color.Black else Color.White
         Surface(
             modifier = Modifier
                 .absoluteOffset(
@@ -108,11 +109,13 @@ fun LookupPopupView(
                     onSwipeDismiss = onSwipeDismiss,
                 ),
             shape = RoundedCornerShape(8.dp),
+            color = popupBackground,
             tonalElevation = 8.dp,
             shadowElevation = 8.dp,
         ) {
             LookupPopupWebView(
                 html = html,
+                darkMode = state.darkMode,
                 selectionOffsetX = frameX,
                 selectionOffsetY = frameY,
                 swipeToDismiss = state.swipeToDismiss,
@@ -134,6 +137,7 @@ fun LookupPopupView(
 @Composable
 private fun LookupPopupWebView(
     html: String,
+    darkMode: Boolean,
     selectionOffsetX: Double,
     selectionOffsetY: Double,
     swipeToDismiss: Boolean,
@@ -143,7 +147,7 @@ private fun LookupPopupWebView(
     AndroidView(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Transparent),
+            .background(if (darkMode) Color.Black else Color.White),
         factory = { context ->
             val audioRequestHandler = AudioRequestHandler(LocalAudioRepository(context.filesDir))
             WebView(context).apply {
@@ -153,7 +157,7 @@ private fun LookupPopupWebView(
                 settings.allowContentAccess = false
                 isVerticalScrollBarEnabled = false
                 isHorizontalScrollBarEnabled = false
-                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                setBackgroundColor(if (darkMode) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
                 addJavascriptInterface(
                     PopupWebViewBridge(
                         webView = this,
@@ -168,6 +172,7 @@ private fun LookupPopupWebView(
             }
         },
         update = { webView ->
+            webView.setBackgroundColor(if (darkMode) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
             webView.loadDataWithBaseURL(
                 "https://hoshi.local/popup/",
                 html,

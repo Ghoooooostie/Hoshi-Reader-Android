@@ -240,6 +240,8 @@ internal object LookupPopupHtml {
             --background-color: #fff;
             --background-color-light: #fff;
             --text-color: #000;
+            color-scheme: light;
+            background-color: #fff !important;
         }
 
         html[data-hoshi-color-scheme="dark"],
@@ -252,10 +254,12 @@ internal object LookupPopupHtml {
             --text-color-light3: #888888;
             --text-color-light4: #777777;
             --background-color-dark1: #333333;
+            color-scheme: dark;
+            background-color: #000 !important;
         }
 
         html[data-hoshi-color-scheme="dark"] .overlay {
-            background: #222;
+            background: #000;
         }
 
         html[data-hoshi-color-scheme="dark"] .glossary-group > div[data-dictionary] {

@@ -168,8 +168,22 @@ class LookupPopupHtmlTest {
         assertTrue(html.contains("""<html data-hoshi-color-scheme="dark">"""))
         assertTrue(html.contains("html[data-hoshi-color-scheme=\"dark\"],"))
         assertTrue(html.contains("--text-color: #fff;"))
+        assertTrue(html.contains("background-color: #000 !important;"))
         assertTrue(html.contains("html[data-hoshi-color-scheme=\"dark\"] .glossary-group > div[data-dictionary]"))
         assertTrue(html.contains("color: var(--text-color) !important;"))
+    }
+
+    @Test
+    fun fixesPopupBackgroundToPureWhiteInLightMode() {
+        val html = LookupPopupHtml.render(
+            listOf(lookupResult(expression = "食べる", reading = "たべる", glossary = "eat")),
+            assets = LookupPopupAssets(popupJs = "", popupCss = ""),
+            darkMode = false,
+        )
+
+        assertTrue(html.contains("""<html data-hoshi-color-scheme="light">"""))
+        assertTrue(html.contains("background-color: #fff !important;"))
+        assertTrue(html.contains("color-scheme: light;"))
     }
 
     @Test
