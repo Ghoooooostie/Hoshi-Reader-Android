@@ -27,10 +27,12 @@
    - `done` - Render cover thumbnails in the bookshelf.
    - `done` - Align basic bookshelf sorting with iOS `Recent` / `Title`.
    - `done` - Align single-book delete flow with iOS long-press context action plus confirmation.
+   - `done` - Align the main Books/Dictionary/Settings shell with iOS: floating Books chrome, cover-grid bookshelf, grouped Settings list, and bottom capsule tab bar.
    - `todo` - Align multi-select, shelves, and batch actions with iOS.
    - Verified on emulator with `testdata/test.epub`: cleared app data, imported the EPUB twice through DocumentsUI, confirmed two shelf rows and two independent `files/Books/<uuid>/metadata.json` files, then opened a listed book into the reader.
    - Verified cover thumbnails on emulator with `testdata/test.epub`: imported through DocumentsUI, confirmed `metadata.cover` is `item/image/cover.jpg`, and visually checked the real cover image renders in the shelf row.
    - Verified sorting/deletion on emulator: opened sort menu, switched from `Recent` to `Title`, long-pressed a book row, used `Delete`, confirmed the dialog, and checked `files/Books` metadata count decreased.
+   - Verified main shell UI on emulator with `testdata/test.epub`: imported through Android DocumentsUI from `testdata`, opened the reader, returned to Books, confirmed the `Unshelved` cover grid with two imported books, and checked the Settings tab renders iOS-ordered grouped cards above the bottom capsule tab bar.
 
 3. `in_progress` - Reader settings
    - `done` - Implement iOS-aligned reader Appearance sheet entry from the reader.
