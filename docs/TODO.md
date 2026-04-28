@@ -65,11 +65,12 @@
    - `done` - Share the iOS-style lookup popup stack between Dictionary and Reader, including child popup dismissal and popup-local selection coordinate conversion.
    - `done` - Align Reader popup coordinate space with iOS by rendering popup stack in the same padded content layer as the chapter WebView, so first lookup popups stay below the system status area.
    - `done` - Align Reader lookup selection highlighting with iOS by adding the same `::highlight(hoshi-selection)` style used by popup WebViews.
+   - `done` - Align iOS dictionary popup settings plumbing: `maxResults`, `scanLength`, dictionary collapse, compact glossaries, expression tags, harmonic frequency, pitch deduplication, and custom CSS now feed the shared WebView popup renderer.
    - `done` - Add first-pass popup positioning using iOS `PopupLayout` geometry.
    - `done` - Close lookup popup from the same Reader-level tap-outside and page-turn paths as iOS, and add popup-level horizontal swipe dismissal for gestures that start on the popup itself.
    - `done` - Replace raw Compose glossary text with a popup WebView renderer that expands Yomitan structured-content JSON into HTML without adding search or other extra capabilities.
    - `done` - Copy iOS `popup.js` and `popup.css` into Android assets and render lookup entries through the same `entries-container` / `renderPopup()` pipeline and `lookupEntries` data shape as iOS.
-   - `todo` - Wire remaining iOS `PopupWebView` behaviors: dictionary media scheme, audio controls, Anki mining, and user-configurable popup settings.
+   - `todo` - Wire remaining iOS `PopupWebView` behaviors: dictionary media scheme, audio controls, and Anki mining.
    - Verified on emulator with `testdata/test.epub` and imported `testdata/JMdict_english.zip`: opened a vertical text chapter, tapped `お冷や`, and confirmed a popup appears over the reader with `お冷や`, reading `おひや`, and JMdict glossary content.
    - Verified on emulator with `testdata/test.epub` and imported `testdata/JMdict_english.zip`: tapped `お冷や`, confirmed the popup reading `ひや` appears, then confirmed popup-level horizontal swipe, tap outside the popup, and Reader page swipe each dismiss the popup without leaving the reading node visible.
    - Verified on emulator with `testdata/test.epub` and imported `testdata/JMdict_english.zip`: tapped `お冷や`, inspected the popup WebView through Chrome DevTools Protocol, and confirmed it renders `冷や`, `ひや`, `cold water`, and `JMdict [2026-04-27]` as HTML while no longer showing raw `structured-content` JSON; also rechecked popup WebView horizontal swipe dismissal.
@@ -87,12 +88,17 @@
    - `done` - Persist iOS-shaped `Dictionaries/config.json` and list imported term dictionaries.
    - `done` - Align term dictionary enable/disable and swipe-to-delete with iOS `DictionaryView` list behavior.
    - `done` - Add iOS-aligned Term/Frequency/Pitch type picker and import-type menu, and route import/list/toggle/delete through the selected dictionary type.
-   - `todo` - Align reordering and detailed import/update state with iOS `DictionaryView`.
+   - `done` - Align iOS dictionary settings: default Dictionary tab, Lookup steppers, Behaviour toggles, custom CSS editor entry, and shared persistence matching `UserConfig` defaults.
+   - `done` - Persist dictionary display order in `Dictionaries/config.json` and expose row-level order adjustment so lookup order and management order stay aligned.
+   - `todo` - Align download recommended dictionaries and update dictionaries state with iOS `DictionaryView`.
    - Do not reimplement Yomitan import or dictionary media handling outside the bridge.
    - Verified on emulator with `testdata/JMdict_english.zip`: imported through DocumentsUI, confirmed dictionary list shows `JMdict [2026-04-27]`, confirmed private files `Dictionaries/Term/JMdict [2026-04-27]/index.json`, `blobs.bin`, `hash.table`, and `Dictionaries/config.json`, and temporarily verified native lookup query returned `猫` for lookup text `猫` before removing the debug UI.
    - Verified on emulator with `testdata/JMdict_english.zip`: toggled `JMdict [2026-04-27]` off and confirmed `Dictionaries/config.json` wrote `"isEnabled": false`, swiped the row from right to left and confirmed `Dictionaries/Term` was empty with an empty config, then reimported the zip through DocumentsUI and confirmed the row and enabled config were restored.
    - Verified on emulator with `testdata/MK3.zip`: imported through DocumentsUI, confirmed dictionary list shows `明鏡国語辞典 第三版`, and confirmed private files plus `Dictionaries/config.json` are written under app storage.
    - Verified on emulator with existing `testdata/MK3.zip`, imported `testdata/freq.zip` as Frequency and `testdata/pitch.zip` as Pitch through the iOS-style import menu, confirmed the type picker lists `Jiten` under Frequency and `アクセント辞典` under Pitch, then ran an app-process instrumentation lookup for `食べる` and confirmed native results include both frequency and pitch metadata.
+   - Verified on emulator without clearing app data: opened Settings -> Dictionaries, confirmed Default to Dictionary Tab, Settings, Term/Frequency/Pitch, custom CSS entry, and two Term dictionaries render; opened dictionary Settings and confirmed iOS Lookup/Behaviour defaults, changed `maxResults` and `collapseDictionaries`, confirmed `shared_prefs/dictionary-settings.xml`, then reset them.
+   - Verified dictionary ordering on emulator with existing `明鏡国語辞典 第三版` and `JMdict [2026-04-27]`: moved the first Term dictionary down, confirmed `Dictionaries/config.json` rewrote order to JMdict first, then moved it back and confirmed the original order was restored.
+   - Verified dictionary lookup on emulator with existing Term/Frequency/Pitch dictionaries and query `test`: Dictionary tab rendered the MK3 result through the WebView popup renderer while the app process stayed alive and crash log remained empty. During this verification, stale dictionary mmap offsets exposed a native crash path; fixed `hoshidicts` query rebuilding/lifetime and added mmap/hash bounds validation so invalid imported dictionaries are skipped instead of crashing lookup.
 
 7. `todo` - Highlights and notes foundation
    - Store highlight anchors based on WebView range data.

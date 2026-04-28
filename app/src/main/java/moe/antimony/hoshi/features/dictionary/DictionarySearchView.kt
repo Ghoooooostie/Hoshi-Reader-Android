@@ -68,6 +68,7 @@ internal object DictionarySearchContent {
         lookup: (String) -> List<LookupResult>,
         assets: LookupPopupAssets,
         dictionaryStyles: Map<String, String> = emptyMap(),
+        dictionarySettings: DictionarySettings = DictionarySettings(),
     ): DictionarySearchRenderState {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) {
@@ -94,6 +95,7 @@ internal object DictionarySearchContent {
                 assets = assets,
                 dictionaryStyles = dictionaryStyles,
                 topSpacerPx = DictionarySearchTopSpacerPx,
+                settings = dictionarySettings,
             ),
             hasResults = true,
             dictionaryStyles = dictionaryStyles,
@@ -109,17 +111,20 @@ fun DictionarySearchView(
     val scope = rememberCoroutineScope()
     val assets = remember(context) { LookupPopupAssets.load(context) }
     val repository = remember { DictionaryRepository(context.filesDir, context.cacheDir) }
+    val dictionarySettingsStore = remember { DictionarySettingsStore(context) }
     var query by remember { mutableStateOf("") }
     var html by remember { mutableStateOf("") }
     var hasSearched by remember { mutableStateOf(false) }
     var isSearching by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var dictionaryStyles by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var dictionarySettings by remember { mutableStateOf(dictionarySettingsStore.load()) }
     var popups by remember { mutableStateOf<List<LookupPopupItem>>(emptyList()) }
     val popupOptions = LookupPopupOptions(
         isVertical = false,
         topInset = DictionaryPopupTopInset,
         bottomInset = DictionaryPopupBottomInset,
+        dictionarySettings = dictionarySettings,
     )
     val lookupPopup = { selection: moe.antimony.hoshi.features.reader.ReaderSelectionData ->
         createLookupPopupItem(
@@ -137,16 +142,19 @@ fun DictionarySearchView(
                 withContext(Dispatchers.IO) {
                     repository.rebuildLookupQuery()
                     val styles = currentDictionaryStyles()
+                    val settings = dictionarySettingsStore.load()
                     DictionarySearchContent.runLookup(
                         query = query,
-                        lookup = { LookupEngine.lookup(it) },
+                        lookup = { LookupEngine.lookup(it, settings.maxResults, settings.scanLength) },
                         assets = assets,
                         dictionaryStyles = styles,
+                        dictionarySettings = settings,
                     )
                 }
             }.onSuccess { state ->
                 html = state.html
                 dictionaryStyles = state.dictionaryStyles
+                dictionarySettings = dictionarySettingsStore.load()
                 popups = emptyList()
                 hasSearched = true
             }.onFailure {
@@ -161,6 +169,7 @@ fun DictionarySearchView(
     }
 
     LaunchedEffect(Unit) {
+        dictionarySettings = dictionarySettingsStore.load()
         withContext(Dispatchers.IO) {
             runCatching { repository.rebuildLookupQuery() }
         }

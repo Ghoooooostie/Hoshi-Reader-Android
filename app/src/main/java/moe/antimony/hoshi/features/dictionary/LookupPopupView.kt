@@ -28,6 +28,7 @@ data class LookupPopupState(
     val selection: ReaderSelectionData,
     val results: List<LookupResult>,
     val dictionaryStyles: Map<String, String> = emptyMap(),
+    val dictionarySettings: DictionarySettings = DictionarySettings(),
     val isVertical: Boolean = true,
     val isFullWidth: Boolean = false,
     val topInset: Double = 0.0,
@@ -45,11 +46,12 @@ fun LookupPopupView(
     if (state.results.isEmpty()) return
     val context = LocalContext.current
     val assets = remember(context) { LookupPopupAssets.load(context) }
-    val html = remember(state.results, state.dictionaryStyles, assets) {
+    val html = remember(state.results, state.dictionaryStyles, state.dictionarySettings, assets) {
         LookupPopupHtml.render(
             results = state.results,
             assets = assets,
             dictionaryStyles = state.dictionaryStyles,
+            settings = state.dictionarySettings,
         )
     }
 

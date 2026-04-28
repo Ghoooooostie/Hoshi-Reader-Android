@@ -80,6 +80,7 @@ import moe.antimony.hoshi.epub.EpubBook
 import moe.antimony.hoshi.epub.EpubBookParser
 import moe.antimony.hoshi.features.dictionary.DictionaryView
 import moe.antimony.hoshi.features.dictionary.DictionarySearchView
+import moe.antimony.hoshi.features.dictionary.DictionarySettingsStore
 import moe.antimony.hoshi.features.reader.ReaderSettings
 import moe.antimony.hoshi.features.reader.ReaderSettingsStore
 import moe.antimony.hoshi.features.reader.ReaderWebView
@@ -96,9 +97,18 @@ fun BookshelfView(
     val scope = rememberCoroutineScope()
     val bookStorage = remember { BookStorage(context.filesDir) }
     val dictionaryRepository = remember { DictionaryRepository(context.filesDir, context.cacheDir) }
+    val dictionarySettingsStore = remember { DictionarySettingsStore(context) }
     val readerSettingsStore = remember { ReaderSettingsStore(context) }
     var readerSettings by remember { mutableStateOf(readerSettingsStore.load()) }
-    var selectedTab by remember { mutableStateOf(MainTab.Books) }
+    var selectedTab by remember {
+        mutableStateOf(
+            if (dictionarySettingsStore.load().dictionaryTabDefault) {
+                MainTab.Dictionary
+            } else {
+                MainTab.Books
+            },
+        )
+    }
     var settingsDestination by remember { mutableStateOf<SettingsDestination?>(null) }
     var bookEntries by remember { mutableStateOf<List<BookEntry>>(emptyList()) }
     var sortOption by remember { mutableStateOf(BookSortOption.Recent) }

@@ -25,4 +25,27 @@ object DictionaryManager {
         }
         return result
     }
+
+    fun moveDictionaries(
+        dictionaries: List<DictionaryInfo>,
+        fromIndex: Int,
+        toIndex: Int,
+    ): List<DictionaryConfig.DictionaryEntry> {
+        if (dictionaries.isEmpty() || fromIndex !in dictionaries.indices) {
+            return dictionaries.toConfigEntries()
+        }
+        val reordered = dictionaries.toMutableList()
+        val moved = reordered.removeAt(fromIndex)
+        reordered.add(toIndex.coerceIn(0, reordered.size), moved)
+        return reordered.toConfigEntries()
+    }
+
+    private fun List<DictionaryInfo>.toConfigEntries(): List<DictionaryConfig.DictionaryEntry> =
+        mapIndexed { index, dictionary ->
+            DictionaryConfig.DictionaryEntry(
+                fileName = dictionary.path.name,
+                isEnabled = dictionary.isEnabled,
+                order = index,
+            )
+        }
 }

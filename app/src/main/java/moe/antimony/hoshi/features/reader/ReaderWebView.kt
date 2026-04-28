@@ -70,6 +70,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import moe.antimony.hoshi.epub.EpubBook
+import moe.antimony.hoshi.features.dictionary.DictionarySettingsStore
 import moe.antimony.hoshi.features.dictionary.LookupPopupItem
 import moe.antimony.hoshi.features.dictionary.LookupPopupOptions
 import moe.antimony.hoshi.features.dictionary.LookupPopupStackView
@@ -109,17 +110,24 @@ fun ReaderWebView(
     var lookupPopups by remember { mutableStateOf<List<LookupPopupItem>>(emptyList()) }
     val context = LocalContext.current
     val fontManager = remember { ReaderFontManager(context.filesDir) }
+    val dictionarySettingsStore = remember { DictionarySettingsStore(context) }
     val view = LocalView.current
     val systemDarkTheme = isSystemInDarkTheme()
     fun lookupRootPopup(selection: ReaderSelectionData): Pair<LookupPopupItem, Int>? =
         createLookupPopupItem(
             selection = selection,
-            options = LookupPopupOptions(isVertical = effectiveSettings.verticalWriting),
+            options = LookupPopupOptions(
+                isVertical = effectiveSettings.verticalWriting,
+                dictionarySettings = dictionarySettingsStore.load(),
+            ),
         )
     fun lookupChildPopup(selection: ReaderSelectionData): Pair<LookupPopupItem, Int>? =
         createLookupPopupItem(
             selection = selection,
-            options = LookupPopupOptions(isVertical = false),
+            options = LookupPopupOptions(
+                isVertical = false,
+                dictionarySettings = dictionarySettingsStore.load(),
+            ),
         )
     val handleTextSelected: (ReaderSelectionData) -> Int? = { selection ->
         lookupPopups = emptyList()

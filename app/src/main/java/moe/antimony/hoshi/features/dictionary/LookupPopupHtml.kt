@@ -36,9 +36,11 @@ internal object LookupPopupHtml {
         assets: LookupPopupAssets,
         dictionaryStyles: Map<String, String> = emptyMap(),
         topSpacerPx: Int = 0,
+        settings: DictionarySettings = DictionarySettings(),
     ): String {
         val entries = entriesJson(results)
         val styles = dictionaryStylesJson(dictionaryStyles)
+        val normalizedSettings = settings.normalized()
         val topSpacer = if (topSpacerPx > 0) {
             """<div style="height: ${topSpacerPx}px;"></div>"""
         } else {
@@ -86,11 +88,11 @@ internal object LookupPopupHtml {
                             getEntry: { postMessage: async function(index) { return window.lookupEntries[index]; } }
                         }
                     };
-                    window.collapseDictionaries = false;
-                    window.compactGlossaries = true;
-                    window.showExpressionTags = false;
-                    window.harmonicFrequency = false;
-                    window.deduplicatePitchAccents = false;
+                    window.collapseDictionaries = ${normalizedSettings.collapseDictionaries};
+                    window.compactGlossaries = ${normalizedSettings.compactGlossaries};
+                    window.showExpressionTags = ${normalizedSettings.showExpressionTags};
+                    window.harmonicFrequency = ${normalizedSettings.harmonicFrequency};
+                    window.deduplicatePitchAccents = ${normalizedSettings.deduplicatePitchAccents};
                     window.audioSources = [];
                     window.audioEnableAutoplay = false;
                     window.audioPlaybackMode = "interrupt";
@@ -99,7 +101,7 @@ internal object LookupPopupHtml {
                     window.useAnkiConnect = false;
                     window.embedMedia = false;
                     window.compactGlossariesAnki = false;
-                    window.customCSS = "";
+                    window.customCSS = ${JsonPrimitive(normalizedSettings.customCSS)};
                     window.swipeThreshold = 80;
                     window.dictionaryStyles = $styles;
                     window.lookupEntries = $entries;

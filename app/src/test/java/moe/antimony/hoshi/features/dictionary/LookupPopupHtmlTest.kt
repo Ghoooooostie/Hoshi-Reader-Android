@@ -106,6 +106,29 @@ class LookupPopupHtmlTest {
         assertTrue(html.contains(""""pitchPositions":[2]"""))
     }
 
+    @Test
+    fun injectsIosDictionaryDisplaySettingsIntoPopupWebView() {
+        val html = LookupPopupHtml.render(
+            listOf(lookupResult(expression = "食べる", reading = "たべる", glossary = "eat")),
+            assets = LookupPopupAssets(popupJs = "", popupCss = ""),
+            settings = DictionarySettings(
+                collapseDictionaries = true,
+                compactGlossaries = false,
+                showExpressionTags = true,
+                harmonicFrequency = true,
+                deduplicatePitchAccents = true,
+                customCSS = ".entry-header { color: red; }",
+            ),
+        )
+
+        assertTrue(html.contains("window.collapseDictionaries = true;"))
+        assertTrue(html.contains("window.compactGlossaries = false;"))
+        assertTrue(html.contains("window.showExpressionTags = true;"))
+        assertTrue(html.contains("window.harmonicFrequency = true;"))
+        assertTrue(html.contains("window.deduplicatePitchAccents = true;"))
+        assertTrue(html.contains("""window.customCSS = ".entry-header { color: red; }";"""))
+    }
+
     private fun lookupResult(
         expression: String,
         reading: String,

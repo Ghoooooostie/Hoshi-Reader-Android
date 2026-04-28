@@ -72,7 +72,39 @@ class DictionaryManagerTest {
         assertEquals(listOf(0, 1, 2), result.map { it.order })
     }
 
-    private fun dictionaryInfo(title: String, fileName: String): DictionaryInfo =
+    @Test
+    fun moveDictionariesRewritesIosConfigOrderWithoutChangingEnabledState() {
+        val dictionaries = listOf(
+            dictionaryInfo(title = "First", fileName = "First", isEnabled = true),
+            dictionaryInfo(title = "Second", fileName = "Second", isEnabled = false),
+            dictionaryInfo(title = "Third", fileName = "Third", isEnabled = true),
+        )
+
+        val result = DictionaryManager.moveDictionaries(dictionaries, fromIndex = 2, toIndex = 0)
+
+        assertEquals(listOf("Third", "First", "Second"), result.map { it.fileName })
+        assertEquals(listOf(true, true, false), result.map { it.isEnabled })
+        assertEquals(listOf(0, 1, 2), result.map { it.order })
+    }
+
+    @Test
+    fun moveDictionariesClampsTargetIndexLikeIosMove() {
+        val dictionaries = listOf(
+            dictionaryInfo(title = "First", fileName = "First"),
+            dictionaryInfo(title = "Second", fileName = "Second"),
+        )
+
+        val result = DictionaryManager.moveDictionaries(dictionaries, fromIndex = 0, toIndex = 99)
+
+        assertEquals(listOf("Second", "First"), result.map { it.fileName })
+        assertEquals(listOf(0, 1), result.map { it.order })
+    }
+
+    private fun dictionaryInfo(
+        title: String,
+        fileName: String,
+        isEnabled: Boolean = true,
+    ): DictionaryInfo =
         DictionaryInfo(
             index = DictionaryIndex(
                 title = title,
@@ -83,5 +115,6 @@ class DictionaryManagerTest {
                 downloadUrl = "",
             ),
             path = File("/tmp/$fileName"),
+            isEnabled = isEnabled,
         )
 }

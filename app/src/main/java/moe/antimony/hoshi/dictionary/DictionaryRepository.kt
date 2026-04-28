@@ -65,6 +65,14 @@ class DictionaryRepository(
         rebuildLookupQuery()
     }
 
+    fun moveDictionary(type: DictionaryType, fromIndex: Int, toIndex: Int) {
+        val config = currentConfig().copyForType(type) {
+            DictionaryManager.moveDictionaries(loadDictionaries(type), fromIndex, toIndex)
+        }
+        saveConfig(config)
+        rebuildLookupQuery()
+    }
+
     fun rebuildLookupQuery() {
         val termPaths = loadDictionaries(DictionaryType.Term).filter { it.isEnabled }.map { it.path.absolutePath }.toTypedArray()
         val freqPaths = loadDictionaries(DictionaryType.Frequency).filter { it.isEnabled }.map { it.path.absolutePath }.toTypedArray()

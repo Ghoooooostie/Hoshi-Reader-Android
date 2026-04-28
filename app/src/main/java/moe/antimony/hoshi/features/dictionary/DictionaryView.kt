@@ -6,24 +6,35 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Switch
@@ -58,10 +69,13 @@ fun DictionaryView(
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { DictionaryRepository(context.filesDir, context.cacheDir) }
+    val settingsStore = remember { DictionarySettingsStore(context) }
     var selectedType by remember { mutableStateOf(DictionaryType.Term) }
     var importType by remember { mutableStateOf(DictionaryType.Term) }
     var importMenuExpanded by remember { mutableStateOf(false) }
+    var destination by remember { mutableStateOf<DictionaryDestination?>(null) }
     var dictionaries by remember { mutableStateOf<Map<DictionaryType, List<DictionaryInfo>>>(emptyMap()) }
+    var dictionarySettings by remember { mutableStateOf(settingsStore.load()) }
     var isImporting by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -107,6 +121,20 @@ fun DictionaryView(
         }
     }
 
+    fun moveDictionary(fromIndex: Int, toIndex: Int) {
+        scope.launch {
+            withContext(Dispatchers.IO) {
+                repository.moveDictionary(selectedType, fromIndex, toIndex)
+            }
+            reload()
+        }
+    }
+
+    fun updateSettings(transform: (DictionarySettings) -> DictionarySettings) {
+        dictionarySettings = transform(dictionarySettings).normalized()
+        settingsStore.save(dictionarySettings)
+    }
+
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
         uris.forEach { uri ->
@@ -125,6 +153,29 @@ fun DictionaryView(
     LaunchedEffect(Unit) {
         reload()
     }
+
+    when (destination) {
+        DictionaryDestination.Settings -> {
+            DictionarySettingsView(
+                settings = dictionarySettings,
+                onSettingsChange = ::updateSettings,
+                onClose = { destination = null },
+                modifier = modifier,
+            )
+            return
+        }
+        DictionaryDestination.CustomCss -> {
+            DictionaryCustomCssView(
+                settings = dictionarySettings,
+                onSettingsChange = ::updateSettings,
+                onClose = { destination = null },
+                modifier = modifier,
+            )
+            return
+        }
+        null -> Unit
+    }
+
     BackHandler(onBack = onClose)
 
     Scaffold(
@@ -138,6 +189,9 @@ fun DictionaryView(
                     }
                 },
                 actions = {
+                    TextButton(onClick = { destination = DictionaryDestination.CustomCss }) {
+                        Text("{}")
+                    }
                     Box {
                         TextButton(
                             onClick = { importMenuExpanded = true },
@@ -179,6 +233,32 @@ fun DictionaryView(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                     ) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(28.dp),
+                            color = Color.White,
+                        ) {
+                            Column {
+                                ListItem(
+                                    headlineContent = { Text("Default to Dictionary Tab") },
+                                    trailingContent = {
+                                        Switch(
+                                            checked = dictionarySettings.dictionaryTabDefault,
+                                            onCheckedChange = { checked ->
+                                                updateSettings { it.copy(dictionaryTabDefault = checked) }
+                                            },
+                                        )
+                                    },
+                                )
+                                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                                ListItem(
+                                    headlineContent = { Text("Settings") },
+                                    trailingContent = { Text("›", color = Color(0xFF8E8E93)) },
+                                    modifier = Modifier.clickable { destination = DictionaryDestination.Settings },
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(18.dp))
                         SingleChoiceSegmentedButtonRow(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -218,10 +298,15 @@ fun DictionaryView(
                         items = currentDictionaries,
                         key = { it.path.name },
                     ) { dictionary ->
+                        val index = currentDictionaries.indexOfFirst { it.path.name == dictionary.path.name }
                         DictionaryRow(
                             dictionary = dictionary,
                             onEnabledChange = { setDictionaryEnabled(dictionary, it) },
                             onDelete = { deleteDictionary(dictionary) },
+                            canMoveUp = index > 0,
+                            canMoveDown = index in 0 until currentDictionaries.lastIndex,
+                            onMoveUp = { moveDictionary(index, index - 1) },
+                            onMoveDown = { moveDictionary(index, index + 1) },
                         )
                     }
                 }
@@ -238,6 +323,11 @@ fun DictionaryView(
             }
         }
     }
+}
+
+private enum class DictionaryDestination {
+    Settings,
+    CustomCss,
 }
 
 private val zipMimeTypes = arrayOf(
@@ -259,6 +349,10 @@ private fun DictionaryRow(
     dictionary: DictionaryInfo,
     onEnabledChange: (Boolean) -> Unit,
     onDelete: () -> Unit,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
 ) {
     val dismissState = rememberSwipeToDismissBoxState()
 
@@ -288,11 +382,235 @@ private fun DictionaryRow(
             headlineContent = { Text(dictionary.index.title) },
             supportingContent = { Text(dictionary.index.revision) },
             trailingContent = {
-                Switch(
-                    checked = dictionary.isEnabled,
-                    onCheckedChange = onEnabledChange,
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(
+                        onClick = onMoveUp,
+                        enabled = canMoveUp,
+                    ) {
+                        Text("↑")
+                    }
+                    TextButton(
+                        onClick = onMoveDown,
+                        enabled = canMoveDown,
+                    ) {
+                        Text("↓")
+                    }
+                    Switch(
+                        checked = dictionary.isEnabled,
+                        onCheckedChange = onEnabledChange,
+                    )
+                }
             },
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DictionarySettingsView(
+    settings: DictionarySettings,
+    onSettingsChange: ((DictionarySettings) -> DictionarySettings) -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BackHandler(onBack = onClose)
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text("Settings") },
+                navigationIcon = {
+                    TextButton(onClick = onClose) {
+                        Text("‹")
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF5F5F8))
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp),
+        ) {
+            item {
+                SectionLabel("Lookup")
+                SettingsGroup {
+                    StepperRow(
+                        title = "Max Results",
+                        value = settings.maxResults,
+                        onDecrease = {
+                            onSettingsChange { it.copy(maxResults = it.maxResults - 1) }
+                        },
+                        onIncrease = {
+                            onSettingsChange { it.copy(maxResults = it.maxResults + 1) }
+                        },
+                        canDecrease = settings.maxResults > DictionarySettings.MIN_MAX_RESULTS,
+                        canIncrease = settings.maxResults < DictionarySettings.MAX_MAX_RESULTS,
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    StepperRow(
+                        title = "Scan Length",
+                        value = settings.scanLength,
+                        onDecrease = {
+                            onSettingsChange { it.copy(scanLength = it.scanLength - 1) }
+                        },
+                        onIncrease = {
+                            onSettingsChange { it.copy(scanLength = it.scanLength + 1) }
+                        },
+                        canDecrease = settings.scanLength > DictionarySettings.MIN_SCAN_LENGTH,
+                        canIncrease = settings.scanLength < DictionarySettings.MAX_SCAN_LENGTH,
+                    )
+                }
+                SectionLabel("Behaviour")
+                SettingsGroup {
+                    ToggleRow("Auto-collapse Dictionaries", settings.collapseDictionaries) {
+                        onSettingsChange { current -> current.copy(collapseDictionaries = it) }
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    ToggleRow("Compact Glossaries", settings.compactGlossaries) {
+                        onSettingsChange { current -> current.copy(compactGlossaries = it) }
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    ToggleRow("Show Expression Tags", settings.showExpressionTags) {
+                        onSettingsChange { current -> current.copy(showExpressionTags = it) }
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    ToggleRow("Harmonic Frequency", settings.harmonicFrequency) {
+                        onSettingsChange { current -> current.copy(harmonicFrequency = it) }
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    ToggleRow("Deduplicate Pitch Accents", settings.deduplicatePitchAccents) {
+                        onSettingsChange { current -> current.copy(deduplicatePitchAccents = it) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DictionaryCustomCssView(
+    settings: DictionarySettings,
+    onSettingsChange: ((DictionarySettings) -> DictionarySettings) -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BackHandler(onBack = onClose)
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text("Custom CSS") },
+                navigationIcon = {
+                    TextButton(onClick = onClose) {
+                        Text("‹")
+                    }
+                },
+                actions = {
+                    TextButton(onClick = { onSettingsChange { it.copy(customCSS = "") } }) {
+                        Text("Reset")
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            shape = RoundedCornerShape(18.dp),
+            color = Color.White,
+        ) {
+            BasicTextField(
+                value = settings.customCSS,
+                onValueChange = { value ->
+                    onSettingsChange { it.copy(customCSS = value) }
+                },
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text = text,
+        color = Color(0xFF8E8E93),
+        style = MaterialTheme.typography.titleLarge,
+        modifier = Modifier.padding(start = 8.dp, top = 24.dp, bottom = 8.dp),
+    )
+}
+
+@Composable
+private fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = Color.White,
+    ) {
+        Column(content = content)
+    }
+}
+
+@Composable
+private fun StepperRow(
+    title: String,
+    value: Int,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit,
+    canDecrease: Boolean,
+    canIncrease: Boolean,
+) {
+    ListItem(
+        headlineContent = { Text(title) },
+        trailingContent = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(value.toString())
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = Color(0xFFD1D1D6),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = onDecrease, enabled = canDecrease) {
+                            Text("−")
+                        }
+                        TextButton(onClick = onIncrease, enabled = canIncrease) {
+                            Text("+")
+                        }
+                    }
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun ToggleRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    ListItem(
+        headlineContent = { Text(title) },
+        trailingContent = {
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+            )
+        },
+    )
 }
