@@ -1209,6 +1209,8 @@ function createAudioButton(expression, reading, entryIndex) {
         className: 'audio-button',
         textContent: '♪',
         onclick: async () => {
+            button.classList.add('pressed');
+            setTimeout(() => button.classList.remove('pressed'), 180);
             if (!audioUrls[entryIndex]) {
                 audioUrls[entryIndex] = await fetchAudioUrl(expression, reading);
             }

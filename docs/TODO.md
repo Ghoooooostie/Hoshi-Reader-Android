@@ -136,6 +136,7 @@
    - `todo` - Align Sasayaki/audiobook playback with iOS when that feature slice starts.
    - Verified on emulator without clearing app data: opened Settings -> Advanced -> Audio and confirmed Local, AnimeCards, and Default audio sources render with iOS-aligned controls; because the full `testdata/android.db` is 5.8GB and emulator `/data` had only 3.3GB free, extracted a schema-preserving `食べる/たべる` subset from the real `testdata/android.db` into app-private `files/Audio/android.db`, searched `たべる` in Dictionary, tapped the popup audio button, and confirmed `MediaPlayer` decoded local `audio/mpeg` without app crash.
    - Verified remote audio on emulator without clearing app data: temporarily disabled Local Audio, kept the AnimeCards source enabled, searched `たべる`, tapped the popup audio button, and confirmed Android `MediaHTTPService` fetched the remote audio URL and `MediaPlayer` decoded `audio/mpeg` without app crash; restored Local + AnimeCards audio settings afterward.
+   - Verified popup audio button polish on emulator without clearing app data: searched `たべる` in Dictionary, confirmed the audio and Anki buttons share the same header-row alignment, then held the audio button and confirmed the iOS-style circular filled pressed state is visible before playback.
 
 10. `todo` - Sync
     - Investigate Android Google Drive/OAuth integration.
