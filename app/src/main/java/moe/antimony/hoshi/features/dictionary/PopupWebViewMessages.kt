@@ -5,8 +5,11 @@ import android.os.Handler
 import android.os.Looper
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import moe.antimony.hoshi.features.audio.AudioPlaybackMode
+import moe.antimony.hoshi.features.audio.AudioRequestHandler
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
 import moe.antimony.hoshi.features.reader.ReaderSelectionRect
 import org.json.JSONObject
@@ -16,10 +19,12 @@ internal class PopupWebViewCallbacks(
     val onSwipeDismiss: () -> Unit = {},
     val onOpenLink: (String) -> Unit = {},
     val onTextSelected: (ReaderSelectionData) -> Int? = { null },
+    val onPlayWordAudio: (String, AudioPlaybackMode) -> Unit = { _, _ -> },
 )
 
 internal class PopupMessageWebViewClient(
     private val callbacks: PopupWebViewCallbacks,
+    private val audioRequestHandler: AudioRequestHandler? = null,
 ) : WebViewClient() {
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
         handlePopupUrl(request.url)
@@ -27,6 +32,13 @@ internal class PopupMessageWebViewClient(
     @Suppress("OVERRIDE_DEPRECATION")
     override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean =
         handlePopupUrl(Uri.parse(url))
+
+    override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
+        audioRequestHandler?.handleAudioRequest(request.url.toString())
+
+    @Suppress("OVERRIDE_DEPRECATION")
+    override fun shouldInterceptRequest(view: WebView, url: String): WebResourceResponse? =
+        audioRequestHandler?.handleAudioRequest(url)
 
     private fun handlePopupUrl(uri: Uri): Boolean {
         if (uri.scheme != "hoshi-popup") return false
@@ -56,6 +68,11 @@ internal class PopupWebViewBridge(
                 webView.evaluateJavascript("window.hoshiSelection.clearSelection()", null)
             }
             "swipeDismiss" -> mainHandler.post(callbacks.onSwipeDismiss)
+            "playWordAudio" -> payload.optJSONObject("body")?.let { body ->
+                val url = body.optString("url").takeIf { it.isNotBlank() } ?: return
+                val mode = AudioPlaybackMode.fromRawValue(body.optString("mode"))
+                mainHandler.post { callbacks.onPlayWordAudio(url, mode) }
+            }
             "textSelected" -> payload.optJSONObject("body")?.toSelectionData(selectionOffsetX, selectionOffsetY)?.let { selection ->
                 mainHandler.post {
                     val highlightCount = callbacks.onTextSelected(selection) ?: return@post

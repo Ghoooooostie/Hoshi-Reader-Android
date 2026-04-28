@@ -9,6 +9,7 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
+import moe.antimony.hoshi.features.audio.AudioSettings
 
 internal data class LookupPopupAssets(
     val popupJs: String,
@@ -40,6 +41,7 @@ internal object LookupPopupHtml {
         swipeToDismiss: Boolean = false,
         swipeThreshold: Int = 40,
         darkMode: Boolean = false,
+        audioSettings: AudioSettings = AudioSettings(),
     ): String {
         val entries = entriesJson(results)
         val styles = dictionaryStylesJson(dictionaryStyles)
@@ -99,9 +101,10 @@ internal object LookupPopupHtml {
                     window.showExpressionTags = ${normalizedSettings.showExpressionTags};
                     window.harmonicFrequency = ${normalizedSettings.harmonicFrequency};
                     window.deduplicatePitchAccents = ${normalizedSettings.deduplicatePitchAccents};
-                    window.audioSources = [];
-                    window.audioEnableAutoplay = false;
-                    window.audioPlaybackMode = "interrupt";
+                    window.audioSources = ${audioSourcesJson(audioSettings)};
+                    window.audioRequestEndpoint = "https://hoshi.local/audio";
+                    window.audioEnableAutoplay = ${audioSettings.enableAutoplay};
+                    window.audioPlaybackMode = "${audioSettings.playbackMode.rawValue}";
                     window.needsAudio = false;
                     window.allowDupes = false;
                     window.useAnkiConnect = false;
@@ -158,6 +161,11 @@ internal object LookupPopupHtml {
                 put(dictionary, css)
             }
         }
+
+    private fun audioSourcesJson(settings: AudioSettings): String =
+        buildJsonArray {
+            settings.enabledAudioSourceUrls.forEach { add(JsonPrimitive(it)) }
+        }.toString()
 
     private fun LookupResult.toEntryJson(): JsonObject = buildJsonObject {
         put("expression", term.expression)

@@ -1167,7 +1167,10 @@ async function fetchAudioUrl(expression, reading) {
         .replace('{term}', encodeURIComponent(expression))
         .replace('{reading}', encodeURIComponent(reading));
         try {
-            const response = await fetch(`audio://?url=${encodeURIComponent(url)}`);
+            const audioRequestUrl = window.audioRequestEndpoint
+                ? `${window.audioRequestEndpoint}?url=${encodeURIComponent(url)}`
+                : `audio://?url=${encodeURIComponent(url)}`;
+            const response = await fetch(audioRequestUrl);
             const data = await response.json();
             if (data.type === 'audioSourceList' && data.audioSources?.[0]?.url) {
                 return data.audioSources[0].url;

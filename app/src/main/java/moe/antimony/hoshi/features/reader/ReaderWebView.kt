@@ -62,6 +62,7 @@ import androidx.core.view.WindowCompat
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import moe.antimony.hoshi.epub.EpubBook
+import moe.antimony.hoshi.features.audio.AudioSettingsStore
 import moe.antimony.hoshi.features.dictionary.DictionarySettingsStore
 import moe.antimony.hoshi.features.dictionary.LookupPopupItem
 import moe.antimony.hoshi.features.dictionary.LookupPopupOptions
@@ -104,6 +105,7 @@ fun ReaderWebView(
     val context = LocalContext.current
     val fontManager = remember { ReaderFontManager(context.filesDir) }
     val dictionarySettingsStore = remember { DictionarySettingsStore(context) }
+    val audioSettingsStore = remember { AudioSettingsStore(context) }
     val view = LocalView.current
     val systemDarkTheme = isSystemInDarkTheme()
     fun lookupRootPopup(selection: ReaderSelectionData): Pair<LookupPopupItem, Int>? =
@@ -118,6 +120,7 @@ fun ReaderWebView(
                 swipeThreshold = effectiveSettings.popupSwipeThreshold,
                 dictionarySettings = dictionarySettingsStore.load(),
                 darkMode = effectiveSettings.usesDarkInterface(systemDarkTheme),
+                audioSettings = audioSettingsStore.load(),
             ),
         )
     fun lookupChildPopup(selection: ReaderSelectionData): Pair<LookupPopupItem, Int>? =
@@ -132,6 +135,7 @@ fun ReaderWebView(
                 swipeThreshold = effectiveSettings.popupSwipeThreshold,
                 dictionarySettings = dictionarySettingsStore.load(),
                 darkMode = effectiveSettings.usesDarkInterface(systemDarkTheme),
+                audioSettings = audioSettingsStore.load(),
             ),
         )
     val handleTextSelected: (ReaderSelectionData) -> Int? = { selection ->

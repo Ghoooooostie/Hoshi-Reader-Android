@@ -23,6 +23,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import de.manhhao.hoshi.LookupResult
+import moe.antimony.hoshi.features.audio.AudioRequestHandler
+import moe.antimony.hoshi.features.audio.AudioSettings
+import moe.antimony.hoshi.features.audio.LocalAudioRepository
+import moe.antimony.hoshi.features.audio.WordAudioPlayer
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
 
 data class LookupPopupState(
@@ -39,6 +43,7 @@ data class LookupPopupState(
     val topInset: Double = 0.0,
     val bottomInset: Double = 0.0,
     val darkMode: Boolean = false,
+    val audioSettings: AudioSettings = AudioSettings(),
 )
 
 @Composable
@@ -59,6 +64,7 @@ fun LookupPopupView(
         state.swipeToDismiss,
         state.swipeThreshold,
         state.darkMode,
+        state.audioSettings,
         assets,
     ) {
         LookupPopupHtml.render(
@@ -69,6 +75,7 @@ fun LookupPopupView(
             swipeToDismiss = state.swipeToDismiss,
             swipeThreshold = state.swipeThreshold,
             darkMode = state.darkMode,
+            audioSettings = state.audioSettings,
         )
     }
 
@@ -114,6 +121,9 @@ fun LookupPopupView(
                     onTapOutside = onTapOutside,
                     onSwipeDismiss = onSwipeDismiss,
                     onTextSelected = onTextSelected,
+                    onPlayWordAudio = { url, mode ->
+                        WordAudioPlayer.get(context).play(url, mode)
+                    },
                 ),
             )
         }
@@ -135,6 +145,7 @@ private fun LookupPopupWebView(
             .fillMaxSize()
             .background(Color.Transparent),
         factory = { context ->
+            val audioRequestHandler = AudioRequestHandler(LocalAudioRepository(context.filesDir))
             WebView(context).apply {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = false
@@ -152,7 +163,7 @@ private fun LookupPopupWebView(
                     ),
                     "HoshiPopup",
                 )
-                webViewClient = PopupMessageWebViewClient(callbacks)
+                webViewClient = PopupMessageWebViewClient(callbacks, audioRequestHandler)
                 setOnTouchListener(PopupWebViewSwipeListener(swipeToDismiss, swipeThreshold, callbacks.onSwipeDismiss))
             }
         },

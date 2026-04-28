@@ -6,6 +6,7 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
 import moe.antimony.hoshi.dictionary.LookupEngine
+import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
 import java.util.UUID
 
@@ -20,6 +21,7 @@ internal data class LookupPopupOptions(
     val bottomInset: Double = 0.0,
     val dictionarySettings: DictionarySettings = DictionarySettings(),
     val darkMode: Boolean = false,
+    val audioSettings: AudioSettings = AudioSettings(),
 )
 
 internal data class LookupPopupItem(
@@ -52,6 +54,7 @@ internal fun createLookupPopupItem(
             topInset = options.topInset,
             bottomInset = options.bottomInset,
             darkMode = options.darkMode,
+            audioSettings = options.audioSettings,
         ),
     ) to first.matched.codePointCount(0, first.matched.length)
 }

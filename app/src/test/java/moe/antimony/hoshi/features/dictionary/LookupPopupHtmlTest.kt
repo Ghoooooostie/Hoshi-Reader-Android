@@ -6,6 +6,9 @@ import de.manhhao.hoshi.GlossaryEntry
 import de.manhhao.hoshi.LookupResult
 import de.manhhao.hoshi.PitchEntry
 import de.manhhao.hoshi.TermResult
+import moe.antimony.hoshi.features.audio.AudioPlaybackMode
+import moe.antimony.hoshi.features.audio.AudioSettings
+import moe.antimony.hoshi.features.audio.AudioSource
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -167,6 +170,29 @@ class LookupPopupHtmlTest {
         assertTrue(html.contains("--text-color: #fff;"))
         assertTrue(html.contains("html[data-hoshi-color-scheme=\"dark\"] .glossary-group > div[data-dictionary]"))
         assertTrue(html.contains("color: var(--text-color) !important;"))
+    }
+
+    @Test
+    fun injectsEnabledAudioSourcesUsingIosPopupVariables() {
+        val html = LookupPopupHtml.render(
+            listOf(lookupResult(expression = "食べる", reading = "たべる", glossary = "eat")),
+            assets = LookupPopupAssets(popupJs = "", popupCss = ""),
+            audioSettings = AudioSettings(
+                audioSources = listOf(
+                    AudioSettings.LocalAudioSource,
+                    AudioSource(name = "Disabled", url = "https://disabled.test/?term={term}", isEnabled = false),
+                    AudioSource(name = "AnimeCards", url = "https://audio.test/list?term={term}&reading={reading}"),
+                ),
+                enableLocalAudio = true,
+                enableAutoplay = true,
+                playbackMode = AudioPlaybackMode.Duck,
+            ),
+        )
+
+        assertTrue(html.contains("""window.audioSources = ["${AudioSettings.LocalAudioSource.url}","https://audio.test/list?term={term}&reading={reading}"];"""))
+        assertTrue(html.contains("""window.audioRequestEndpoint = "https://hoshi.local/audio";"""))
+        assertTrue(html.contains("window.audioEnableAutoplay = true;"))
+        assertTrue(html.contains("""window.audioPlaybackMode = "duck";"""))
     }
 
     private fun lookupResult(

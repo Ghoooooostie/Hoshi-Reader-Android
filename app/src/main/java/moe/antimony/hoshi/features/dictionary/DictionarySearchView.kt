@@ -50,6 +50,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.antimony.hoshi.dictionary.DictionaryRepository
 import moe.antimony.hoshi.dictionary.LookupEngine
+import moe.antimony.hoshi.features.audio.AudioRequestHandler
+import moe.antimony.hoshi.features.audio.AudioSettings
+import moe.antimony.hoshi.features.audio.AudioSettingsStore
+import moe.antimony.hoshi.features.audio.LocalAudioRepository
+import moe.antimony.hoshi.features.audio.WordAudioPlayer
 
 private const val DictionarySearchTopSpacerPx = 118
 private const val DictionaryPopupTopInset = 118.0
@@ -70,6 +75,7 @@ internal object DictionarySearchContent {
         dictionaryStyles: Map<String, String> = emptyMap(),
         dictionarySettings: DictionarySettings = DictionarySettings(),
         darkMode: Boolean = false,
+        audioSettings: AudioSettings = AudioSettings(),
     ): DictionarySearchRenderState {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) {
@@ -98,6 +104,7 @@ internal object DictionarySearchContent {
                 topSpacerPx = DictionarySearchTopSpacerPx,
                 settings = dictionarySettings,
                 darkMode = darkMode,
+                audioSettings = audioSettings,
             ),
             hasResults = true,
             dictionaryStyles = dictionaryStyles,
@@ -114,6 +121,7 @@ fun DictionarySearchView(
     val assets = remember(context) { LookupPopupAssets.load(context) }
     val repository = remember { DictionaryRepository(context.filesDir, context.cacheDir) }
     val dictionarySettingsStore = remember { DictionarySettingsStore(context) }
+    val audioSettingsStore = remember { AudioSettingsStore(context) }
     var query by remember { mutableStateOf("") }
     var html by remember { mutableStateOf("") }
     var hasSearched by remember { mutableStateOf(false) }
@@ -121,6 +129,7 @@ fun DictionarySearchView(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var dictionaryStyles by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var dictionarySettings by remember { mutableStateOf(dictionarySettingsStore.load()) }
+    var audioSettings by remember { mutableStateOf(audioSettingsStore.load()) }
     var popups by remember { mutableStateOf<List<LookupPopupItem>>(emptyList()) }
     val popupDarkMode = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val popupOptions = LookupPopupOptions(
@@ -129,6 +138,7 @@ fun DictionarySearchView(
         bottomInset = DictionaryPopupBottomInset,
         dictionarySettings = dictionarySettings,
         darkMode = popupDarkMode,
+        audioSettings = audioSettings,
     )
     val lookupPopup = { selection: moe.antimony.hoshi.features.reader.ReaderSelectionData ->
         createLookupPopupItem(
@@ -147,6 +157,7 @@ fun DictionarySearchView(
                     repository.rebuildLookupQuery()
                     val styles = currentDictionaryStyles()
                     val settings = dictionarySettingsStore.load()
+                    val loadedAudioSettings = audioSettingsStore.load()
                     DictionarySearchContent.runLookup(
                         query = query,
                         lookup = { LookupEngine.lookup(it, settings.maxResults, settings.scanLength) },
@@ -154,12 +165,14 @@ fun DictionarySearchView(
                         dictionaryStyles = styles,
                         dictionarySettings = settings,
                         darkMode = popupDarkMode,
+                        audioSettings = loadedAudioSettings,
                     )
                 }
             }.onSuccess { state ->
                 html = state.html
                 dictionaryStyles = state.dictionaryStyles
                 dictionarySettings = dictionarySettingsStore.load()
+                audioSettings = audioSettingsStore.load()
                 popups = emptyList()
                 hasSearched = true
             }.onFailure {
@@ -175,6 +188,7 @@ fun DictionarySearchView(
 
     LaunchedEffect(Unit) {
         dictionarySettings = dictionarySettingsStore.load()
+        audioSettings = audioSettingsStore.load()
         withContext(Dispatchers.IO) {
             runCatching { repository.rebuildLookupQuery() }
         }
@@ -197,6 +211,9 @@ fun DictionarySearchView(
                             popups = listOf(popup)
                             highlightCount
                         }
+                    },
+                    onPlayWordAudio = { url, mode ->
+                        WordAudioPlayer.get(context).play(url, mode)
                     },
                 ),
                 modifier = Modifier.fillMaxSize(),
@@ -333,6 +350,7 @@ private fun DictionaryResultWebView(
     AndroidView(
         modifier = modifier.fillMaxSize(),
         factory = { context ->
+            val audioRequestHandler = AudioRequestHandler(LocalAudioRepository(context.filesDir))
             WebView(context).apply {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = false
@@ -341,11 +359,14 @@ private fun DictionaryResultWebView(
                 isVerticalScrollBarEnabled = false
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 addJavascriptInterface(PopupWebViewBridge(this, callbacks), "HoshiPopup")
-                webViewClient = PopupMessageWebViewClient(callbacks)
+                webViewClient = PopupMessageWebViewClient(callbacks, audioRequestHandler)
             }
         },
         update = { webView ->
-            webView.webViewClient = PopupMessageWebViewClient(callbacks)
+            webView.webViewClient = PopupMessageWebViewClient(
+                callbacks,
+                AudioRequestHandler(LocalAudioRepository(webView.context.filesDir)),
+            )
             webView.loadDataWithBaseURL(
                 "https://hoshi.local/dictionary/",
                 html,

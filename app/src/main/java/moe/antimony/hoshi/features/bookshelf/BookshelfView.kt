@@ -88,6 +88,7 @@ import moe.antimony.hoshi.epub.BookStorage
 import moe.antimony.hoshi.epub.Bookmark
 import moe.antimony.hoshi.epub.EpubBook
 import moe.antimony.hoshi.epub.EpubBookParser
+import moe.antimony.hoshi.features.audio.AdvancedSettingsView
 import moe.antimony.hoshi.features.dictionary.DictionaryView
 import moe.antimony.hoshi.features.dictionary.DictionarySearchView
 import moe.antimony.hoshi.features.dictionary.DictionarySettingsStore
@@ -286,6 +287,14 @@ fun BookshelfView(
         return
     }
 
+    if (settingsDestination == SettingsDestination.Advanced) {
+        AdvancedSettingsView(
+            onClose = { settingsDestination = null },
+            modifier = modifier.fillMaxSize(),
+        )
+        return
+    }
+
     HoshiMainShell(
         selectedTab = selectedTab,
         onSelectedTabChange = {
@@ -336,7 +345,11 @@ fun BookshelfView(
         }
     }
 
-    settingsDestination?.takeIf { it != SettingsDestination.Dictionaries && it != SettingsDestination.Appearance }?.let { destination ->
+    settingsDestination?.takeIf {
+        it != SettingsDestination.Dictionaries &&
+            it != SettingsDestination.Appearance &&
+            it != SettingsDestination.Advanced
+    }?.let { destination ->
         AlertDialog(
             onDismissRequest = { settingsDestination = null },
             title = { Text(destination.placeholderTitle()) },
