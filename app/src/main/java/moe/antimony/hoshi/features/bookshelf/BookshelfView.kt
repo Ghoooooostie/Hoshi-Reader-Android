@@ -450,7 +450,7 @@ private fun BooksTab(
             else -> LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 28.dp, end = 28.dp, top = 158.dp, bottom = 164.dp),
+                contentPadding = PaddingValues(start = 28.dp, end = 28.dp, top = 128.dp, bottom = 164.dp),
                 horizontalArrangement = Arrangement.spacedBy(30.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
@@ -561,7 +561,7 @@ private fun BooksTopChrome(
         FrostedCircle(onClick = {}) {
             FolderGlyph(MaterialTheme.colorScheme.onSurface)
         }
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(12.dp))
         FrostedCircle(onClick = onImport) {
             PlusGlyph(MaterialTheme.colorScheme.onSurface)
         }
@@ -830,7 +830,7 @@ private fun FrostedCapsule(content: @Composable RowScope.() -> Unit) {
         shadowElevation = 12.dp,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             content = content,
@@ -847,7 +847,7 @@ private fun FrostedCircle(
     val interactionSource = remember { MutableInteractionSource() }
     Surface(
         modifier = modifier
-            .size(58.dp)
+            .size(50.dp)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -869,7 +869,7 @@ private fun ChromeIconButton(onClick: () -> Unit, content: @Composable () -> Uni
     val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
-            .size(46.dp)
+            .size(40.dp)
             .clip(CircleShape)
             .clickable(
                 interactionSource = interactionSource,
@@ -956,13 +956,13 @@ private fun SortGlyph(color: Color) {
             imageVector = Icons.Rounded.ArrowUpward,
             contentDescription = null,
             tint = color,
-            modifier = Modifier.size(26.dp),
+            modifier = Modifier.size(22.dp),
         )
         Icon(
             imageVector = Icons.Rounded.ArrowDownward,
             contentDescription = null,
             tint = color,
-            modifier = Modifier.size(26.dp),
+            modifier = Modifier.size(22.dp),
         )
     }
 }
@@ -973,7 +973,7 @@ private fun ListCheckGlyph(color: Color) {
         imageVector = Icons.Rounded.Checklist,
         contentDescription = null,
         tint = color,
-        modifier = Modifier.size(30.dp),
+        modifier = Modifier.size(24.dp),
     )
 }
 
@@ -983,7 +983,7 @@ private fun FolderGlyph(color: Color) {
         imageVector = Icons.Rounded.FolderOpen,
         contentDescription = null,
         tint = color,
-        modifier = Modifier.size(30.dp),
+        modifier = Modifier.size(24.dp),
     )
 }
 
@@ -993,7 +993,7 @@ private fun PlusGlyph(color: Color) {
         imageVector = Icons.Rounded.Add,
         contentDescription = null,
         tint = color,
-        modifier = Modifier.size(32.dp),
+        modifier = Modifier.size(26.dp),
     )
 }
 

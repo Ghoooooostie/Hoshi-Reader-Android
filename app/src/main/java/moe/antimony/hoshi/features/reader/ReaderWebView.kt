@@ -382,21 +382,21 @@ private fun BoxScope.ReaderBottomChrome(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
-                .padding(end = 24.dp, bottom = 92.dp),
+                .padding(end = 24.dp, bottom = 58.dp),
         )
     }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 26.dp, vertical = 16.dp),
+            .padding(start = 26.dp, end = 26.dp, top = 8.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ReaderGlassButton(colors = colors, onClick = onClose) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                 contentDescription = "Back",
-                modifier = Modifier.size(34.dp),
+                modifier = Modifier.size(28.dp),
                 tint = Color(colors.buttonContent),
             )
         }
@@ -405,7 +405,7 @@ private fun BoxScope.ReaderBottomChrome(
             Icon(
                 imageVector = Icons.Rounded.Tune,
                 contentDescription = "Reader Menu",
-                modifier = Modifier.size(30.dp),
+                modifier = Modifier.size(26.dp),
                 tint = Color(colors.buttonContent),
             )
         }
@@ -508,7 +508,7 @@ private fun ReaderGlassButton(
         modifier = Modifier
             .shadow(18.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.18f), spotColor = Color.Black.copy(alpha = 0.18f))
             .border(BorderStroke(1.dp, Color(colors.buttonBorder)), CircleShape)
-            .size(64.dp),
+            .size(54.dp),
         shape = CircleShape,
         color = Color(colors.buttonContainer),
         tonalElevation = 6.dp,
@@ -517,7 +517,7 @@ private fun ReaderGlassButton(
         Row(
             modifier = Modifier
                 .clickable(onClick = onClick)
-                .padding(horizontal = 18.dp),
+                .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
             content = content,
@@ -724,7 +724,7 @@ private data class ReaderSelectionPayloadRect(
 
 private const val MAX_SELECTION_LENGTH = 16
 private val ReaderWebViewTopPadding = 72.dp
-private val ReaderWebViewBottomPadding = 96.dp
+private val ReaderWebViewBottomPadding = 76.dp
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
