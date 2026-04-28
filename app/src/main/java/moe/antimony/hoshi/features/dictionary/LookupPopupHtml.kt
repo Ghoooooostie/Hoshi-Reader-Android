@@ -13,6 +13,7 @@ import kotlinx.serialization.json.putJsonArray
 internal data class LookupPopupAssets(
     val popupJs: String,
     val popupCss: String,
+    val selectionJs: String = "",
 ) {
     companion object {
         fun load(context: Context): LookupPopupAssets = LookupPopupAssets(
@@ -20,6 +21,9 @@ internal data class LookupPopupAssets(
                 .bufferedReader()
                 .use { it.readText() },
             popupCss = context.assets.open("hoshi-popup/popup.css")
+                .bufferedReader()
+                .use { it.readText() },
+            selectionJs = context.assets.open("hoshi-popup/selection.js")
                 .bufferedReader()
                 .use { it.readText() },
         )
@@ -51,6 +55,7 @@ internal object LookupPopupHtml {
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
                 <style>${assets.popupCss}</style>
+                <script>${assets.selectionJs.escapeScriptEnd()}</script>
                 <script>${assets.popupJs.escapeScriptEnd()}</script>
             </head>
             <body>
@@ -80,10 +85,6 @@ internal object LookupPopupHtml {
                             duplicateCheck: { postMessage: async function() { return false; } },
                             getEntry: { postMessage: async function(index) { return window.lookupEntries[index]; } }
                         }
-                    };
-                    window.hoshiSelection = window.hoshiSelection || {
-                        selectText: function() { return null; },
-                        clearSelection: function() {}
                     };
                     window.collapseDictionaries = false;
                     window.compactGlossaries = true;

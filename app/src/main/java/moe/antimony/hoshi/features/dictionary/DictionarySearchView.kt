@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -50,13 +51,18 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.antimony.hoshi.dictionary.DictionaryRepository
 import moe.antimony.hoshi.dictionary.LookupEngine
+import moe.antimony.hoshi.features.reader.ReaderSelectionData
+import java.util.UUID
 
 private const val DictionarySearchTopSpacerPx = 118
+private const val DictionaryPopupTopInset = 118.0
+private const val DictionaryPopupBottomInset = 150.0
 
 internal data class DictionarySearchRenderState(
     val lastQuery: String,
     val html: String,
     val hasResults: Boolean,
+    val dictionaryStyles: Map<String, String>,
 )
 
 internal object DictionarySearchContent {
@@ -68,11 +74,21 @@ internal object DictionarySearchContent {
     ): DictionarySearchRenderState {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) {
-            return DictionarySearchRenderState(lastQuery = "", html = "", hasResults = false)
+            return DictionarySearchRenderState(
+                lastQuery = "",
+                html = "",
+                hasResults = false,
+                dictionaryStyles = emptyMap(),
+            )
         }
         val results = lookup(trimmed)
         if (results.isEmpty()) {
-            return DictionarySearchRenderState(lastQuery = trimmed, html = "", hasResults = false)
+            return DictionarySearchRenderState(
+                lastQuery = trimmed,
+                html = "",
+                hasResults = false,
+                dictionaryStyles = emptyMap(),
+            )
         }
         return DictionarySearchRenderState(
             lastQuery = trimmed,
@@ -83,9 +99,15 @@ internal object DictionarySearchContent {
                 topSpacerPx = DictionarySearchTopSpacerPx,
             ),
             hasResults = true,
+            dictionaryStyles = dictionaryStyles,
         )
     }
 }
+
+private data class DictionaryPopupItem(
+    val id: String = UUID.randomUUID().toString(),
+    val state: LookupPopupState,
+)
 
 @Composable
 fun DictionarySearchView(
@@ -100,6 +122,27 @@ fun DictionarySearchView(
     var hasSearched by remember { mutableStateOf(false) }
     var isSearching by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var dictionaryStyles by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var popups by remember { mutableStateOf<List<DictionaryPopupItem>>(emptyList()) }
+
+    fun lookupPopup(selection: ReaderSelectionData): Pair<DictionaryPopupItem, Int>? {
+        val results = LookupEngine.lookup(selection.text)
+        val first = results.firstOrNull() ?: return null
+        return DictionaryPopupItem(
+            state = LookupPopupState(
+                selection = selection,
+                results = results,
+                dictionaryStyles = dictionaryStyles,
+                isVertical = false,
+                topInset = DictionaryPopupTopInset,
+                bottomInset = DictionaryPopupBottomInset,
+            ),
+        ) to first.matched.codePointCount(0, first.matched.length)
+    }
+
+    fun closeChildPopups(parentIndex: Int) {
+        popups = popups.take(parentIndex + 1)
+    }
 
     fun runLookup() {
         scope.launch {
@@ -118,9 +161,13 @@ fun DictionarySearchView(
                 }
             }.onSuccess { state ->
                 html = state.html
+                dictionaryStyles = state.dictionaryStyles
+                popups = emptyList()
                 hasSearched = true
             }.onFailure {
                 html = ""
+                dictionaryStyles = emptyMap()
+                popups = emptyList()
                 hasSearched = true
                 errorMessage = it.localizedMessage ?: "Lookup failed."
             }
@@ -142,6 +189,17 @@ fun DictionarySearchView(
         when {
             html.isNotBlank() -> DictionaryResultWebView(
                 html = html,
+                callbacks = PopupWebViewCallbacks(
+                    onTapOutside = { popups = emptyList() },
+                    onSwipeDismiss = { popups = emptyList() },
+                    onTextSelected = { selection ->
+                        popups = emptyList()
+                        lookupPopup(selection)?.let { (popup, highlightCount) ->
+                            popups = listOf(popup)
+                            highlightCount
+                        }
+                    },
+                ),
                 modifier = Modifier.fillMaxSize(),
             )
             errorMessage != null -> DictionarySearchMessage(
@@ -163,6 +221,29 @@ fun DictionarySearchView(
                 .statusBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 10.dp),
         )
+        popups.forEachIndexed { index, popup ->
+            key(popup.id) {
+                LookupPopupView(
+                    state = popup.state,
+                    onTapOutside = { closeChildPopups(index) },
+                    onSwipeDismiss = {
+                        if (index == 0) {
+                            popups = emptyList()
+                        } else {
+                            closeChildPopups(index - 1)
+                        }
+                    },
+                    onTextSelected = { selection ->
+                        closeChildPopups(index)
+                        lookupPopup(selection)?.let { (childPopup, highlightCount) ->
+                            popups = popups + childPopup
+                            highlightCount
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
     }
 }
 
@@ -286,6 +367,7 @@ private fun DictionarySearchMessage(text: String, modifier: Modifier = Modifier)
 @Composable
 private fun DictionaryResultWebView(
     html: String,
+    callbacks: PopupWebViewCallbacks,
     modifier: Modifier = Modifier,
 ) {
     AndroidView(
@@ -298,9 +380,12 @@ private fun DictionaryResultWebView(
                 settings.allowContentAccess = false
                 isVerticalScrollBarEnabled = false
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                addJavascriptInterface(PopupWebViewBridge(this, callbacks), "HoshiPopup")
+                webViewClient = PopupMessageWebViewClient(callbacks)
             }
         },
         update = { webView ->
+            webView.webViewClient = PopupMessageWebViewClient(callbacks)
             webView.loadDataWithBaseURL(
                 "https://hoshi.local/dictionary/",
                 html,

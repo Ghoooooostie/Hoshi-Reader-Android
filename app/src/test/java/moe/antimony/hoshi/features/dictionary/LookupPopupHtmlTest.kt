@@ -25,10 +25,12 @@ class LookupPopupHtmlTest {
             assets = LookupPopupAssets(
                 popupJs = "window.renderPopup = function() {};",
                 popupCss = ".entry-header {}",
+                selectionJs = "window.hoshiSelection = { selectText: function() {} };",
             ),
         )
 
         assertTrue(html.contains("<style>.entry-header {}</style>"))
+        assertTrue(html.contains("<script>window.hoshiSelection = { selectText: function() {} };</script>"))
         assertTrue(html.contains("<script>window.renderPopup = function() {};</script>"))
         assertTrue(html.contains("""<div id="entries-container"></div>"""))
         assertTrue(html.contains("window.renderPopup();"))

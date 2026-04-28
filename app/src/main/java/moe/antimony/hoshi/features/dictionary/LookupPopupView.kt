@@ -1,13 +1,8 @@
 package moe.antimony.hoshi.features.dictionary
 
 import android.annotation.SuppressLint
-import android.os.Handler
-import android.os.Looper
 import android.view.MotionEvent
-import android.webkit.JavascriptInterface
-import android.webkit.WebResourceRequest
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,11 +23,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import de.manhhao.hoshi.LookupResult
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
-import org.json.JSONObject
 
 data class LookupPopupState(
     val selection: ReaderSelectionData,
     val results: List<LookupResult>,
+    val dictionaryStyles: Map<String, String> = emptyMap(),
+    val isVertical: Boolean = true,
+    val isFullWidth: Boolean = false,
+    val topInset: Double = 0.0,
+    val bottomInset: Double = 0.0,
 )
 
 @Composable
@@ -40,11 +39,19 @@ fun LookupPopupView(
     state: LookupPopupState,
     onSwipeDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    onTapOutside: () -> Unit = onSwipeDismiss,
+    onTextSelected: (ReaderSelectionData) -> Int? = { null },
 ) {
     if (state.results.isEmpty()) return
     val context = LocalContext.current
     val assets = remember(context) { LookupPopupAssets.load(context) }
-    val html = remember(state.results, assets) { LookupPopupHtml.render(state.results, assets) }
+    val html = remember(state.results, state.dictionaryStyles, assets) {
+        LookupPopupHtml.render(
+            results = state.results,
+            assets = assets,
+            dictionaryStyles = state.dictionaryStyles,
+        )
+    }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val frame = LookupPopupLayout(
@@ -53,7 +60,10 @@ fun LookupPopupView(
             screenHeight = maxHeight.value.toDouble(),
             maxWidth = 320.0,
             maxHeight = 250.0,
-            isVertical = true,
+            isVertical = state.isVertical,
+            isFullWidth = state.isFullWidth,
+            topInset = state.topInset,
+            bottomInset = state.bottomInset,
         ).calculate()
         Surface(
             modifier = Modifier
@@ -70,7 +80,11 @@ fun LookupPopupView(
         ) {
             LookupPopupWebView(
                 html = html,
-                onDismiss = onSwipeDismiss,
+                callbacks = PopupWebViewCallbacks(
+                    onTapOutside = onTapOutside,
+                    onSwipeDismiss = onSwipeDismiss,
+                    onTextSelected = onTextSelected,
+                ),
             )
         }
     }
@@ -80,7 +94,7 @@ fun LookupPopupView(
 @Composable
 private fun LookupPopupWebView(
     html: String,
-    onDismiss: () -> Unit,
+    callbacks: PopupWebViewCallbacks,
 ) {
     AndroidView(
         modifier = Modifier
@@ -95,9 +109,9 @@ private fun LookupPopupWebView(
                 isVerticalScrollBarEnabled = false
                 isHorizontalScrollBarEnabled = false
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                addJavascriptInterface(PopupWebViewBridge(onDismiss), "HoshiPopup")
-                webViewClient = PopupWebViewClient(onDismiss)
-                setOnTouchListener(PopupWebViewSwipeListener(onDismiss))
+                addJavascriptInterface(PopupWebViewBridge(this, callbacks), "HoshiPopup")
+                webViewClient = PopupMessageWebViewClient(callbacks)
+                setOnTouchListener(PopupWebViewSwipeListener(callbacks.onSwipeDismiss))
             }
         },
         update = { webView ->
@@ -110,37 +124,6 @@ private fun LookupPopupWebView(
             )
         },
     )
-}
-
-private class PopupWebViewClient(
-    private val onDismiss: () -> Unit,
-) : WebViewClient() {
-    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
-        handlePopupUrl(request.url.scheme)
-
-    @Suppress("OVERRIDE_DEPRECATION")
-    override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean =
-        handlePopupUrl(android.net.Uri.parse(url).scheme)
-
-    private fun handlePopupUrl(scheme: String?): Boolean {
-        if (scheme != "hoshi-popup") return false
-        onDismiss()
-        return true
-    }
-}
-
-private class PopupWebViewBridge(
-    private val onDismiss: () -> Unit,
-) {
-    private val mainHandler = Handler(Looper.getMainLooper())
-
-    @JavascriptInterface
-    fun postMessage(message: String) {
-        val name = runCatching { JSONObject(message).optString("name") }.getOrNull()
-        if (name == "tapOutside" || name == "swipeDismiss") {
-            mainHandler.post(onDismiss)
-        }
-    }
 }
 
 private class PopupWebViewSwipeListener(
