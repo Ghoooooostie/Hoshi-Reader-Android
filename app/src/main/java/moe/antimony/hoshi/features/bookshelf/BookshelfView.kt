@@ -406,17 +406,20 @@ private fun HoshiMainShell(
     modifier: Modifier = Modifier,
     content: @Composable (Modifier) -> Unit,
 ) {
-    Box(
+    Surface(
         modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
     ) {
-        content(Modifier.fillMaxSize())
-        HoshiBottomTabs(
-            selectedTab = selectedTab,
-            onSelectedTabChange = onSelectedTabChange,
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            content(Modifier.fillMaxSize())
+            HoshiBottomTabs(
+                selectedTab = selectedTab,
+                onSelectedTabChange = onSelectedTabChange,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
     }
 }
 

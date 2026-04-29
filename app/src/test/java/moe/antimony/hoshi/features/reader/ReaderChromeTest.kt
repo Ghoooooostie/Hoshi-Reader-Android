@@ -30,7 +30,15 @@ class ReaderChromeTest {
 
     @Test
     fun usesThemeMatchedChromeColors() {
-        assertEquals(0x40FFFFFFL, readerChromeColors(ReaderSettings(theme = ReaderTheme.Sepia)).buttonContainer)
-        assertEquals(0x661A1A1AL, readerChromeColors(ReaderSettings(theme = ReaderTheme.Dark)).buttonContainer)
+        assertEquals(0x40FFFFFFL, readerChromeColors(ReaderSettings(theme = ReaderTheme.Sepia), systemDark = true).buttonContainer)
+        assertEquals(0x661A1A1AL, readerChromeColors(ReaderSettings(theme = ReaderTheme.Dark), systemDark = false).buttonContainer)
+    }
+
+    @Test
+    fun systemThemeChromeFollowsSystemDarkMode() {
+        val settings = ReaderSettings(theme = ReaderTheme.System)
+
+        assertEquals(0x661A1A1AL, readerChromeColors(settings, systemDark = true).buttonContainer)
+        assertEquals(0xD9FFFFFFL, readerChromeColors(settings, systemDark = false).buttonContainer)
     }
 }

@@ -65,6 +65,7 @@ internal fun ReaderChapterSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
         dragHandle = {},
     ) {
         LazyColumn(
@@ -96,6 +97,7 @@ internal fun ReaderChapterSheet(
                         modifier = Modifier.align(Alignment.CenterEnd),
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     ) {
                         IconButton(onClick = onDismiss) {
                             Icon(

@@ -21,13 +21,10 @@ internal object ReaderContentStyles {
     fun styleTag(
         settings: ReaderSettings = ReaderSettings(),
         fontFaceUrl: String? = null,
+        systemDark: Boolean = false,
     ): String {
-        val textColor = settings.textColorCss ?: "var(--hoshi-system-text-color)"
-        val backgroundColor = when (settings.theme) {
-            ReaderTheme.Dark -> "#000"
-            ReaderTheme.Sepia -> "#F2E2C9"
-            else -> "#fff"
-        }
+        val textColor = settings.textColorCss(systemDark)
+        val backgroundColor = settings.backgroundColor(systemDark).toReaderCssColor()
         val fontFamily = settings.selectedFont.cssString()
         val fontFaceCss = fontFaceUrl?.let { url ->
             """
@@ -147,3 +144,10 @@ private fun String.cssSingleQuotedUrl(): String =
 
 private fun Double.cssLetterSpacingEm(): String =
     String.format(java.util.Locale.US, "%.2f", this / 100.0)
+
+private fun Long.toReaderCssColor(): String = when (this) {
+    0xFF000000 -> "#000"
+    0xFFFFFFFF -> "#fff"
+    0xFFF2E2C9 -> "#F2E2C9"
+    else -> "#${(this and 0xFFFFFF).toString(16).padStart(6, '0')}"
+}

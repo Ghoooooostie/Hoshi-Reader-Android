@@ -191,7 +191,7 @@ fun ReaderWebView(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(effectiveSettings.backgroundColor)),
+            .background(Color(effectiveSettings.backgroundColor(systemDarkTheme))),
     ) {
         Box(
             modifier = Modifier
@@ -233,6 +233,7 @@ fun ReaderWebView(
                 onTextSelected = handleTextSelected,
                 onClearLookupPopup = { lookupPopups = emptyList() },
                 fontManager = fontManager,
+                systemDark = systemDarkTheme,
                 modifier = Modifier.fillMaxSize(),
             )
             LookupPopupStackView(
@@ -245,7 +246,7 @@ fun ReaderWebView(
         ReaderTopInfo(
             state = chromeState,
             settings = effectiveSettings,
-            colors = readerChromeColors(effectiveSettings),
+            colors = readerChromeColors(effectiveSettings, systemDarkTheme),
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
@@ -255,7 +256,7 @@ fun ReaderWebView(
             ReaderBottomProgress(
                 state = chromeState,
                 settings = effectiveSettings,
-                colors = readerChromeColors(effectiveSettings),
+                colors = readerChromeColors(effectiveSettings, systemDarkTheme),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
@@ -264,6 +265,7 @@ fun ReaderWebView(
         }
         ReaderBottomChrome(
             settings = effectiveSettings,
+            colors = readerChromeColors(effectiveSettings, systemDarkTheme),
             onClose = onClose,
             onMenu = { showReaderMenu = true },
             menuExpanded = showReaderMenu,
@@ -359,6 +361,7 @@ private fun ReaderBottomProgress(
 @Composable
 private fun BoxScope.ReaderBottomChrome(
     settings: ReaderSettings,
+    colors: ReaderChromeColors,
     onClose: () -> Unit,
     onMenu: () -> Unit,
     menuExpanded: Boolean,
@@ -367,7 +370,6 @@ private fun BoxScope.ReaderBottomChrome(
     onAppearance: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = readerChromeColors(settings)
     if (menuExpanded) {
         Box(
             modifier = Modifier
@@ -538,23 +540,25 @@ private fun ChapterWebView(
     onTextSelected: (ReaderSelectionData) -> Int?,
     onClearLookupPopup: () -> Unit,
     fontManager: ReaderFontManager,
+    systemDark: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val chapter = book.chapters[chapterPosition.index]
     val fontFaceUrl = remember(readerSettings.selectedFont) {
         fontManager.webViewFontUrl(readerSettings.selectedFont)
     }
-    val html = remember(chapter, chapterPosition.progress, readerSettings, fontFaceUrl) {
+    val html = remember(chapter, chapterPosition.progress, readerSettings, fontFaceUrl, systemDark) {
         chapter.html.injectReaderShell(
             initialProgress = chapterPosition.progress,
             settings = readerSettings,
             fontFaceUrl = fontFaceUrl,
+            systemDark = systemDark,
         )
     }
     val baseUrl = remember(chapter) { "https://hoshi.local/epub/${chapter.href}" }
 
     AndroidView(
-        modifier = modifier.background(Color(readerSettings.backgroundColor)),
+        modifier = modifier.background(Color(readerSettings.backgroundColor(systemDark))),
         factory = { context ->
             WebView(context).apply {
                 settings.javaScriptEnabled = true
@@ -632,8 +636,9 @@ private fun String.injectReaderShell(
     initialProgress: Double,
     settings: ReaderSettings,
     fontFaceUrl: String?,
+    systemDark: Boolean,
 ): String {
-    val css = ReaderContentStyles.styleTag(settings, fontFaceUrl)
+    val css = ReaderContentStyles.styleTag(settings, fontFaceUrl, systemDark)
     val script = ReaderPaginationScripts.shellScript(initialProgress, settings)
     val selectionScript = ReaderSelectionScripts.script()
     return replace("</head>", "$css\n$script\n$selectionScript\n</head>", ignoreCase = true)

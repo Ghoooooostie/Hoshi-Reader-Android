@@ -38,8 +38,8 @@ data class ReaderChromeColors(
     val infoText: Long,
 )
 
-fun readerChromeColors(settings: ReaderSettings): ReaderChromeColors = when (settings.theme) {
-    ReaderTheme.Dark -> ReaderChromeColors(
+fun readerChromeColors(settings: ReaderSettings, systemDark: Boolean): ReaderChromeColors = when {
+    settings.theme == ReaderTheme.Dark || (settings.theme == ReaderTheme.System && systemDark) -> ReaderChromeColors(
         buttonContainer = 0x661A1A1A,
         buttonContent = 0xFFF4F4F4,
         buttonBorder = 0x33FFFFFF,
@@ -48,7 +48,7 @@ fun readerChromeColors(settings: ReaderSettings): ReaderChromeColors = when (set
         menuBorder = 0x26FFFFFF,
         infoText = 0x99FFFFFF,
     )
-    ReaderTheme.Sepia -> ReaderChromeColors(
+    settings.theme == ReaderTheme.Sepia -> ReaderChromeColors(
         buttonContainer = 0x40FFFFFF,
         buttonContent = 0xFF1F170D,
         buttonBorder = 0x80FFFFFF,
@@ -57,7 +57,7 @@ fun readerChromeColors(settings: ReaderSettings): ReaderChromeColors = when (set
         menuBorder = 0xB3FFFFFF,
         infoText = 0x7A5C5448,
     )
-    ReaderTheme.Light, ReaderTheme.System -> ReaderChromeColors(
+    else -> ReaderChromeColors(
         buttonContainer = 0xD9FFFFFF,
         buttonContent = 0xFF111111,
         buttonBorder = 0xCCFFFFFF,

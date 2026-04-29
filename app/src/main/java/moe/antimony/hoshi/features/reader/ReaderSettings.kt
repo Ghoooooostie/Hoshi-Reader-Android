@@ -64,20 +64,19 @@ data class ReaderSettings(
     val trailingSpacerWidthCss: String
         get() = if (verticalWriting) "0" else "${(horizontalPadding / 2.0).cssNumber()}vw"
 
-    val backgroundColor: Long
-        get() = when (theme) {
-            ReaderTheme.Dark -> 0xFF000000
-            ReaderTheme.Sepia -> 0xFFF2E2C9
-            else -> 0xFFFFFFFF
-        }
+    fun backgroundColor(systemDark: Boolean): Long = when (theme) {
+        ReaderTheme.System -> if (systemDark) 0xFF000000 else 0xFFFFFFFF
+        ReaderTheme.Dark -> 0xFF000000
+        ReaderTheme.Sepia -> 0xFFF2E2C9
+        ReaderTheme.Light -> 0xFFFFFFFF
+    }
 
-    val textColorCss: String?
-        get() = when (theme) {
-            ReaderTheme.Light -> "#000"
-            ReaderTheme.Dark -> "#fff"
-            ReaderTheme.Sepia -> "#332A1B"
-            ReaderTheme.System -> null
-        }
+    fun textColorCss(systemDark: Boolean): String = when (theme) {
+        ReaderTheme.System -> if (systemDark) "#fff" else "#000"
+        ReaderTheme.Light -> "#000"
+        ReaderTheme.Dark -> "#fff"
+        ReaderTheme.Sepia -> "#332A1B"
+    }
 }
 
 enum class ReaderTheme(val label: String) {

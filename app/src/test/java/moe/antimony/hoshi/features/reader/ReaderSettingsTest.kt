@@ -66,6 +66,27 @@ class ReaderSettingsTest {
     }
 
     @Test
+    fun systemReaderThemeResolvesContentColorsFromSystemDarkMode() {
+        val settings = ReaderSettings(theme = ReaderTheme.System)
+
+        assertEquals(0xFF000000, settings.backgroundColor(systemDark = true))
+        assertEquals(0xFFFFFFFF, settings.backgroundColor(systemDark = false))
+        assertEquals("#fff", settings.textColorCss(systemDark = true))
+        assertEquals("#000", settings.textColorCss(systemDark = false))
+    }
+
+    @Test
+    fun systemReaderCssUsesDarkColorsWhenSystemIsDark() {
+        val css = ReaderContentStyles.styleTag(
+            settings = ReaderSettings(theme = ReaderTheme.System),
+            systemDark = true,
+        )
+
+        assertTrue(css.contains("background: #000 !important;"))
+        assertTrue(css.contains("color: #fff !important;"))
+    }
+
+    @Test
     fun readerCssUsesIosAppearanceFlags() {
         val css = ReaderContentStyles.styleTag(
             ReaderSettings(
