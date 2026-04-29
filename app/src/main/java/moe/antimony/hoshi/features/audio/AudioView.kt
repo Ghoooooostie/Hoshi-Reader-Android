@@ -260,9 +260,16 @@ fun AudioSettingsView(
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         headlineContent = { Text("Background Audio") },
                         supportingContent = {
-                            SingleChoiceSegmentedButtonRow(modifier = Modifier.padding(top = 8.dp)) {
+                            SingleChoiceSegmentedButtonRow(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                            ) {
                                 AudioPlaybackMode.entries.forEachIndexed { index, mode ->
                                     SegmentedButton(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(58.dp),
                                         selected = settings.playbackMode == mode,
                                         onClick = { save(settings.copy(playbackMode = mode)) },
                                         shape = SegmentedButtonDefaults.itemShape(index, AudioPlaybackMode.entries.size),

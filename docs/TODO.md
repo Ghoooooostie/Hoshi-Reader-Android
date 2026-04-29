@@ -141,11 +141,13 @@
    - `done` - Inject iOS popup audio variables into the shared popup WebView renderer and route audio button taps through the same native playback bridge used by iOS `PopupWebView`.
    - `done` - Support iOS-compatible local `Audio/android.db` lookup semantics for `http://localhost:8765/localaudio/get/?term={term}&reading={reading}` and play returned local audio blobs.
    - `done` - Support configurable remote Yomitan audio source URLs, verified with `https://audiov2.animecards.site/audio/list?term={term}&reading={reading}&apiKey=04887404-aba9-43b8-abb8-0e3847038a76`.
+   - `done` - Fix issue #3 by making the Background Audio segmented picker use one unified equal-size pill even when option labels wrap.
    - `todo` - Read dictionary media through the existing dictionary bridge.
    - `todo` - Align Sasayaki/audiobook playback with iOS when that feature slice starts.
    - Verified on emulator without clearing app data: opened Settings -> Advanced -> Audio and confirmed Local, AnimeCards, and Default audio sources render with iOS-aligned controls; because the full `testdata/android.db` is 5.8GB and emulator `/data` had only 3.3GB free, extracted a schema-preserving `食べる/たべる` subset from the real `testdata/android.db` into app-private `files/Audio/android.db`, searched `たべる` in Dictionary, tapped the popup audio button, and confirmed `MediaPlayer` decoded local `audio/mpeg` without app crash.
    - Verified remote audio on emulator without clearing app data: temporarily disabled Local Audio, kept the AnimeCards source enabled, searched `たべる`, tapped the popup audio button, and confirmed Android `MediaHTTPService` fetched the remote audio URL and `MediaPlayer` decoded `audio/mpeg` without app crash; restored Local + AnimeCards audio settings afterward.
    - Verified popup audio button polish on emulator without clearing app data: searched `たべる` in Dictionary, confirmed the audio and Anki buttons share the same header-row alignment, then held the audio button and confirmed the iOS-style circular filled pressed state is visible before playback.
+   - Verified issue #3 on emulator without clearing app data: opened Settings -> Advanced -> Audio and confirmed the Background Audio segmented picker renders as one equal-size pill for Interrupt, Lower Volume, and Keep Volume.
 
 10. `todo` - Sync
     - Investigate Android Google Drive/OAuth integration.
