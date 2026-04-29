@@ -27,6 +27,7 @@ import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.audio.LocalAudioRepository
 import moe.antimony.hoshi.features.audio.WordAudioPlayer
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
+import moe.antimony.hoshi.webview.disableNativeOverscrollStretch
 
 data class LookupPopupState(
     val selection: ReaderSelectionData,
@@ -150,6 +151,7 @@ private fun LookupPopupWebView(
                 settings.allowContentAccess = false
                 isVerticalScrollBarEnabled = false
                 isHorizontalScrollBarEnabled = false
+                disableNativeOverscrollStretch()
                 setBackgroundColor(if (darkMode) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
                 addJavascriptInterface(
                     PopupWebViewBridge(

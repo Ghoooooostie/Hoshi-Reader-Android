@@ -68,6 +68,7 @@ import moe.antimony.hoshi.features.dictionary.LookupPopupItem
 import moe.antimony.hoshi.features.dictionary.LookupPopupOptions
 import moe.antimony.hoshi.features.dictionary.LookupPopupStackView
 import moe.antimony.hoshi.features.dictionary.createLookupPopupItem
+import moe.antimony.hoshi.webview.disableNativeOverscrollStretch
 import java.io.File
 
 data class ReaderSelectionData(
@@ -567,6 +568,7 @@ private fun ChapterWebView(
                 settings.allowContentAccess = false
                 isVerticalScrollBarEnabled = false
                 isHorizontalScrollBarEnabled = false
+                disableNativeOverscrollStretch()
                 alpha = 0f
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 addJavascriptInterface(ReaderSelectionBridge(this, onTextSelected), "HoshiTextSelection")

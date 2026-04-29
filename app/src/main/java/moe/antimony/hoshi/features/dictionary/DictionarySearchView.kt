@@ -56,6 +56,7 @@ import moe.antimony.hoshi.features.audio.AudioSettingsStore
 import moe.antimony.hoshi.features.audio.LocalAudioRepository
 import moe.antimony.hoshi.features.audio.WordAudioPlayer
 import moe.antimony.hoshi.features.reader.ReaderSettings
+import moe.antimony.hoshi.webview.disableNativeOverscrollStretch
 
 private const val DictionarySearchTopSpacerPx = 118
 private const val DictionaryPopupTopInset = 118.0
@@ -379,6 +380,7 @@ private fun DictionaryResultWebView(
                 settings.allowFileAccess = false
                 settings.allowContentAccess = false
                 isVerticalScrollBarEnabled = false
+                disableNativeOverscrollStretch()
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 addJavascriptInterface(PopupWebViewBridge(this, callbackHolder), "HoshiPopup")
                 webViewClient = PopupMessageWebViewClient(callbackHolder, audioRequestHandler)
