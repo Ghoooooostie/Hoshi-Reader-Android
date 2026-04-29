@@ -5,8 +5,8 @@ project(hoshi_native LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(HOSHIDICTS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../third_party/hoshidicts-gplv3")
 set(HOSHIDICTS_BRIDGE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../third_party/hoshidicts-kotlin-bridge")
+set(HOSHIDICTS_ROOT "${HOSHIDICTS_BRIDGE_ROOT}/app/src/main/cpp/hoshidicts")
 
 add_subdirectory(
     "${HOSHIDICTS_ROOT}"

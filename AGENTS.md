@@ -21,10 +21,8 @@ rg "LookupEngine" reference/Hoshi-Reader-iOS
 
 - 辞典导入和查询应使用 `third_party/hoshidicts-kotlin-bridge`。
 - bridge 的 Kotlin JNI 绑定在 `app/src/main/java/de/manhhao/hoshi/HoshiDicts.kt`。
-- bridge 的 native 构建参考文件在 `third_party/hoshidicts-kotlin-bridge/app/src/main/cpp`。
-- 本项目采用 GPLv3，必须使用 `third_party/hoshidicts-gplv3` 中的 GPLv3 版 `hoshidicts` 分支。
-- bridge 仓库自身嵌套的 `app/src/main/cpp/hoshidicts` submodule 指向 `main-mit`；不要构建或链接这份嵌套副本。
-- 将 native bridge 接入 Android app 时，需要调整 CMake 路径，让 `hoshidicts_jni.cpp` 链接到 `third_party/hoshidicts-gplv3`。
+- bridge 的 native 入口和 GPL 版 `hoshidicts` 源码在 `third_party/hoshidicts-kotlin-bridge/app/src/main/cpp`。
+- 不要新增第二份顶层 `hoshidicts` submodule；Android app 的 CMake 应链接 bridge 自带的 GPL 版 `hoshidicts`。
 - 如果 GPL 版 bridge 在某个阶段确实阻塞开发，可以临时使用 MIT 版 bridge 先推进功能，但必须在 `docs/TODO.md` 记录临时状态、阻塞原因和后续切回 GPL bridge 的任务。不要因为临时 MIT bridge 而扩大 Android 侧能力或偏离 iOS 行为。
 - bridge 是辞典数据类和 native 入口的事实来源。
 - 除非 bridge 缺少必要行为并且已先记录差距，否则不要重新实现 Yomitan 导入、变形还原、查词、媒体读取或样式提取。
@@ -34,17 +32,14 @@ rg "LookupEngine" reference/Hoshi-Reader-iOS
 ```bash
 rg "external fun" third_party/hoshidicts-kotlin-bridge
 rg "importDictionary" third_party/hoshidicts-kotlin-bridge
-git -C third_party/hoshidicts-gplv3 branch --show-current
+git submodule status --recursive
 ```
 
 本仓库的 submodule 初始化方式：
 
 ```bash
-git submodule update --init reference/Hoshi-Reader-iOS third_party/hoshidicts-kotlin-bridge third_party/hoshidicts-gplv3
-git -C third_party/hoshidicts-gplv3 submodule update --init --recursive
+git submodule update --init --recursive
 ```
-
-不要在仓库根目录运行通用的 `git submodule update --init --recursive`，除非只是为了调查 bridge 内部的 `main-mit` 嵌套 submodule。
 
 ## Android 技术方向
 

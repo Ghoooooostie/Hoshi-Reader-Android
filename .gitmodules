@@ -5,7 +5,4 @@
 [submodule "third_party/hoshidicts-kotlin-bridge"]
 	path = third_party/hoshidicts-kotlin-bridge
 	url = https://github.com/Manhhao/hoshidicts-kotlin-bridge.git
-[submodule "third_party/hoshidicts-gplv3"]
-	path = third_party/hoshidicts-gplv3
-	url = https://github.com/Manhhao/hoshidicts.git
 	branch = main

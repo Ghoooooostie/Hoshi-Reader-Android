@@ -104,7 +104,7 @@
    - Verified on emulator without clearing app data after aligning Dictionary popup settings with iOS `UserConfig`: with Appearance `Swipe to Dismiss` enabled and threshold `35`, searched `たべる`, opened a nested `田` popup from the Dictionary tab, confirmed the popup WebView had `window.swipeThreshold=35`, and confirmed a horizontal swipe inside that Dictionary popup dismissed it.
 
 6. `in_progress` - Dictionary import and management
-   - `done` - Build Android native `hoshidicts_jni` from `third_party/hoshidicts-kotlin-bridge` while linking to `third_party/hoshidicts-gplv3`.
+   - `done` - Build Android native `hoshidicts_jni` from `third_party/hoshidicts-kotlin-bridge` while linking to the bridge-owned GPL `hoshidicts` submodule.
    - `done` - Import `testdata/JMdict_english.zip` through the GPLv3 `hoshidicts` bridge.
    - `done` - Persist iOS-shaped `Dictionaries/config.json` and list imported term dictionaries.
    - `done` - Align term dictionary enable/disable and swipe-to-delete with iOS `DictionaryView` list behavior.

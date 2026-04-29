@@ -64,7 +64,6 @@ jobs:
         run: |
           set -euo pipefail
           git submodule update --init \
-            reference/Hoshi-Reader-iOS \
             third_party/hoshidicts-kotlin-bridge \
             third_party/hoshidicts-gplv3
           git -C third_party/hoshidicts-gplv3 submodule update \
