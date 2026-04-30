@@ -59,9 +59,6 @@ android {
         releaseVersionName?.let { versionName = it }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64")
-        }
         externalNativeBuild {
             cmake {
                 targets += "hoshidicts_jni"
@@ -83,10 +80,16 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            ndk {
+                abiFilters += listOf("arm64-v8a", "x86_64")
+            }
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            ndk {
+                abiFilters += listOf("arm64-v8a")
+            }
             if (isReleaseSigningConfigured) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -190,8 +193,6 @@ val buildRustAndroidRelease by tasks.registering(Exec::class) {
         "ndk",
         "-t",
         "arm64-v8a",
-        "-t",
-        "x86_64",
         "-o",
         rustJniLibsDir.absolutePath,
         "build",

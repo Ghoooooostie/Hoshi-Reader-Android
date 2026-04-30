@@ -165,6 +165,7 @@
     - `done` - Give debug builds a distinct application id so debug and release installs can coexist on physical devices.
     - `done` - Enable R8 code/resource optimization for release APKs and make release CI initialize the recursive dictionary bridge submodules used by native builds.
     - `done` - Fix optimized release JNA/UniFFI startup so EPUB import/open does not fail after R8 obfuscates JNA internals.
+    - `done` - Limit release APK native ABIs to `arm64-v8a` while keeping debug builds compatible with `arm64-v8a` and `x86_64` emulator/device validation.
     - Add EPUB fixtures for cover, images, vertical text, horizontal text, complex spine, and broken resources.
     - Expand WebView pagination regression checks.
     - Keep Gradle `test`, `assembleDebug`, and `lint` passing before release-facing changes.
