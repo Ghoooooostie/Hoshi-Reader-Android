@@ -491,17 +491,13 @@ internal fun HoshiMainShell(
                 contentColor = MaterialTheme.colorScheme.onBackground,
             ) {
                 content(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(start = NavigationRailInset),
+                    Modifier.fillMaxSize(),
                     layoutSpec,
                 )
             }
         }
     }
 }
-
-private val NavigationRailInset = 80.dp
 
 internal const val CompactNavigationBarTag = "compact-navigation-bar"
 

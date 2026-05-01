@@ -166,4 +166,12 @@ class MainShellUiTest {
 
         assertFalse(source.contains("Modifier.padding(start = 72.dp)"))
     }
+
+    @Test
+    fun navigationRailDoesNotAddDuplicateContentInset() {
+        val source = File("src/main/java/moe/antimony/hoshi/features/bookshelf/BookshelfView.kt").readText()
+
+        assertFalse(source.contains("NavigationRailInset"))
+        assertFalse(source.contains(".padding(start = NavigationRailInset)"))
+    }
 }
