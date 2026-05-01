@@ -1,5 +1,6 @@
 package moe.antimony.hoshi.features.reader
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -17,13 +18,35 @@ class IssueOneContrastRegressionTest {
     }
 
     @Test
-    fun chapterSheetProvidesReadableContentColorOnScrimmedSurface() {
+    fun chapterSheetUsesOpaqueSurfaceSoReaderDoesNotShowThrough() {
         val source = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderChapterSheet.kt").readText()
         val sheet = source.substringAfter("ModalBottomSheet(")
             .substringBefore(") {\n        LazyColumn")
 
-        assertTrue(sheet.contains("containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)"))
+        assertTrue(sheet.contains("containerColor = MaterialTheme.colorScheme.surface"))
         assertTrue(sheet.contains("contentColor = MaterialTheme.colorScheme.onSurface"))
+        assertFalse(sheet.contains(".copy(alpha ="))
+    }
+
+    @Test
+    fun readerHalfSheetsDoNotDimPureReaderBackgrounds() {
+        val chapterSource = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderChapterSheet.kt").readText()
+        val appearanceSource = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderAppearanceView.kt").readText()
+
+        listOf(chapterSource, appearanceSource).forEach { source ->
+            val sheet = source.substringAfter("ModalBottomSheet(")
+                .substringBefore(") {")
+            assertTrue(sheet.contains("scrimColor = Color.Transparent"))
+        }
+    }
+
+    @Test
+    fun readerHalfSheetsDrawTopOutlineBoundary() {
+        val chapterSource = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderChapterSheet.kt").readText()
+        val appearanceSource = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderAppearanceView.kt").readText()
+
+        assertTrue(chapterSource.contains("ReaderSheetTopOutline("))
+        assertTrue(appearanceSource.contains("ReaderSheetTopOutline("))
     }
 
     @Test
@@ -33,5 +56,16 @@ class IssueOneContrastRegressionTest {
             .substringBefore("@OptIn(ExperimentalMaterial3Api::class)\n@Composable\ninternal fun ReaderAppearanceSheet(")
 
         assertTrue(screen.contains("BackHandler(onBack = onClose)"))
+    }
+
+    @Test
+    fun appearanceSegmentedButtonsKeepMaterialSelectedIndicatorAndContrast() {
+        val source = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderAppearanceView.kt").readText()
+        val segmentedRow = source.substringAfter("private fun SegmentedRow(")
+            .substringBefore("internal fun segmentedControlWidthDp(")
+
+        assertFalse(segmentedRow.contains("icon = {}"))
+        assertFalse(segmentedRow.contains("colors ="))
+        assertFalse(source.contains("private fun segmentedButtonColors("))
     }
 }

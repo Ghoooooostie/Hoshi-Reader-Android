@@ -11,6 +11,7 @@ class ReaderSettingsTest {
     fun defaultsMatchIosUserConfigFirstRunValuesWithAndroidFontPreset() {
         val settings = ReaderSettings()
 
+        assertFalse(settings.eInkMode)
         assertEquals(true, settings.verticalWriting)
         assertEquals(22, settings.fontSize)
         assertEquals(5, settings.horizontalPadding)
@@ -123,6 +124,30 @@ class ReaderSettingsTest {
 
         assertTrue(css.contains("background: #000 !important;"))
         assertTrue(css.contains("color: #fff !important;"))
+    }
+
+    @Test
+    fun eInkModeForcesReaderContentToPureBlackAndWhite() {
+        val light = ReaderSettings(theme = ReaderTheme.Sepia, eInkMode = true)
+        val dark = ReaderSettings(theme = ReaderTheme.Dark, eInkMode = true)
+
+        assertEquals(0xFFFFFFFF, light.backgroundColor(systemDark = false))
+        assertEquals("#000", light.textColorCss(systemDark = false))
+        assertEquals(0xFF000000, dark.backgroundColor(systemDark = false))
+        assertEquals("#fff", dark.textColorCss(systemDark = false))
+    }
+
+    @Test
+    fun eInkModeIsStoredAndExposedInAppearanceThemeSection() {
+        val settingsSource = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderSettings.kt").readText()
+        val appearanceSource = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderAppearanceView.kt").readText()
+        val themeSection = appearanceSource.substringAfter("""AppearanceSection(title = "Theme"""")
+            .substringBefore("""AppearanceSection(title = "Text"""")
+
+        assertTrue(settingsSource.contains("""preferences.getBoolean("eInkMode", false)"""))
+        assertTrue(settingsSource.contains("""putBoolean("eInkMode", settings.eInkMode)"""))
+        assertTrue(themeSection.contains("""label = "E-ink Mode""""))
+        assertTrue(themeSection.contains("settings.copy(eInkMode = it)"))
     }
 
     @Test

@@ -5,8 +5,16 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+### Added
+
+- Add an Appearance e-ink mode that maps app chrome, reader surfaces, selected controls, and progress indicators to pure black/white colors for e-ink displays.
+
 ### Fixed
 
+- Improve reader sheet contrast for e-ink displays: Chapters is opaque, Chapters and Appearance no longer dim the page behind them, and both use a visible top outline boundary.
+- Restore readable selected Appearance segmented controls and their Material selected check indicator in e-ink light/dark reader settings.
+- Keep dictionary imports from dimming the Dictionaries page while the import spinner is shown.
+- Remove the outline from the reader bottom Back/Menu buttons in light and dark themes.
 - Reduce extra top and bottom spacing in the reader so page content uses more of the visible reading area. #29
 - Prevent the reader from briefly flashing the start of a chapter before restoring the saved reading position. #30
 - Delay lookup popup display until its first rendered entry is ready, avoiding a blank white popup flash on slow-refresh e-ink screens.

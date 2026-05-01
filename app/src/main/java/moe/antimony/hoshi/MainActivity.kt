@@ -31,7 +31,10 @@ class MainActivity : ComponentActivity() {
             val readerSettingsStore = remember { ReaderSettingsStore(this) }
             var readerSettings by remember { mutableStateOf(readerSettingsStore.load()) }
             val systemDark = isSystemInDarkTheme()
-            HoshiReaderTheme(darkTheme = readerSettings.usesDarkInterface(systemDark)) {
+            HoshiReaderTheme(
+                darkTheme = readerSettings.usesDarkInterface(systemDark),
+                eInkMode = readerSettings.eInkMode,
+            ) {
                 BookshelfView(
                     pendingImportUri = pendingImportUri,
                     onPendingImportConsumed = { pendingImportUri = null },

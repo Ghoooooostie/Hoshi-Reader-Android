@@ -297,10 +297,14 @@ fun DictionaryView(
                             onClick = { importMenuExpanded = true },
                             enabled = !isImporting,
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Add,
-                                contentDescription = "Import Dictionary",
-                            )
+                            if (isImporting) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Rounded.Add,
+                                    contentDescription = "Import Dictionary",
+                                )
+                            }
                         }
                         DropdownMenu(
                             expanded = importMenuExpanded,
@@ -458,16 +462,6 @@ fun DictionaryView(
                             },
                         )
                     }
-                }
-            }
-            if (isImporting) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(colorScheme.scrim.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(48.dp))
                 }
             }
         }

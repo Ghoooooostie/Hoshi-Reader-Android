@@ -60,6 +60,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -113,6 +114,7 @@ import moe.antimony.hoshi.features.reader.ReaderFontManager
 import moe.antimony.hoshi.features.reader.ReaderSettings
 import moe.antimony.hoshi.features.reader.ReaderWebView
 import moe.antimony.hoshi.importing.FileImportContent
+import moe.antimony.hoshi.ui.theme.LocalHoshiEInkMode
 import java.io.File
 import kotlin.math.max
 
@@ -919,6 +921,12 @@ private fun decodeSampledCoverBitmap(file: File, maxDimensionPx: Int): Bitmap? {
 @Composable
 private fun ReadingProgressPill(progress: Double, modifier: Modifier = Modifier) {
     val clamped = progress.coerceIn(0.0, 1.0).toFloat()
+    val eInkMode = LocalHoshiEInkMode.current
+    val colorScheme = MaterialTheme.colorScheme
+    val progressTrackColor = if (eInkMode) colorScheme.surface else Color(0xFFD7D7DB)
+    val progressFillColor = if (eInkMode) colorScheme.onSurface else Color(0xFFAFAFB4)
+    val progressBorderColor = if (eInkMode) colorScheme.outline else Color.Transparent
+    val progressTextColor = if (eInkMode) colorScheme.onBackground else Color(0xFF76767C)
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -928,7 +936,8 @@ private fun ReadingProgressPill(progress: Double, modifier: Modifier = Modifier)
                 .height(5.dp)
                 .weight(1f)
                 .clip(RoundedCornerShape(100))
-                .background(Color(0xFFD7D7DB)),
+                .background(progressTrackColor)
+                .border(BorderStroke(1.dp, progressBorderColor), RoundedCornerShape(100)),
         ) {
             if (clamped > 0f) {
                 Box(
@@ -936,7 +945,7 @@ private fun ReadingProgressPill(progress: Double, modifier: Modifier = Modifier)
                         .fillMaxWidth(clamped)
                         .height(5.dp)
                         .clip(RoundedCornerShape(100))
-                        .background(Color(0xFFAFAFB4)),
+                        .background(progressFillColor),
                 )
             }
         }
@@ -944,7 +953,7 @@ private fun ReadingProgressPill(progress: Double, modifier: Modifier = Modifier)
         Text(
             text = "${(clamped * 100).coerceAtMost(99.9f).formatOneDecimal()}%",
             style = MaterialTheme.typography.labelLarge,
-            color = Color(0xFF76767C),
+            color = progressTextColor,
             fontWeight = FontWeight.Bold,
         )
     }
@@ -1105,7 +1114,7 @@ private fun BottomTabGlyph(tab: MainTab, modifier: Modifier = Modifier) {
     Icon(
         imageVector = icon,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurface,
+        tint = LocalContentColor.current,
         modifier = modifier,
     )
 }

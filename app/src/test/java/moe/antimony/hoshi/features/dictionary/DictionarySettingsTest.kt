@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class DictionarySettingsTest {
     @Test
@@ -27,5 +28,16 @@ class DictionarySettingsTest {
 
         assertEquals(50, settings.maxResults)
         assertEquals(1, settings.scanLength)
+    }
+
+    @Test
+    fun dictionaryImportProgressDoesNotDimEInkSurfaces() {
+        val source = File("src/main/java/moe/antimony/hoshi/features/dictionary/DictionaryView.kt").readText()
+        val importingBlock = source.substringAfter("if (isImporting) {")
+            .substringBefore("private enum class DictionaryDestination")
+
+        assertFalse(source.contains("colorScheme.scrim"))
+        assertFalse(source.contains(".background(colorScheme.scrim"))
+        assertTrue(importingBlock.contains("CircularProgressIndicator"))
     }
 }

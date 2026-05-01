@@ -33,6 +33,7 @@ internal data class LookupPopupAssets(
 internal object LookupPopupHtml {
     fun render(
         results: List<LookupResult>,
+        assets: LookupPopupAssets? = null,
         dictionaryStyles: Map<String, String> = emptyMap(),
         topSpacerPx: Int = 0,
         settings: DictionarySettings = DictionarySettings(),
@@ -42,10 +43,18 @@ internal object LookupPopupHtml {
         audioSettings: AudioSettings = AudioSettings(),
     ): String {
         val entryCount = results.size
+        val entries = if (assets == null) {
+            "[]"
+        } else {
+            results.joinToString(prefix = "[", postfix = "]") { it.toEntryJson().toString() }
+        }
         val styles = dictionaryStylesJson(dictionaryStyles)
         val normalizedSettings = settings.normalized()
         val effectiveSwipeThreshold = if (swipeToDismiss) swipeThreshold.coerceAtLeast(0) else 0
         val colorScheme = if (darkMode) "dark" else "light"
+        val popupCss = assets?.let { """<style>${it.popupCss}</style>""" } ?: """<link rel="stylesheet" href="popup.css">"""
+        val selectionJs = assets?.let { """<script>${it.selectionJs}</script>""" } ?: """<script src="selection.js"></script>"""
+        val popupJs = assets?.let { """<script>${it.popupJs}</script>""" } ?: """<script src="popup.js"></script>"""
         val topSpacer = if (topSpacerPx > 0) {
             """<div style="height: ${topSpacerPx}px;"></div>"""
         } else {
@@ -61,10 +70,10 @@ internal object LookupPopupHtml {
             <html data-hoshi-color-scheme="$colorScheme">
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                <link rel="stylesheet" href="popup.css">
+                $popupCss
                 <style>$androidColorSchemeCss</style>
-                <script src="selection.js"></script>
-                <script src="popup.js"></script>
+                $selectionJs
+                $popupJs
             </head>
             <body>
                 <script>
@@ -118,7 +127,7 @@ internal object LookupPopupHtml {
                     window.customCSS = ${JsonPrimitive(normalizedSettings.customCSS)};
                     window.swipeThreshold = $effectiveSwipeThreshold;
                     window.dictionaryStyles = $styles;
-                    window.lookupEntries = [];
+                    window.lookupEntries = $entries;
                     window.entryCount = $entryCount;
                 </script>
                 <script>

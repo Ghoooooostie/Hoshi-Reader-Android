@@ -75,6 +75,7 @@ internal object DictionarySearchContent {
     fun runLookup(
         query: String,
         lookup: (String) -> List<LookupResult>,
+        assets: LookupPopupAssets? = null,
         dictionaryStyles: Map<String, String> = emptyMap(),
         dictionarySettings: DictionarySettings = DictionarySettings(),
         darkMode: Boolean = false,
@@ -104,6 +105,7 @@ internal object DictionarySearchContent {
             lastQuery = trimmed,
             html = LookupPopupHtml.render(
                 results = results,
+                assets = assets,
                 dictionaryStyles = dictionaryStyles,
                 topSpacerPx = DictionarySearchTopSpacerPx,
                 settings = dictionarySettings,

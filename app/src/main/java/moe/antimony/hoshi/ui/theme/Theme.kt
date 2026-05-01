@@ -9,6 +9,9 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
@@ -33,26 +36,109 @@ private val LightColorScheme = lightColorScheme(
     */
 )
 
+val LocalHoshiEInkMode = staticCompositionLocalOf { false }
+
+internal fun hoshiColorScheme(darkTheme: Boolean, eInkMode: Boolean) = when {
+    eInkMode && darkTheme -> eInkColorScheme(dark = true)
+    eInkMode -> eInkColorScheme(dark = false)
+    darkTheme -> DarkColorScheme
+    else -> LightColorScheme
+}
+
+private fun eInkColorScheme(dark: Boolean) = if (dark) {
+    pureColorScheme(
+        background = Color.Black,
+        content = Color.White,
+        inverseBackground = Color.White,
+        inverseContent = Color.Black,
+    )
+} else {
+    pureColorScheme(
+        background = Color.White,
+        content = Color.Black,
+        inverseBackground = Color.Black,
+        inverseContent = Color.White,
+    )
+}
+
+private fun pureColorScheme(
+    background: Color,
+    content: Color,
+    inverseBackground: Color,
+    inverseContent: Color,
+) = lightColorScheme(
+    primary = content,
+    onPrimary = background,
+    primaryContainer = content,
+    onPrimaryContainer = background,
+    inversePrimary = inverseContent,
+    secondary = content,
+    onSecondary = background,
+    secondaryContainer = content,
+    onSecondaryContainer = background,
+    tertiary = content,
+    onTertiary = background,
+    tertiaryContainer = content,
+    onTertiaryContainer = background,
+    background = background,
+    onBackground = content,
+    surface = background,
+    onSurface = content,
+    surfaceVariant = background,
+    onSurfaceVariant = content,
+    surfaceTint = Color.Transparent,
+    inverseSurface = inverseBackground,
+    inverseOnSurface = inverseContent,
+    error = content,
+    onError = background,
+    errorContainer = content,
+    onErrorContainer = background,
+    outline = content,
+    outlineVariant = content,
+    scrim = content,
+    surfaceBright = background,
+    surfaceContainer = background,
+    surfaceContainerHigh = background,
+    surfaceContainerHighest = background,
+    surfaceContainerLow = background,
+    surfaceContainerLowest = background,
+    surfaceDim = background,
+    primaryFixed = content,
+    primaryFixedDim = content,
+    onPrimaryFixed = background,
+    onPrimaryFixedVariant = background,
+    secondaryFixed = content,
+    secondaryFixedDim = content,
+    onSecondaryFixed = background,
+    onSecondaryFixedVariant = background,
+    tertiaryFixed = content,
+    tertiaryFixedDim = content,
+    onTertiaryFixed = background,
+    onTertiaryFixedVariant = background,
+)
+
 @Composable
 fun HoshiReaderTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    eInkMode: Boolean = false,
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+        dynamicColor && !eInkMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        else -> hoshiColorScheme(darkTheme = darkTheme, eInkMode = eInkMode)
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalHoshiEInkMode provides eInkMode) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

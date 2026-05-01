@@ -38,7 +38,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonColors
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
@@ -129,9 +128,8 @@ internal fun ReaderAppearanceSheet(
         onDismissRequest = onDismiss,
         containerColor = palette.background,
         contentColor = palette.onBackground,
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(color = palette.onMuted)
-        },
+        scrimColor = Color.Transparent,
+        dragHandle = { ReaderAppearanceSheetHandle(palette) },
     ) {
         ReaderAppearanceContent(
             settings = settings,
@@ -141,6 +139,18 @@ internal fun ReaderAppearanceSheet(
             showDone = true,
             onDone = onDismiss,
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReaderAppearanceSheetHandle(palette: AppearancePalette) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        ReaderSheetTopOutline()
+        BottomSheetDefaults.DragHandle(color = palette.onMuted)
     }
 }
 
@@ -212,6 +222,12 @@ private fun ReaderAppearanceContent(
                             }
                         },
                         palette = palette,
+                    )
+                    AppearanceDivider(palette)
+                    SwitchRow(
+                        label = "E-ink Mode",
+                        checked = settings.eInkMode,
+                        onCheckedChange = { onSettingsChange(settings.copy(eInkMode = it)) },
                     )
                 }
             }
@@ -496,7 +512,6 @@ private fun SegmentedRow(
                     selected = option == selected,
                     onClick = { onSelected(option) },
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                    colors = segmentedButtonColors(palette),
                 ) {
                     Text(
                         text = option,
@@ -702,17 +717,6 @@ private fun AppearanceDivider(palette: AppearancePalette) {
     )
 }
 
-@Composable
-private fun segmentedButtonColors(palette: AppearancePalette): SegmentedButtonColors =
-    SegmentedButtonDefaults.colors(
-        activeContainerColor = palette.segmentSelected,
-        activeContentColor = palette.onGroup,
-        inactiveContainerColor = Color.Transparent,
-        inactiveContentColor = palette.onGroup,
-        activeBorderColor = palette.segmentBorder,
-        inactiveBorderColor = palette.segmentBorder,
-    )
-
 private data class AppearancePalette(
     val background: Color,
     val group: Color,
@@ -722,8 +726,6 @@ private data class AppearancePalette(
     val divider: Color,
     val stepperContainer: Color,
     val stepperDivider: Color,
-    val segmentSelected: Color,
-    val segmentBorder: Color,
 )
 
 @Composable
@@ -738,7 +740,5 @@ private fun appearancePalette(): AppearancePalette {
         divider = colorScheme.outlineVariant,
         stepperContainer = colorScheme.surfaceVariant,
         stepperDivider = colorScheme.outline,
-        segmentSelected = colorScheme.secondaryContainer,
-        segmentBorder = colorScheme.outline,
     )
 }

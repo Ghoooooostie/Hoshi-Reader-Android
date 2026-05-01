@@ -1,7 +1,9 @@
 package moe.antimony.hoshi.features.reader
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
+import java.io.File
 
 class ReaderChromeTest {
     @Test
@@ -40,5 +42,29 @@ class ReaderChromeTest {
 
         assertEquals(0x661A1A1AL, readerChromeColors(settings, systemDark = true).buttonContainer)
         assertEquals(0xD9FFFFFFL, readerChromeColors(settings, systemDark = false).buttonContainer)
+    }
+
+    @Test
+    fun eInkModeUsesOpaquePureChromeColors() {
+        val light = readerChromeColors(ReaderSettings(eInkMode = true), systemDark = false)
+        val dark = readerChromeColors(ReaderSettings(theme = ReaderTheme.Dark, eInkMode = true), systemDark = false)
+
+        assertEquals(0xFFFFFFFFL, light.buttonContainer)
+        assertEquals(0xFF000000L, light.buttonContent)
+        assertEquals(0xFFFFFFFFL, light.menuContainer)
+        assertEquals(0xFF000000L, light.menuContent)
+        assertEquals(0xFF000000L, light.infoText)
+        assertEquals(0xFF000000L, dark.buttonContainer)
+        assertEquals(0xFFFFFFFFL, dark.buttonContent)
+    }
+
+    @Test
+    fun readerBottomButtonsDoNotDrawOutlineInLightOrDarkThemes() {
+        val source = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderWebView.kt").readText()
+        val button = source.substringAfter("private fun ReaderGlassButton(")
+            .substringBefore("@SuppressLint")
+
+        assertFalse(button.contains("BorderStroke"))
+        assertFalse(button.contains("buttonBorder"))
     }
 }

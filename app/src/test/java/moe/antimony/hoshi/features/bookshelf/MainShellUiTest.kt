@@ -161,6 +161,28 @@ class MainShellUiTest {
     }
 
     @Test
+    fun bookshelfProgressUsesHighContrastEInkPaletteWhenEnabled() {
+        val source = File("src/main/java/moe/antimony/hoshi/features/bookshelf/BookshelfView.kt").readText()
+        val progress = source.substringAfter("private fun ReadingProgressPill(")
+            .substringBefore("@Composable\n@OptIn(ExperimentalMaterial3Api::class)\ninternal fun SettingsTab")
+
+        assertTrue(progress.contains("LocalHoshiEInkMode.current"))
+        assertTrue(progress.contains("progressTrackColor"))
+        assertTrue(progress.contains("progressFillColor"))
+        assertTrue(progress.contains("progressBorderColor"))
+    }
+
+    @Test
+    fun bottomTabIconsUseNavigationItemContentColor() {
+        val source = File("src/main/java/moe/antimony/hoshi/features/bookshelf/BookshelfView.kt").readText()
+        val glyph = source.substringAfter("private fun BottomTabGlyph(")
+            .substringBefore("@Composable\nprivate fun SettingsGlyph")
+
+        assertTrue(glyph.contains("LocalContentColor.current"))
+        assertFalse(glyph.contains("tint = MaterialTheme.colorScheme.onSurface"))
+    }
+
+    @Test
     fun settingsRowsUseMaterialFullWidthDividers() {
         val source = File("src/main/java/moe/antimony/hoshi/features/bookshelf/BookshelfView.kt").readText()
 

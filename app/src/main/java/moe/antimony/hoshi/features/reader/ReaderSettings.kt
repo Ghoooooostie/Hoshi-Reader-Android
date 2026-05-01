@@ -5,6 +5,7 @@ import java.util.Locale
 
 data class ReaderSettings(
     val theme: ReaderTheme = ReaderTheme.System,
+    val eInkMode: Boolean = false,
     val verticalWriting: Boolean = true,
     val selectedFont: String = ReaderFontManager.defaultMinchoFont,
     val fontSize: Int = 22,
@@ -64,18 +65,28 @@ data class ReaderSettings(
     val trailingSpacerWidthCss: String
         get() = if (verticalWriting) "0" else "${(horizontalPadding / 2.0).cssNumber()}vw"
 
-    fun backgroundColor(systemDark: Boolean): Long = when (theme) {
-        ReaderTheme.System -> if (systemDark) 0xFF000000 else 0xFFFFFFFF
-        ReaderTheme.Dark -> 0xFF000000
-        ReaderTheme.Sepia -> 0xFFF2E2C9
-        ReaderTheme.Light -> 0xFFFFFFFF
+    fun backgroundColor(systemDark: Boolean): Long {
+        if (eInkMode) {
+            return if (usesDarkInterface(systemDark)) 0xFF000000 else 0xFFFFFFFF
+        }
+        return when (theme) {
+            ReaderTheme.System -> if (systemDark) 0xFF000000 else 0xFFFFFFFF
+            ReaderTheme.Dark -> 0xFF000000
+            ReaderTheme.Sepia -> 0xFFF2E2C9
+            ReaderTheme.Light -> 0xFFFFFFFF
+        }
     }
 
-    fun textColorCss(systemDark: Boolean): String = when (theme) {
-        ReaderTheme.System -> if (systemDark) "#fff" else "#000"
-        ReaderTheme.Light -> "#000"
-        ReaderTheme.Dark -> "#fff"
-        ReaderTheme.Sepia -> "#332A1B"
+    fun textColorCss(systemDark: Boolean): String {
+        if (eInkMode) {
+            return if (usesDarkInterface(systemDark)) "#fff" else "#000"
+        }
+        return when (theme) {
+            ReaderTheme.System -> if (systemDark) "#fff" else "#000"
+            ReaderTheme.Light -> "#000"
+            ReaderTheme.Dark -> "#fff"
+            ReaderTheme.Sepia -> "#332A1B"
+        }
     }
 }
 
@@ -100,6 +111,7 @@ class ReaderSettingsStore(context: Context) {
         theme = preferences.getString("theme", null)
             ?.let { saved -> ReaderTheme.entries.firstOrNull { it.label == saved } }
             ?: ReaderTheme.System,
+        eInkMode = preferences.getBoolean("eInkMode", false),
         verticalWriting = preferences.getBoolean("verticalWriting", true),
         selectedFont = ReaderFontManager.normalizeDefaultFont(
             preferences.getString("selectedFont", null) ?: ReaderFontManager.defaultMinchoFont,
@@ -127,6 +139,7 @@ class ReaderSettingsStore(context: Context) {
     fun save(settings: ReaderSettings) {
         preferences.edit()
             .putString("theme", settings.theme.label)
+            .putBoolean("eInkMode", settings.eInkMode)
             .putBoolean("verticalWriting", settings.verticalWriting)
             .putString("selectedFont", settings.selectedFont)
             .putInt("fontSize", settings.fontSize)

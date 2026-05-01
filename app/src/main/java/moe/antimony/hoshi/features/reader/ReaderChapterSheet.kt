@@ -1,6 +1,7 @@
 package moe.antimony.hoshi.features.reader
 
 import android.graphics.BitmapFactory
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,6 +48,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import moe.antimony.hoshi.epub.EpubBook
 import moe.antimony.hoshi.epub.EpubTocItem
+import moe.antimony.hoshi.ui.theme.LocalHoshiEInkMode
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -60,13 +62,15 @@ internal fun ReaderChapterSheet(
 ) {
     val rows = remember(book, currentPosition.index) { book.chapterRows(currentPosition.index) }
     val numberFormat = remember { NumberFormat.getIntegerInstance(Locale.US) }
+    val eInkMode = LocalHoshiEInkMode.current
     var showJumpDialog by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+        containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        dragHandle = {},
+        scrimColor = Color.Transparent,
+        dragHandle = { ReaderSheetTopOutline() },
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
@@ -83,7 +87,13 @@ internal fun ReaderChapterSheet(
                             .align(Alignment.TopCenter)
                             .size(width = 42.dp, height = 5.dp)
                             .clip(RoundedCornerShape(100))
-                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)),
+                            .background(
+                                if (eInkMode) {
+                                    MaterialTheme.colorScheme.outline
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+                                },
+                            ),
                     )
                     Text(
                         text = "Chapters",
@@ -96,8 +106,13 @@ internal fun ReaderChapterSheet(
                     Surface(
                         modifier = Modifier.align(Alignment.CenterEnd),
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                        color = if (eInkMode) {
+                            MaterialTheme.colorScheme.surface
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+                        },
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        border = if (eInkMode) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null,
                     ) {
                         IconButton(onClick = onDismiss) {
                             Icon(
@@ -224,11 +239,28 @@ private fun ReaderChapterListRow(
     numberFormat: NumberFormat,
     onClick: () -> Unit,
 ) {
+    val eInkMode = LocalHoshiEInkMode.current
+    val isCurrentEInkRow = eInkMode && row.isCurrent
+    val currentRowColor = when {
+        isCurrentEInkRow -> MaterialTheme.colorScheme.onSurface
+        row.isCurrent -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f)
+        else -> Color.Transparent
+    }
+    val rowContentColor = if (isCurrentEInkRow) {
+        MaterialTheme.colorScheme.surface
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val rowMetaColor = if (isCurrentEInkRow) {
+        MaterialTheme.colorScheme.surface
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = if (row.isCurrent) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f) else Color.Transparent,
+                color = currentRowColor,
                 shape = RoundedCornerShape(14.dp),
             )
             .clickable(onClick = onClick)
@@ -240,12 +272,12 @@ private fun ReaderChapterListRow(
             text = row.label.ifBlank { "Untitled" },
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = rowContentColor,
         )
         row.characterCount?.let { count ->
             Text(
                 text = numberFormat.format(count),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = rowMetaColor,
                 style = MaterialTheme.typography.titleMedium,
             )
         }

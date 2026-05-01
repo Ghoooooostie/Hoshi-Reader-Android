@@ -525,7 +525,6 @@ private fun ReaderGlassButton(
             .size(54.dp),
         shape = CircleShape,
         color = Color(colors.buttonContainer),
-        border = BorderStroke(1.dp, Color(colors.buttonBorder)),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
     ) {
