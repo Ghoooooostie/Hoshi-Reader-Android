@@ -8,6 +8,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 ### Fixed
 
 - Keep the reader open when the device display orientation changes, instead of returning to the bookshelf. #27
+- Replace large local audio database imports with an app-folder `android.db` drop-in path so adding offline audio no longer blocks the app or risks a partial import. #28
 
 ## [v0.1.3] - 2026-05-01
 

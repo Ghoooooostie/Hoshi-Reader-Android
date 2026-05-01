@@ -1,20 +1,20 @@
 package moe.antimony.hoshi.features.audio
 
-import android.content.ContentResolver
 import android.database.sqlite.SQLiteDatabase
-import android.net.Uri
 import java.io.File
 
-class LocalAudioRepository(private val filesDir: File) {
-    val dbFile: File
+class LocalAudioRepository(
+    private val filesDir: File,
+    private val externalFilesDir: File? = null,
+) {
+    private val privateDbFile: File
         get() = File(filesDir, AudioSettings.LocalAudioPath)
 
-    fun importDatabase(contentResolver: ContentResolver, uri: Uri) {
-        dbFile.parentFile?.mkdirs()
-        contentResolver.openInputStream(uri)?.use { input ->
-            dbFile.outputStream().use { output -> input.copyTo(output) }
-        } ?: error("Unable to open audio database.")
-    }
+    val dropInDbFile: File?
+        get() = externalFilesDir?.resolve("android.db")
+
+    val dbFile: File
+        get() = dropInDbFile?.takeIf { it.isFile } ?: privateDbFile
 
     fun deleteDatabase() {
         dbFile.delete()

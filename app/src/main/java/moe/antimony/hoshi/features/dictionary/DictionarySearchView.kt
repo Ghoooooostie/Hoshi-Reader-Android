@@ -382,7 +382,9 @@ private fun DictionaryResultWebView(
     AndroidView(
         modifier = modifier.fillMaxSize(),
         factory = { context ->
-            val audioRequestHandler = AudioRequestHandler(LocalAudioRepository(context.filesDir))
+            val audioRequestHandler = AudioRequestHandler(
+                LocalAudioRepository(context.filesDir, context.getExternalFilesDir(null)),
+            )
             WebView(context).apply {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = false
@@ -399,7 +401,9 @@ private fun DictionaryResultWebView(
             callbackHolder.callbacks = callbacks
             webView.webViewClient = PopupMessageWebViewClient(
                 callbackHolder,
-                AudioRequestHandler(LocalAudioRepository(webView.context.filesDir)),
+                AudioRequestHandler(
+                    LocalAudioRepository(webView.context.filesDir, webView.context.getExternalFilesDir(null)),
+                ),
             )
             if (loadedHtml != html) {
                 loadedHtml = html

@@ -11,7 +11,7 @@ import android.os.Build
 class WordAudioPlayer private constructor(context: Context) {
     private val appContext = context.applicationContext
     private val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-    private val localAudioRepository = LocalAudioRepository(appContext.filesDir)
+    private val localAudioRepository = LocalAudioRepository(appContext.filesDir, appContext.getExternalFilesDir(null))
     private var mediaPlayer: MediaPlayer? = null
     private var focusRequest: AudioFocusRequest? = null
 

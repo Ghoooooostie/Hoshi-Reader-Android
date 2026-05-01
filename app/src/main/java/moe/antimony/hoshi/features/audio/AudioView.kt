@@ -1,9 +1,7 @@
 package moe.antimony.hoshi.features.audio
 
-import android.content.Intent
 import android.text.format.Formatter
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -57,7 +55,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import moe.antimony.hoshi.importing.FileImportContent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -126,7 +123,7 @@ fun AudioSettingsView(
 ) {
     val context = LocalContext.current
     val store = remember { AudioSettingsStore(context) }
-    val repository = remember { LocalAudioRepository(context.filesDir) }
+    val repository = remember { LocalAudioRepository(context.filesDir, context.getExternalFilesDir(null)) }
     var settings by remember { mutableStateOf(store.load()) }
     var nameInput by remember { mutableStateOf("") }
     var urlInput by remember { mutableStateOf("") }
@@ -143,17 +140,6 @@ fun AudioSettingsView(
         val source = sources.removeAt(from)
         sources.add(to, source)
         save(settings.copy(audioSources = sources))
-    }
-
-    val importer = rememberLauncherForActivityResult(FileImportContent()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        runCatching {
-            context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        runCatching {
-            repository.importDatabase(context.contentResolver, uri)
-            importedSize = repository.databaseSizeBytes()
-        }
     }
 
     BackHandler(onBack = onClose)
@@ -300,10 +286,13 @@ fun AudioSettingsView(
                         GroupDivider()
                         ListItem(
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            headlineContent = { Text("Import android.db") },
+                            headlineContent = { Text("android.db folder") },
+                            supportingContent = {
+                                Text(repository.dropInDbFile?.absolutePath ?: "External app folder unavailable")
+                            },
                             trailingContent = {
-                                Button(onClick = { importer.launch(arrayOf("*/*")) }) {
-                                    Text("Import")
+                                Button(onClick = { importedSize = repository.databaseSizeBytes() }) {
+                                    Text("Refresh")
                                 }
                             },
                         )
@@ -329,7 +318,7 @@ fun AudioSettingsView(
                     }
                 }
                 Text(
-                    text = "Import a local audio database for offline dictionary audio. The local audio source is automatically added when enabled.",
+                    text = "Place android.db in the app folder for offline dictionary audio. The local audio source is automatically added when enabled.",
                     color = colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 24.dp),

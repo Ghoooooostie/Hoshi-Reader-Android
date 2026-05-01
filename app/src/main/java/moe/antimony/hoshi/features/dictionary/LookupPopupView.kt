@@ -150,7 +150,9 @@ private fun LookupPopupWebView(
             .fillMaxSize()
             .background(if (darkMode) Color.Black else Color.White),
         factory = { context ->
-            val audioRequestHandler = AudioRequestHandler(LocalAudioRepository(context.filesDir))
+            val audioRequestHandler = AudioRequestHandler(
+                LocalAudioRepository(context.filesDir, context.getExternalFilesDir(null)),
+            )
             WebView(context).apply {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = false

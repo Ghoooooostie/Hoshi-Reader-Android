@@ -174,7 +174,8 @@
    - `done` - Align iOS `AudioView` under Settings -> Advanced with source ordering/toggles, custom source add/delete, auto-play, background audio mode, and Local Audio import/delete controls.
    - `done` - Inject iOS popup audio variables into the shared popup WebView renderer and route audio button taps through the same native playback bridge used by iOS `PopupWebView`.
    - `done` - Support iOS-compatible local `Audio/android.db` lookup semantics for `http://localhost:8765/localaudio/get/?term={term}&reading={reading}` and play returned local audio blobs.
-   - `done` - Use transient content import intents for local audio database imports so Android's picker can show providers under "Browse files in other apps" on affected devices.
+   - `done` - Supersede local audio picker imports with the app-folder drop-in path; shared transient import intents remain for EPUB, dictionary, and font imports.
+   - `done` - Fix issue #28 by replacing large `android.db` picker imports with an Ankiconnect-compatible app-folder drop-in path; Hoshi now reads `android.db` directly from app-specific external files when present and falls back to the legacy private copy.
    - `done` - Support configurable remote Yomitan audio source URLs, verified with `https://audiov2.animecards.site/audio/list?term={term}&reading={reading}&apiKey=04887404-aba9-43b8-abb8-0e3847038a76`.
    - `done` - Fix issue #3 by making the Background Audio segmented picker use one unified equal-size pill even when option labels wrap.
    - `todo` - Read dictionary media through the existing dictionary bridge.
