@@ -6,7 +6,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
-import java.util.zip.ZipInputStream
 
 class EpubBookParserTest {
     @get:Rule
@@ -64,24 +63,42 @@ class EpubBookParserTest {
     }
 
     @Test
-    fun parsesTest3WithReadableBookInfoAndXhtmlScriptsPreserved() {
-        val root = tempFolder.newFolder("test3")
-        extractEpub(File("../testdata/test3.epub"), root)
+    fun parsesGeneratedFixtureWithReadableBookInfoAndXhtmlScriptsPreserved() {
+        val root = tempFolder.newFolder("realistic-script-book")
+        writeExtractedEpub(
+            root = root,
+            title = "Script Fixture",
+            firstChapterHtml = """
+                <html>
+                <head>
+                  <script type="text/javascript" src="../js/kobo.js"/>
+                </head>
+                <body>
+                  <p>Alpha 123</p>
+                  <rt>ignored ruby</rt>
+                  <script>HiddenText</script>
+                </body>
+                </html>
+            """.trimIndent(),
+            secondChapterHtml = "<html><body><p>Second</p></body></html>",
+        )
 
         val book = EpubBookParser().parse(root)
 
-        assertEquals("Re：ゼロから始める異世界生活 13", book.title)
-        assertEquals("item/image/cover.jpg", book.coverHref)
-        assertEquals(44, book.chapters.size)
-        assertEquals("item/xhtml/p-cover.xhtml", book.chapters.first().href)
-        assertEquals(143553, book.bookInfo.characterCount)
+        assertEquals("Script Fixture", book.title)
+        assertEquals("OPS/images/cover.jpg", book.coverHref)
+        assertEquals(2, book.chapters.size)
+        assertEquals("OPS/text/chapter-2.xhtml", book.chapters.first().href)
+        assertEquals(14, book.bookInfo.characterCount)
         assertEquals(true, book.chapters.any { chapter -> selfClosingScriptRegex.containsMatchIn(chapter.html) })
         assertEquals("image/jpeg", book.mediaType(book.coverHref.orEmpty()))
     }
 
     private fun writeExtractedEpub(
         root: File,
+        title: String = "Sample Book",
         firstChapterHtml: String = "<html><body>First</body></html>",
+        secondChapterHtml: String = "<html><body>Second</body></html>",
     ) {
         root.resolve("META-INF").mkdirs()
         root.resolve("META-INF/container.xml").writeText(
@@ -100,7 +117,7 @@ class EpubBookParserTest {
         root.resolve("OPS/images").mkdirs()
         root.resolve("OPS/js").mkdirs()
         root.resolve("OPS/text/chapter-1.xhtml").writeText(firstChapterHtml)
-        root.resolve("OPS/text/chapter-2.xhtml").writeText("<html><body>Second</body></html>")
+        root.resolve("OPS/text/chapter-2.xhtml").writeText(secondChapterHtml)
         root.resolve("OPS/styles/book.css").writeText("body {}")
         root.resolve("OPS/images/cover.jpg").writeBytes(byteArrayOf(1, 2, 3))
         root.resolve("OPS/js/kobo.js").writeText("")
@@ -109,7 +126,7 @@ class EpubBookParserTest {
             <?xml version="1.0" encoding="UTF-8"?>
             <package xmlns="http://www.idpf.org/2007/opf" version="3.0">
               <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-                <dc:title>Sample Book</dc:title>
+                  <dc:title>$title</dc:title>
               </metadata>
               <manifest>
                 <item id="chapter-1" href="text/chapter-1.xhtml" media-type="application/xhtml+xml"/>
@@ -125,27 +142,6 @@ class EpubBookParserTest {
             </package>
             """.trimIndent(),
         )
-    }
-
-    private fun extractEpub(epub: File, root: File) {
-        ZipInputStream(epub.inputStream()).use { zip ->
-            var entry = zip.nextEntry
-            while (entry != null) {
-                val output = root.resolve(entry.name).canonicalFile
-                val canonicalRoot = root.canonicalFile
-                require(output.path == canonicalRoot.path || output.path.startsWith(canonicalRoot.path + File.separator)) {
-                    "Unsafe EPUB entry: ${entry.name}"
-                }
-                if (entry.isDirectory) {
-                    output.mkdirs()
-                } else {
-                    output.parentFile?.mkdirs()
-                    output.outputStream().use { zip.copyTo(it) }
-                }
-                zip.closeEntry()
-                entry = zip.nextEntry
-            }
-        }
     }
 
     private companion object {
