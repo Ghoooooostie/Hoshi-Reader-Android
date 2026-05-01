@@ -6,6 +6,7 @@
 
 - iOS 用户可见行为和 UI 是唯一真源；不要让 Android 默认行为、第三方示例或 POC 覆盖 iOS 行为。
 - 开始功能切片前，先查看 `reference/Hoshi-Reader-iOS` 对应实现并总结行为。
+- 修复问题时不要做补丁式修复（补丁后发现没修好再继续叠新补丁）；应先把 iOS 版作为真源，直接参考 iOS 现有实现和状态流来修。只有在尽可能照齐 iOS 逻辑后，仍因 Android/iOS 系统层差异导致行为不一致时，才做最小偏差的 Android 侧适配，且不可进一步扩大实现偏差。
 - 不要把 Swift 源码复制到 `app/src/main` 或任何 Android package。
 - iOS 架构只作行为参考；Android 使用 repository、ViewModel、不可变 UI state。
 - 推进顺序：model/storage -> bookshelf import -> reader -> dictionary popup -> Anki -> sync -> settings。
@@ -13,6 +14,7 @@
 - 完成需求时先更新 `docs/TODO.md`，再把代码和 TODO 放进同一个 commit；用户明确要求不 commit 时不要提交。
 - 完成新功能或修复问题时，同步更新 `docs/CHANGELOG.md` 的 `[Unreleased]` section；CHANGELOG 面向普通用户，只记录用户可感知的 App 功能、体验和问题修复，不记录 CI、agent workflow、私有 skill、构建脚本、依赖管理或仅开发者可见的内部改动。
 - 如果 commit 修复或实现了某个 GitHub Issue，`docs/CHANGELOG.md` 对应用户可见条目末尾加上 `#123` 形式的 issue 引用，便于 GitHub Release 页面自动生成可跳转链接。
+- 修复问题时，如果用户要求建立 GitHub Issue，先调查问题现象和复现方式，再创建关联 issue；之后再进行实际修复，并在修复完成后的 commit message 中使用 closing keyword（如 `Closes #123`）关联该 issue，便于后续追踪 bug 记录。
 - Commit message 使用 Conventional Commits。
 - 修复 GitHub Issue 时，在 commit message 中使用 closing keyword（如 `Closes #123`）。
 - 小型 GitHub Issue 修复（如文案、链接、配置等低风险单点修改）直接在 `main` 分支完成并提交；较大功能、跨模块重构或高风险改动再开 `codex/` 前缀分支。
