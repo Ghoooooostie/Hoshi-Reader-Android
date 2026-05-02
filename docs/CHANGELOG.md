@@ -7,27 +7,12 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ### Added
 
-- Add Sasayaki audiobook read-along support with an adjustable SRT Match page from the bookshelf, reader cue highlighting, audiobook import/playback controls, delay and speed adjustment, and persistent per-book playback state.
-- Add iOS-aligned Sasayaki controls to lookup popups for replaying the selected cue, toggling the current playback pause state, or continuing playback from the selected cue.
-- Add a Sasayaki setting for choosing whether selected audiobooks stay linked as external files or are copied into app storage.
-- Add the Sasayaki audiobook storage toggle to the reader Sasayaki sheet.
+- Add Sasayaki audiobook read-along support, including SRT matching, cue highlighting, audiobook playback controls, delay and speed adjustment, auto-scroll, and saved per-book playback state.
+- Add Sasayaki controls in lookup popups and reader settings for replaying or continuing from the selected cue, pausing playback during lookup, and choosing whether audiobooks stay linked as external files or are copied into app storage.
 
 ### Fixed
 
-- Align Sasayaki lookup popup control icons with the iOS symbols for replaying the cue, toggling playback, and playing forward from the cue.
-- Use only system icons for Sasayaki lookup popup controls, including the play-forward action.
-- Keep Sasayaki popup Replay as temporary cue playback so it does not overwrite the saved audiobook position.
-- Make the Sasayaki lookup popup controls more compact so the three buttons fit in narrow popup windows.
-- Keep restored Sasayaki audiobooks paused until the user explicitly starts playback, and expose the iOS-aligned Auto-Scroll controls in the reader Sasayaki sheet.
-- Resume Sasayaki playback after closing a lookup popup when Auto-Pause on Lookup paused it.
-- Switch reader sheet styling by E-ink Mode: Sasayaki no longer dims e-ink pages, while normal mode uses the same Material sheet chrome for Chapters, Appearance, and Sasayaki.
-- Keep Sasayaki popup Play Forward anchored on the selected cue instead of briefly jumping to a stale or edge-aligned page with no highlight.
-- Keep reader progress and saved book position in sync when Sasayaki Auto-Scroll follows audiobook cues across pages.
-- Highlight the current Sasayaki cue immediately when audiobook playback starts, matching iOS read-along behavior.
-- Match Sasayaki SRT files with the same cue accounting and non-reader TOC filtering as iOS so identical search windows report matching rates consistently.
-- Keep Sasayaki audiobooks linked to the selected external media file instead of importing another private copy, matching iOS storage behavior.
 - Reject mismatched import files before reading them, so EPUB, Sasayaki SRT, Sasayaki audiobook, local audio database, dictionary, and reader font imports only accept their supported file extensions.
-- Simplify the reader Sasayaki sheet by removing the redundant header row, moving the audiobook storage toggle next to Load Audio, showing whether loaded audio is an external reference or app-private copy, and replacing Open with Remove while an audiobook is loaded.
 - Use the same compact Settings detail header for Dictionaries, Appearance, and Advanced so subpage content starts directly below a single top bar.
 
 ## [v0.1.6] - 2026-05-02
