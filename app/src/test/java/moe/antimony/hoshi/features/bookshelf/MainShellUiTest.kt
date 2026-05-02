@@ -19,11 +19,11 @@ class MainShellUiTest {
     }
 
     @Test
-    fun settingsGroupsMatchIosSettingsEntryOrder() {
+    fun settingsGroupsIncludeAndroidReaderBehaviorEntry() {
         val groups = settingsGroups()
 
         assertEquals(
-            listOf("Dictionaries", "Anki", "Appearance", "Advanced"),
+            listOf("Dictionaries", "Anki", "Appearance", "Behavior", "Advanced"),
             groups.first().map { it.label },
         )
         assertEquals(listOf("Report an Issue", "Diagnostics", "About"), groups.last().map { it.label })

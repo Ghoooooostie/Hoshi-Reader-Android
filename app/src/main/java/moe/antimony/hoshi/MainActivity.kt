@@ -1,9 +1,11 @@
 package moe.antimony.hoshi
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,6 +21,7 @@ import moe.antimony.hoshi.ui.theme.HoshiReaderTheme
 
 class MainActivity : ComponentActivity() {
     private var pendingImportUri by mutableStateOf<Uri?>(null)
+    private var readerKeyEventHandler: ((KeyEvent) -> Boolean)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,9 +46,20 @@ class MainActivity : ComponentActivity() {
                         readerSettings = settings
                         readerSettingsStore.save(settings)
                     },
+                    onReaderKeyEventHandlerChange = { handler ->
+                        readerKeyEventHandler = handler
+                    },
                 )
             }
         }
+    }
+
+    @SuppressLint("RestrictedApi")
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (readerKeyEventHandler?.invoke(event) == true) {
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onNewIntent(intent: Intent) {

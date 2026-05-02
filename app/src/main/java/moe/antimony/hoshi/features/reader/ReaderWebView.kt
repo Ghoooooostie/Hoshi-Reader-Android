@@ -11,6 +11,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -110,6 +111,7 @@ fun ReaderWebView(
     initialProgress: Double = 0.0,
     readerSettings: ReaderSettings = ReaderSettings(),
     onReaderSettingsChange: (ReaderSettings) -> Unit = {},
+    onReaderKeyEventHandlerChange: (((KeyEvent) -> Boolean)?) -> Unit = {},
     onSaveBookmark: (chapterIndex: Int, progress: Double) -> Unit = { _, _ -> },
     onTextSelected: (ReaderSelectionData) -> Int? = { null },
     onClose: () -> Unit,
@@ -216,6 +218,39 @@ fun ReaderWebView(
         sasayakiSettingsStore.save(settings)
         sasayakiPlayer?.autoScroll = settings.autoScroll
     }
+    fun goToNextChapter(): Boolean {
+        val next = readerPosition.loadPosition.nextOrNull(book.chapters.lastIndex)
+        if (next != null) {
+            readerPosition = readerPosition.jumpTo(next)
+            onSaveBookmark(next.index, next.progress)
+            return true
+        }
+        return false
+    }
+    fun goToPreviousChapter(): Boolean {
+        val previous = readerPosition.loadPosition.previousOrNull()
+        if (previous != null) {
+            readerPosition = readerPosition.jumpTo(previous)
+            onSaveBookmark(previous.index, previous.progress)
+            return true
+        }
+        return false
+    }
+    fun saveDisplayedProgress(progress: Double) {
+        val updatedPosition = readerPosition.recordPageProgress(progress)
+        readerPosition = updatedPosition
+        onSaveBookmark(updatedPosition.displayedPosition.index, updatedPosition.displayedPosition.progress)
+    }
+    fun navigateReaderPage(direction: ReaderNavigationDirection): Boolean {
+        val currentWebView = webView ?: return false
+        closeLookupPopupsAndSelection()
+        val onLimit = when (direction) {
+            ReaderNavigationDirection.Forward -> ::goToNextChapter
+            ReaderNavigationDirection.Backward -> ::goToPreviousChapter
+        }
+        currentWebView.navigatePage(direction, onLimit, ::saveDisplayedProgress)
+        return true
+    }
     fun pauseSasayakiForLookupIfNeeded() {
         val player = sasayakiPlayer
         if (sasayakiSettings.enabled && sasayakiSettings.autoPause && player?.isPlaying == true) {
@@ -284,6 +319,19 @@ fun ReaderWebView(
         sasayakiSettings = sasayakiSettingsStore.load()
     }
     sasayakiPlayer?.autoScroll = sasayakiSettings.autoScroll
+    val currentReaderKeyHandler = rememberUpdatedState<(KeyEvent) -> Boolean> { event ->
+        val direction = readerNavigationDirectionForKeyEvent(
+            keyCode = event.keyCode,
+            action = event.action,
+            repeatCount = event.repeatCount,
+            settings = effectiveSettings,
+        ) ?: return@rememberUpdatedState false
+        navigateReaderPage(direction)
+    }
+    DisposableEffect(onReaderKeyEventHandlerChange) {
+        onReaderKeyEventHandlerChange { event -> currentReaderKeyHandler.value(event) }
+        onDispose { onReaderKeyEventHandlerChange(null) }
+    }
 
     BackHandler(onBack = onClose)
     val useLightSystemBars = when (effectiveSettings.theme) {
@@ -331,29 +379,13 @@ fun ReaderWebView(
                 },
                 onWebViewReady = { webView = it },
                 onNextChapter = {
-                    val next = readerPosition.loadPosition.nextOrNull(book.chapters.lastIndex)
-                    if (next != null) {
-                        readerPosition = readerPosition.jumpTo(next)
-                        onSaveBookmark(next.index, next.progress)
-                        true
-                    } else {
-                        false
-                    }
+                    goToNextChapter()
                 },
                 onPreviousChapter = {
-                    val previous = readerPosition.loadPosition.previousOrNull()
-                    if (previous != null) {
-                        readerPosition = readerPosition.jumpTo(previous)
-                        onSaveBookmark(previous.index, previous.progress)
-                        true
-                    } else {
-                        false
-                    }
+                    goToPreviousChapter()
                 },
                 onSaveBookmark = { progress ->
-                    val updatedPosition = readerPosition.recordPageProgress(progress)
-                    readerPosition = updatedPosition
-                    onSaveBookmark(updatedPosition.displayedPosition.index, updatedPosition.displayedPosition.progress)
+                    saveDisplayedProgress(progress)
                 },
                 onInternalLink = { target ->
                     closeLookupPopupsAndSelection()

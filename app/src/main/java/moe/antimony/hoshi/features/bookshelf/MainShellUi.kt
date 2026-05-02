@@ -119,6 +119,7 @@ enum class SettingsDestination {
     Dictionaries,
     Anki,
     Appearance,
+    Behavior,
     Advanced,
     ReportIssue,
     Diagnostics,
@@ -140,6 +141,7 @@ fun settingsGroups(): List<List<SettingsRowModel>> = listOf(
         SettingsRowModel("Dictionaries", SettingsDestination.Dictionaries),
         SettingsRowModel("Anki", SettingsDestination.Anki),
         SettingsRowModel("Appearance", SettingsDestination.Appearance),
+        SettingsRowModel("Behavior", SettingsDestination.Behavior),
         SettingsRowModel("Advanced", SettingsDestination.Advanced),
     ),
     listOf(

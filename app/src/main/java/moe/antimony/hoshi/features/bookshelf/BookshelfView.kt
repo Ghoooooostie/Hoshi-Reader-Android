@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.LruCache
+import android.view.KeyEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -46,6 +47,7 @@ import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Inventory2
+import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.ReportProblem
 import androidx.compose.material.icons.rounded.Settings
@@ -112,6 +114,7 @@ import moe.antimony.hoshi.features.dictionary.DictionaryView
 import moe.antimony.hoshi.features.dictionary.DictionarySearchView
 import moe.antimony.hoshi.features.dictionary.DictionarySettingsStore
 import moe.antimony.hoshi.features.reader.ReaderAppearanceScreen
+import moe.antimony.hoshi.features.reader.ReaderBehaviorScreen
 import moe.antimony.hoshi.features.reader.ReaderFontManager
 import moe.antimony.hoshi.features.reader.ReaderSettings
 import moe.antimony.hoshi.features.reader.ReaderWebView
@@ -132,6 +135,7 @@ fun BookshelfView(
     onPendingImportConsumed: () -> Unit = {},
     readerSettings: ReaderSettings,
     onReaderSettingsChange: (ReaderSettings) -> Unit,
+    onReaderKeyEventHandlerChange: (((KeyEvent) -> Boolean)?) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -287,6 +291,7 @@ fun BookshelfView(
             initialProgress = bookmark?.progress ?: 0.0,
             readerSettings = readerSettings,
             onReaderSettingsChange = ::updateReaderSettings,
+            onReaderKeyEventHandlerChange = onReaderKeyEventHandlerChange,
             onSaveBookmark = { chapterIndex, progress ->
                 val file = selectedBookRoot ?: return@ReaderWebView
                 val parsedBook = book ?: return@ReaderWebView
@@ -338,6 +343,16 @@ fun BookshelfView(
             settings = readerSettings,
             onSettingsChange = ::updateReaderSettings,
             fontManager = readerFontManager,
+            onClose = { settingsDestination = null },
+            modifier = modifier.fillMaxSize(),
+        )
+        return
+    }
+
+    if (settingsDestination == SettingsDestination.Behavior) {
+        ReaderBehaviorScreen(
+            settings = readerSettings,
+            onSettingsChange = ::updateReaderSettings,
             onClose = { settingsDestination = null },
             modifier = modifier.fillMaxSize(),
         )
@@ -424,6 +439,7 @@ fun BookshelfView(
     settingsDestination?.takeIf {
         it != SettingsDestination.Dictionaries &&
             it != SettingsDestination.Appearance &&
+            it != SettingsDestination.Behavior &&
             it != SettingsDestination.Advanced
     }?.let { destination ->
         AlertDialog(
@@ -1172,6 +1188,7 @@ private fun SettingsGlyph(destination: SettingsDestination, color: Color, modifi
         SettingsDestination.Dictionaries -> Icons.AutoMirrored.Rounded.MenuBook
         SettingsDestination.Anki -> Icons.Rounded.Inventory2
         SettingsDestination.Appearance -> Icons.Rounded.Palette
+        SettingsDestination.Behavior -> Icons.Rounded.Keyboard
         SettingsDestination.Advanced -> Icons.Rounded.Settings
         SettingsDestination.ReportIssue -> Icons.Rounded.ReportProblem
         SettingsDestination.Diagnostics -> Icons.Rounded.BugReport
@@ -1198,6 +1215,7 @@ private fun ChevronRightGlyph(color: Color, modifier: Modifier = Modifier) {
 private fun SettingsDestination.placeholderTitle(): String = when (this) {
     SettingsDestination.Anki -> "Anki"
     SettingsDestination.Appearance -> "Appearance"
+    SettingsDestination.Behavior -> "Behavior"
     SettingsDestination.Advanced -> "Advanced"
     SettingsDestination.About -> "About"
     SettingsDestination.Diagnostics -> "Diagnostics"

@@ -10,6 +10,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 - Add Sasayaki audiobook read-along support, including SRT matching, cue highlighting, audiobook playback controls, delay and speed adjustment, auto-scroll, and saved per-book playback state.
 - Add Sasayaki controls in lookup popups and reader settings for replaying or continuing from the selected cue, pausing playback during lookup, and choosing whether audiobooks stay linked as external files or are copied into app storage.
 - Add an Appearance option to invert Sepia reader pages in system dark mode.
+- Add fixed Page Up/Page Down reader paging and a Settings -> Behavior page for optional volume-key paging with reversible direction.
 - Add lookup popup link redirects with back/forward history, optional popup action bar controls, and a Compact Pitch Accents dictionary setting.
 
 ### Fixed

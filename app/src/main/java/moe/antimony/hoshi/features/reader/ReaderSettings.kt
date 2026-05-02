@@ -28,6 +28,8 @@ data class ReaderSettings(
     val popupFullWidth: Boolean = false,
     val popupSwipeToDismiss: Boolean = true,
     val popupSwipeThreshold: Int = 30,
+    val volumeKeysTurnPages: Boolean = false,
+    val reverseVolumeKeyDirection: Boolean = false,
 ) {
     val bottomOverlapPx: Int
         get() = if (verticalWriting) fontSize else 0
@@ -138,6 +140,8 @@ class ReaderSettingsStore(context: Context) {
         popupFullWidth = preferences.getBoolean("popupFullWidth", false),
         popupSwipeToDismiss = preferences.getBoolean("popupSwipeToDismiss", true),
         popupSwipeThreshold = preferences.getInt("popupSwipeThreshold", 30).coerceIn(20, 60),
+        volumeKeysTurnPages = preferences.getBoolean("volumeKeysTurnPages", false),
+        reverseVolumeKeyDirection = preferences.getBoolean("reverseVolumeKeyDirection", false),
     )
 
     fun save(settings: ReaderSettings) {
@@ -166,6 +170,8 @@ class ReaderSettingsStore(context: Context) {
             .putBoolean("popupFullWidth", settings.popupFullWidth)
             .putBoolean("popupSwipeToDismiss", settings.popupSwipeToDismiss)
             .putInt("popupSwipeThreshold", settings.popupSwipeThreshold)
+            .putBoolean("volumeKeysTurnPages", settings.volumeKeysTurnPages)
+            .putBoolean("reverseVolumeKeyDirection", settings.reverseVolumeKeyDirection)
             .apply()
     }
 }
