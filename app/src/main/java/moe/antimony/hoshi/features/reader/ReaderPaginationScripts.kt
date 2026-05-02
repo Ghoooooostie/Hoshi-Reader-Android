@@ -31,7 +31,12 @@ internal object ReaderPaginationScripts {
         initialProgress: Double = 0.0,
         settings: ReaderSettings = ReaderSettings(),
         sasayakiCuesJson: String? = null,
-    ): String = """
+        initialFragment: String? = null,
+    ): String {
+        val initialRestoreScript = initialFragment?.let { fragment ->
+            "window.hoshiReader.jumpToFragment(${fragment.javaScriptStringLiteral()});"
+        } ?: "window.hoshiReader.restoreProgress($initialProgress);"
+        return """
         <script>
         window.hoshiReader = {
           pageHeight: 0,
@@ -387,6 +392,26 @@ internal object ReaderPaginationScripts {
               requestAnimationFrame(() => this.notifyRestoreComplete());
             });
           },
+          jumpToFragment: async function(fragment) {
+            await document.fonts.ready;
+            var context = this.getScrollContext();
+            var rawFragment = (fragment || '').trim();
+            var target = rawFragment && (document.getElementById(rawFragment) || document.getElementsByName(rawFragment)[0]);
+            if (context.pageSize <= 0 || !target) {
+              this.notifyRestoreComplete();
+              return false;
+            }
+            var rect = this.getRect(target);
+            var currentScroll = this.getPagePosition(context);
+            var anchor = (context.vertical ? rect.top : rect.left) + currentScroll;
+            var targetScroll = this.alignToPage(context, anchor);
+            this.setPagePosition(context, targetScroll);
+            requestAnimationFrame(() => {
+              this.setPagePosition(context, targetScroll);
+              requestAnimationFrame(() => this.notifyRestoreComplete());
+            });
+            return true;
+          },
           paginate: function(direction) {
             var context = this.getScrollContext();
             if (context.pageSize <= 0) return "limit";
@@ -461,7 +486,7 @@ internal object ReaderPaginationScripts {
           }).then(function() {
             window.hoshiReader.buildNodeOffsets();
             ${sasayakiCuesJson?.let { "window.hoshiReader.applySasayakiCues($it);" }.orEmpty()}
-            window.hoshiReader.restoreProgress($initialProgress);
+            $initialRestoreScript
           });
         };
         window.addEventListener('load', function() {
@@ -472,6 +497,7 @@ internal object ReaderPaginationScripts {
         }
         </script>
     """.trimIndent()
+    }
 }
 
 private fun String.javaScriptStringLiteral(): String =

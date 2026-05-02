@@ -82,6 +82,7 @@
    - `done` - Fix issue #27 so device orientation changes reflow the open reader in place instead of dismissing back to the bookshelf.
    - `done` - Fix issue #31 by matching iOS `WebViewState` size identity: WebView viewport changes reload the current chapter at the displayed reading progress so pages are repaginated for the new screen ratio.
    - `done` - Fix issue #34 so `また、同じ夢を見ていた.epub` opens in the reader without Android WebView renderer crash by normalizing EPUB-private CSS declarations before serving chapter styles to WebView.
+   - `done` - Fix issue #39 by intercepting EPUB internal reader links like iOS, loading the target spine item through reader state, restoring target fragments with reader JS, and syncing the resulting progress back into reader chrome/bookmark state.
    - `done` - Add an Appearance theme switch for e-ink mode, backed by reader settings, that disables dynamic Material colors and maps app surfaces, selected controls, progress indicators, reader pages, and reader chrome to pure black/white high-contrast colors.
    - `done` - Apply e-ink mode to lookup popup rendering by injecting a Hoshi-specific high-contrast black/white popup CSS layer for dictionary tags, frequency/pitch labels, audio/mining buttons, and popup borders while leaving normal light/dark popup styling unchanged.
    - `done` - Make the reader Chapters sheet use an opaque surface instead of a translucent one, and remove the outline border from the reader bottom Back/Menu floating buttons in light and dark themes.

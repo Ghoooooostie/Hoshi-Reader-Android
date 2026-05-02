@@ -319,6 +319,7 @@ fun ReaderWebView(
             ChapterWebView(
                 book = book,
                 chapterPosition = readerPosition.loadPosition,
+                chapterFragment = readerPosition.loadFragment,
                 webViewViewportSize = readerWebViewViewportSize,
                 onReaderViewportSizeChanged = { size ->
                     if (size != readerWebViewViewportSize) {
@@ -353,6 +354,11 @@ fun ReaderWebView(
                     val updatedPosition = readerPosition.recordPageProgress(progress)
                     readerPosition = updatedPosition
                     onSaveBookmark(updatedPosition.displayedPosition.index, updatedPosition.displayedPosition.progress)
+                },
+                onInternalLink = { target ->
+                    closeLookupPopupsAndSelection()
+                    readerPosition = readerPosition.jumpTo(target.position, target.fragment)
+                    onSaveBookmark(target.position.index, target.position.progress)
                 },
                 readerSettings = effectiveSettings,
                 sasayakiCuesJson = sasayakiMatchData?.cuesJsonForChapter(readerPosition.loadPosition.index),
@@ -725,12 +731,14 @@ private fun ReaderGlassButton(
 private fun ChapterWebView(
     book: EpubBook,
     chapterPosition: ReaderChapterPosition,
+    chapterFragment: String?,
     webViewViewportSize: IntSize,
     onReaderViewportSizeChanged: (IntSize) -> Unit,
     onWebViewReady: (WebView) -> Unit,
     onNextChapter: () -> Boolean,
     onPreviousChapter: () -> Boolean,
     onSaveBookmark: (progress: Double) -> Unit,
+    onInternalLink: (ReaderInternalLinkTarget) -> Unit,
     readerSettings: ReaderSettings,
     sasayakiCuesJson: String?,
     sasayakiTextColor: Long,
@@ -742,6 +750,13 @@ private fun ChapterWebView(
     modifier: Modifier = Modifier,
 ) {
     val currentOnTextSelected = rememberUpdatedState(onTextSelected)
+    val currentOnFragmentRestored = rememberUpdatedState<(WebView) -> Unit> { restoredWebView ->
+        if (chapterFragment != null) {
+            restoredWebView.evaluateJavascript(ReaderPaginationScripts.progressInvocation()) { progressResult ->
+                ReaderPaginationScripts.doubleResult(progressResult)?.let(onSaveBookmark)
+            }
+        }
+    }
     val chapter = book.chapters[chapterPosition.index]
     val fontFaceUrl = remember(readerSettings.selectedFont) {
         fontManager.webViewFontUrl(readerSettings.selectedFont)
@@ -750,6 +765,7 @@ private fun ChapterWebView(
     val readerSetupScript = remember(
         chapter,
         chapterPosition.progress,
+        chapterFragment,
         readerSettings,
         fontFaceUrl,
         systemDark,
@@ -759,6 +775,7 @@ private fun ChapterWebView(
     ) {
         readerSetupScript(
             initialProgress = chapterPosition.progress,
+            initialFragment = chapterFragment,
             settings = readerSettings,
             fontFaceUrl = fontFaceUrl,
             systemDark = systemDark,
@@ -789,8 +806,13 @@ private fun ChapterWebView(
                     },
                     "HoshiTextSelection",
                 )
-                addJavascriptInterface(ReaderRestoreBridge(this), "HoshiReaderRestore")
-                webViewClient = EpubWebViewClient(book, fontManager) { view ->
+                addJavascriptInterface(
+                    ReaderRestoreBridge(this) { restoredWebView ->
+                        currentOnFragmentRestored.value(restoredWebView)
+                    },
+                    "HoshiReaderRestore",
+                )
+                webViewClient = EpubWebViewClient(book, fontManager, onInternalLink) { view ->
                     view.evaluateJavascript(readerSetupScript, null)
                 }
                 setOnTouchListener(object : SwipePageTouchListener(context) {
@@ -827,7 +849,7 @@ private fun ChapterWebView(
             if (webView.tag != loadKey) {
                 webView.tag = loadKey
                 webView.alpha = 0f
-                webView.webViewClient = EpubWebViewClient(book, fontManager) { view ->
+                webView.webViewClient = EpubWebViewClient(book, fontManager, onInternalLink) { view ->
                     view.evaluateJavascript(readerSetupScript, null)
                 }
                 webView.loadUrl(baseUrl)
@@ -839,8 +861,15 @@ private fun ChapterWebView(
 private class EpubWebViewClient(
     private val book: EpubBook,
     private val fontManager: ReaderFontManager,
+    private val onInternalLink: (ReaderInternalLinkTarget) -> Unit,
     private val onReaderPageFinished: (WebView) -> Unit,
 ) : WebViewClient() {
+    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+        val target = book.resolveInternalReaderLink(request.url?.toString().orEmpty()) ?: return false
+        onInternalLink(target)
+        return true
+    }
+
     override fun onPageFinished(view: WebView, url: String?) {
         super.onPageFinished(view, url)
         if (Uri.parse(url ?: return).host == "hoshi.local") {
@@ -871,6 +900,7 @@ private class EpubWebViewClient(
 
 private fun readerSetupScript(
     initialProgress: Double,
+    initialFragment: String?,
     settings: ReaderSettings,
     fontFaceUrl: String?,
     systemDark: Boolean,
@@ -888,6 +918,7 @@ private fun readerSetupScript(
     val selectionScript = ReaderSelectionScripts.source()
     val paginationScript = ReaderPaginationScripts.shellScript(
         initialProgress = initialProgress,
+        initialFragment = initialFragment,
         settings = settings,
         sasayakiCuesJson = sasayakiCuesJson,
     ).scriptTagBody()
@@ -974,10 +1005,12 @@ private class ReaderSelectionBridge(
 
 private class ReaderRestoreBridge(
     private val webView: WebView,
+    private val onRestoreCompleted: (WebView) -> Unit,
 ) {
     @JavascriptInterface
     fun postMessage(@Suppress("UNUSED_PARAMETER") message: String) {
         webView.post {
+            onRestoreCompleted(webView)
             webView.alpha = 1f
         }
     }

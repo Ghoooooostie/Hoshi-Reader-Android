@@ -35,4 +35,18 @@ class ReaderPositionStateTest {
         assertEquals(target, updated.loadPosition)
         assertEquals(target, updated.displayedPosition)
     }
+
+    @Test
+    fun internalLinkJumpKeepsFragmentLoadedAfterRestoreSyncsProgress() {
+        val target = ReaderChapterPosition(index = 8, progress = 0.0)
+
+        val jumped = ReaderPositionState(ReaderChapterPosition(index = 4, progress = 0.0))
+            .jumpTo(target, fragment = "toc-001")
+        val synced = jumped.recordPageProgress(0.13)
+
+        assertEquals(target, jumped.loadPosition)
+        assertEquals("toc-001", jumped.loadFragment)
+        assertEquals(ReaderChapterPosition(index = 8, progress = 0.13), synced.displayedPosition)
+        assertEquals("toc-001", synced.loadFragment)
+    }
 }
