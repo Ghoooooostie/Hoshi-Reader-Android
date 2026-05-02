@@ -89,6 +89,8 @@
    - `done` - Unify reader Chapters, Appearance, and Sasayaki sheet chrome behind E-ink Mode: e-ink sheets use transparent scrims, opaque surfaces, and a top boundary, while normal sheets use the same Material scrim and drag handle styling.
    - `done` - Restore Material default selected indicators and high-contrast selected text colors for Appearance segmented controls, matching the working Advanced Audio segmented controls.
    - `done` - Remove the full-page dimming scrim shown during dictionary import so the Dictionaries page keeps pure e-ink black/white surfaces while a compact import spinner is shown in the import action.
+   - `done` - Sync iOS upstream reader appearance changes after `6f1e48c`: Sepia can invert in system dark mode, reader chrome follows the inverted Sepia dark interface, and reader WebView CSS now disables WebKit text auto-sizing, ruby selection, and line-box clipping differences.
+   - Verified upstream Sepia settings on `emulator-5554` without clearing app data: installed the debug build, opened Settings -> Appearance, selected Sepia, and confirmed `Invert in System Dark Theme` appears under the Theme section.
    - Verified reader sheet chrome on connected `SM-G9860` without clearing app data: with `E-ink Mode` enabled, opened `屍人荘の殺人` -> Reader Menu -> Sasayaki and confirmed the sheet uses a pure white surface, black top boundary, and transparent scrim over the reader; with `E-ink Mode` disabled, opened Appearance, Chapters, and Sasayaki and confirmed all three use the same Material scrim/drag-handle styling before restoring `E-ink Mode` to its original enabled state.
    - Verified Appearance segmented controls on physical e-ink device `B651CNB2FKPB006000178`: Dark/e-ink selected controls render white background, black text, and check indicator; Light/e-ink selected controls render black background, white text, and check indicator.
    - Verified on emulator with `testdata/test2.epub`: imported through DocumentsUI, opened `かがみの孤城`, and confirmed the Calibre SVG cover keeps the embedded 507x751 image ratio instead of stretching to the WebView page box.
@@ -145,6 +147,8 @@
    - `done` - Replace raw Compose glossary text with a popup WebView renderer that expands Yomitan structured-content JSON into HTML without adding search or other extra capabilities.
    - `done` - Copy iOS `popup.js` and `popup.css` into Android assets and render lookup entries through the same `entries-container` / `renderPopup()` pipeline and `lookupEntries` data shape as iOS.
    - `done` - Fix issue #35 by serving dictionary media requests from the popup WebView bridge with iOS-aligned MIME types, including `image/svg+xml` for SVG structured-content images, and adapting Android WebView image sizing when `100vh` resolves to zero.
+   - `done` - Sync iOS upstream popup changes after `6f1e48c`: internal structured-content links redirect in-place with back/forward history, optional popup action bar controls history and close actions, link taps no longer trigger lookup selection, compact pitch accents are configurable, and compact glossary/custom CSS injection is deduplicated.
+   - Verified upstream popup settings on `emulator-5554` without clearing app data: installed the debug build, opened Settings -> Appearance and confirmed the new `Show Action Bar` popup option, then opened Settings -> Dictionaries -> Settings and confirmed `Compact Pitch Accents` is visible and enabled by default. Full popup redirect history remains covered by unit/source tests in this pass because the emulator state had no imported dictionaries/books.
    - `todo` - Wire remaining iOS `PopupWebView` Anki mining behavior.
    - Verified on emulator with `testdata/test.epub` and imported `testdata/JMdict_english.zip`: opened a vertical text chapter, tapped `お冷や`, and confirmed a popup appears over the reader with `お冷や`, reading `おひや`, and JMdict glossary content.
    - Verified on emulator with `testdata/test.epub` and imported `testdata/JMdict_english.zip`: tapped `お冷や`, confirmed the popup reading `ひや` appears, then confirmed popup-level horizontal swipe, tap outside the popup, and Reader page swipe each dismiss the popup without leaving the reading node visible.
@@ -245,6 +249,7 @@
 
 10. `todo` - Sync
     - Investigate Android Google Drive/OAuth integration.
+    - When Google Drive sync is implemented, match iOS upstream behavior by creating the root `ttu-reader-data` folder under Drive root if it does not exist instead of treating first sync as a missing-folder failure.
     - Sync sidecar JSON, progress, settings, and dictionary configuration.
     - Do not reuse iOS token or keychain assumptions.
 

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.webkit.WebView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +43,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -58,6 +60,7 @@ import moe.antimony.hoshi.features.audio.LocalAudioRepository
 import moe.antimony.hoshi.features.audio.WordAudioPlayer
 import moe.antimony.hoshi.features.reader.ReaderSettings
 import moe.antimony.hoshi.webview.disableNativeOverscrollStretch
+import kotlin.math.abs
 
 private const val DictionarySearchTopSpacerPx = 118
 private const val DictionaryPopupTopInset = 118.0
@@ -133,6 +136,7 @@ internal fun dictionarySearchPopupOptions(
     height = readerSettings.popupHeight,
     swipeToDismiss = readerSettings.popupSwipeToDismiss,
     swipeThreshold = readerSettings.popupSwipeThreshold,
+    popupActionBar = false,
     topInset = DictionaryPopupTopInset,
     bottomInset = DictionaryPopupBottomInset,
     dictionarySettings = dictionarySettings,
@@ -163,6 +167,10 @@ fun DictionarySearchView(
     var audioSettings by remember { mutableStateOf(audioSettingsStore.load()) }
     var popups by remember { mutableStateOf<List<LookupPopupItem>>(emptyList()) }
     var resultClearSelectionSignal by remember { mutableStateOf(0) }
+    var backCount by remember(html) { mutableStateOf(0) }
+    var forwardCount by remember(html) { mutableStateOf(0) }
+    var backSignal by remember(html) { mutableStateOf(0) }
+    var forwardSignal by remember(html) { mutableStateOf(0) }
     val popupDarkMode = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val popupOptions = dictionarySearchPopupOptions(
         readerSettings = readerSettings,
@@ -206,6 +214,8 @@ fun DictionarySearchView(
                 audioSettings = audioSettingsStore.load()
                 popups = emptyList()
                 resultClearSelectionSignal = 0
+                backCount = 0
+                forwardCount = 0
                 hasSearched = true
             }.onFailure {
                 html = ""
@@ -213,6 +223,8 @@ fun DictionarySearchView(
                 dictionaryStyles = emptyMap()
                 popups = emptyList()
                 resultClearSelectionSignal = 0
+                backCount = 0
+                forwardCount = 0
                 hasSearched = true
                 errorMessage = it.localizedMessage ?: "Lookup failed."
             }
@@ -240,6 +252,8 @@ fun DictionarySearchView(
                 assets = assets,
                 audioSettings = audioSettings,
                 clearSelectionSignal = resultClearSelectionSignal,
+                backSignal = backSignal,
+                forwardSignal = forwardSignal,
                 callbacks = PopupWebViewCallbacks(
                     onTapOutside = { popups = emptyList() },
                     onSwipeDismiss = { popups = emptyList() },
@@ -250,11 +264,54 @@ fun DictionarySearchView(
                             highlightCount
                         }
                     },
+                    onLookupRedirect = { redirectQuery ->
+                        LookupEngine.lookup(
+                            redirectQuery,
+                            dictionarySettings.maxResults,
+                            dictionarySettings.scanLength,
+                        )
+                    },
+                    onLookupRedirected = { count ->
+                        if (count > 0) {
+                            backCount += 1
+                            forwardCount = 0
+                        }
+                    },
                     onPlayWordAudio = { url, mode ->
                         WordAudioPlayer.get(context).play(url, mode)
                     },
                 ),
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(backCount, forwardCount) {
+                        var totalX = 0f
+                        var totalY = 0f
+                        detectDragGestures(
+                            onDrag = { _, dragAmount ->
+                                totalX += dragAmount.x
+                                totalY += dragAmount.y
+                            },
+                            onDragEnd = {
+                                if (abs(totalX) > 30f && abs(totalX) > abs(totalY) * 1.75f) {
+                                    if (totalX > 0 && backCount > 0) {
+                                        backSignal += 1
+                                        backCount -= 1
+                                        forwardCount += 1
+                                    } else if (totalX < 0 && forwardCount > 0) {
+                                        forwardSignal += 1
+                                        forwardCount -= 1
+                                        backCount += 1
+                                    }
+                                }
+                                totalX = 0f
+                                totalY = 0f
+                            },
+                            onDragCancel = {
+                                totalX = 0f
+                                totalY = 0f
+                            },
+                        )
+                    },
             )
             errorMessage != null -> DictionarySearchMessage(
                 text = requireNotNull(errorMessage),
@@ -388,6 +445,8 @@ private fun DictionaryResultWebView(
     assets: LookupPopupAssets,
     audioSettings: AudioSettings,
     clearSelectionSignal: Int,
+    backSignal: Int,
+    forwardSignal: Int,
     callbacks: PopupWebViewCallbacks,
     modifier: Modifier = Modifier,
 ) {
@@ -397,6 +456,8 @@ private fun DictionaryResultWebView(
     lookupResultsHolder.results = results
     var loadedHtml by remember { mutableStateOf<String?>(null) }
     var appliedClearSelectionSignal by remember { mutableStateOf(clearSelectionSignal) }
+    var appliedBackSignal by remember { mutableStateOf(backSignal) }
+    var appliedForwardSignal by remember { mutableStateOf(forwardSignal) }
     AndroidView(
         modifier = modifier.fillMaxSize(),
         factory = { context ->
@@ -444,6 +505,14 @@ private fun DictionaryResultWebView(
             if (appliedClearSelectionSignal != clearSelectionSignal) {
                 appliedClearSelectionSignal = clearSelectionSignal
                 webView.evaluateJavascript("window.hoshiSelection.clearSelection()", null)
+            }
+            if (appliedBackSignal != backSignal) {
+                appliedBackSignal = backSignal
+                webView.evaluateJavascript("window.navigateBack()", null)
+            }
+            if (appliedForwardSignal != forwardSignal) {
+                appliedForwardSignal = forwardSignal
+                webView.evaluateJavascript("window.navigateForward()", null)
             }
         },
     )

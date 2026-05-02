@@ -19,6 +19,7 @@ class DictionarySettingsTest {
         assertFalse(settings.showExpressionTags)
         assertFalse(settings.harmonicFrequency)
         assertFalse(settings.deduplicatePitchAccents)
+        assertTrue(settings.compactPitchAccents)
         assertEquals("", settings.customCSS)
     }
 
@@ -39,5 +40,17 @@ class DictionarySettingsTest {
         assertFalse(source.contains("colorScheme.scrim"))
         assertFalse(source.contains(".background(colorScheme.scrim"))
         assertTrue(importingBlock.contains("CircularProgressIndicator"))
+    }
+
+    @Test
+    fun compactPitchAccentsSettingIsPersistedAndExposed() {
+        val settingsSource = File("src/main/java/moe/antimony/hoshi/features/dictionary/DictionarySettings.kt").readText()
+        val viewSource = File("src/main/java/moe/antimony/hoshi/features/dictionary/DictionaryView.kt").readText()
+
+        assertTrue(settingsSource.contains("""val compactPitchAccents: Boolean = true"""))
+        assertTrue(settingsSource.contains("KEY_COMPACT_PITCH_ACCENTS"))
+        assertTrue(settingsSource.contains("putBoolean(KEY_COMPACT_PITCH_ACCENTS, normalized.compactPitchAccents)"))
+        assertTrue(viewSource.contains("""ToggleRow("Compact Pitch Accents", settings.compactPitchAccents)"""))
+        assertTrue(viewSource.contains("current.copy(compactPitchAccents = it)"))
     }
 }

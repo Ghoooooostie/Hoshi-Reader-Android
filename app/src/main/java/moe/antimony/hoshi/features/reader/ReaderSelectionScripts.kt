@@ -151,6 +151,9 @@ internal object ReaderSelectionScripts {
             return (partsBefore.reverse().join('') + partsAfter.join('')).trim();
           },
           selectText: function(x, y, maxLength) {
+            if (document.elementFromPoint(x, y)?.closest('a')) {
+              return null;
+            }
             var hit = this.getCharacterAtPoint(x, y);
             if (!hit) {
               this.clearSelection();

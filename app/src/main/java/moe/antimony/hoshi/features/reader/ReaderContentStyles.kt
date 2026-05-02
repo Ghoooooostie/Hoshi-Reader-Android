@@ -95,6 +95,9 @@ internal object ReaderContentStyles {
             --hoshi-sasayaki-text-color: ${sasayakiTextColor.toReaderCssColor()};
             --hoshi-sasayaki-background-color: ${sasayakiBackgroundColor.toReaderCssColor(includeAlpha = true)};
         }
+        html {
+            -webkit-line-box-contain: block glyphs replaced;
+        }
         html, body {
             overflow: hidden !important;
             height: var(--page-height, 100vh) !important;
@@ -108,6 +111,7 @@ internal object ReaderContentStyles {
         body {
             font-family: $bodyFontFamily !important;
             font-size: ${settings.fontSize}px !important;
+            -webkit-text-size-adjust: none !important;
             $textSpacingCss
             box-sizing: border-box !important;
             column-width: var(--page-width, 100vw) !important;
@@ -139,6 +143,10 @@ internal object ReaderContentStyles {
             -webkit-column-break-inside: avoid !important;
         }
         $furiganaCss
+        ruby > rt, ruby > rp {
+            -webkit-user-select: none;
+            user-select: none;
+        }
         ::highlight(hoshi-selection) {
             background-color: rgba(160, 160, 160, 0.4) !important;
             color: inherit;

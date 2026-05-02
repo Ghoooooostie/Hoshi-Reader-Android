@@ -18,6 +18,7 @@ class ReaderSettingsTest {
         assertEquals(0, settings.verticalPadding)
         assertEquals(1.65, settings.lineHeight, 0.0)
         assertEquals("Noto Serif CJK JP", settings.selectedFont)
+        assertFalse(settings.sepiaInvertInDark)
         assertTrue(settings.popupSwipeToDismiss)
         assertEquals(30, settings.popupSwipeThreshold)
     }
@@ -101,6 +102,18 @@ class ReaderSettingsTest {
         assertFalse(ReaderSettings(theme = ReaderTheme.Light).usesDarkInterface(systemDark = true))
         assertTrue(ReaderSettings(theme = ReaderTheme.Dark).usesDarkInterface(systemDark = false))
         assertFalse(ReaderSettings(theme = ReaderTheme.Sepia).usesDarkInterface(systemDark = true))
+        assertTrue(
+            ReaderSettings(
+                theme = ReaderTheme.Sepia,
+                sepiaInvertInDark = true,
+            ).usesDarkInterface(systemDark = true),
+        )
+        assertFalse(
+            ReaderSettings(
+                theme = ReaderTheme.Sepia,
+                sepiaInvertInDark = true,
+            ).usesDarkInterface(systemDark = false),
+        )
         assertTrue(ReaderSettings(theme = ReaderTheme.System).usesDarkInterface(systemDark = true))
         assertFalse(ReaderSettings(theme = ReaderTheme.System).usesDarkInterface(systemDark = false))
     }
@@ -138,6 +151,16 @@ class ReaderSettingsTest {
     }
 
     @Test
+    fun sepiaCanInvertReaderColorsInSystemDarkModeLikeIos() {
+        val settings = ReaderSettings(theme = ReaderTheme.Sepia, sepiaInvertInDark = true)
+
+        assertEquals(0xFF18150C, settings.backgroundColor(systemDark = true))
+        assertEquals("#F2E2C9", settings.textColorCss(systemDark = true))
+        assertEquals(0xFFF2E2C9, settings.backgroundColor(systemDark = false))
+        assertEquals("#332A1B", settings.textColorCss(systemDark = false))
+    }
+
+    @Test
     fun eInkModeIsStoredAndExposedInAppearanceThemeSection() {
         val settingsSource = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderSettings.kt").readText()
         val appearanceSource = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderAppearanceView.kt").readText()
@@ -146,8 +169,23 @@ class ReaderSettingsTest {
 
         assertTrue(settingsSource.contains("""preferences.getBoolean("eInkMode", false)"""))
         assertTrue(settingsSource.contains("""putBoolean("eInkMode", settings.eInkMode)"""))
+        assertTrue(settingsSource.contains("""preferences.getBoolean("sepiaInvertInDark", false)"""))
+        assertTrue(settingsSource.contains("""putBoolean("sepiaInvertInDark", settings.sepiaInvertInDark)"""))
         assertTrue(themeSection.contains("""label = "E-ink Mode""""))
         assertTrue(themeSection.contains("settings.copy(eInkMode = it)"))
+        assertTrue(themeSection.contains("""label = "Invert in System Dark Theme""""))
+        assertTrue(themeSection.contains("settings.copy(sepiaInvertInDark = it)"))
+    }
+
+    @Test
+    fun readerCssIncludesIosWebKitSelectionAndSizingRules() {
+        val css = ReaderContentStyles.styleTag()
+
+        assertTrue(css.contains("-webkit-line-box-contain: block glyphs replaced;"))
+        assertTrue(css.contains("-webkit-text-size-adjust: none !important;"))
+        assertTrue(css.contains("ruby > rt, ruby > rp"))
+        assertTrue(css.contains("-webkit-user-select: none;"))
+        assertTrue(css.contains("user-select: none;"))
     }
 
     @Test

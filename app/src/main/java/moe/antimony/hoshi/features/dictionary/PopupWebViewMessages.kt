@@ -11,6 +11,7 @@ import android.webkit.WebViewClient
 import java.io.ByteArrayInputStream
 import de.manhhao.hoshi.HoshiDicts
 import de.manhhao.hoshi.LookupResult
+import moe.antimony.hoshi.dictionary.LookupEngine
 import moe.antimony.hoshi.features.audio.AudioPlaybackMode
 import moe.antimony.hoshi.features.audio.AudioRequestHandler
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
@@ -22,6 +23,8 @@ internal class PopupWebViewCallbacks(
     val onSwipeDismiss: () -> Unit = {},
     val onOpenLink: (String) -> Unit = {},
     val onTextSelected: (ReaderSelectionData) -> Int? = { null },
+    val onLookupRedirect: (String) -> List<LookupResult> = { query -> LookupEngine.lookup(query) },
+    val onLookupRedirected: (Int) -> Unit = {},
     val onPlayWordAudio: (String, AudioPlaybackMode) -> Unit = { _, _ -> },
     val onContentReady: () -> Unit = {},
 )
@@ -140,6 +143,16 @@ internal class PopupWebViewBridge(
     @JavascriptInterface
     fun getEntry(index: Int): String? =
         lookupResultsHolder.results.getOrNull(index)?.let { LookupPopupHtml.entryJsonString(it) }
+
+    @JavascriptInterface
+    fun lookupRedirect(query: String): Int {
+        val results = callbackHolder.callbacks.onLookupRedirect(query)
+        lookupResultsHolder.results = results
+        if (results.isNotEmpty()) {
+            mainHandler.post { callbackHolder.callbacks.onLookupRedirected(results.size) }
+        }
+        return results.size
+    }
 
     @JavascriptInterface
     fun postMessage(message: String) {

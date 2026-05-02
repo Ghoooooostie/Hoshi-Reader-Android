@@ -33,4 +33,24 @@ class PopupWebViewMessagesTest {
         assertTrue(source.contains("imageContainer.style.maxHeight = 'none';"))
         assertTrue(source.contains("applyDictionaryImageContainerFixes(imageContainer);"))
     }
+
+    @Test
+    fun popupBridgeCanReplaceLookupEntriesForInternalRedirects() {
+        val source = File("src/main/java/moe/antimony/hoshi/features/dictionary/PopupWebViewMessages.kt")
+            .readText()
+
+        assertTrue(source.contains("val onLookupRedirect: (String) -> List<LookupResult>"))
+        assertTrue(source.contains("fun lookupRedirect(query: String): Int"))
+        assertTrue(source.contains("lookupResultsHolder.results = results"))
+        assertTrue(source.contains("return results.size"))
+    }
+
+    @Test
+    fun popupSelectionScriptDoesNotLookupLinkedText() {
+        val source = File("src/main/assets/hoshi-popup/selection.js").readText()
+
+        assertTrue(source.contains("document.elementFromPoint(x, y)"))
+        assertTrue(source.contains(".closest('a')"))
+        assertTrue(source.contains("return null;"))
+    }
 }

@@ -120,4 +120,21 @@ class LookupPopupTest {
         assertTrue(source.contains("val eInkMode: Boolean = false"))
         assertTrue(stateCreation.contains("eInkMode = options.eInkMode"))
     }
+
+    @Test
+    fun popupStateCarriesActionBarSettingFromReaderOptions() {
+        val stackSource = File("src/main/java/moe/antimony/hoshi/features/dictionary/LookupPopupStack.kt").readText()
+        val popupSource = File("src/main/java/moe/antimony/hoshi/features/dictionary/LookupPopupView.kt").readText()
+        val readerSource = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderWebView.kt").readText()
+        val searchSource = File("src/main/java/moe/antimony/hoshi/features/dictionary/DictionarySearchView.kt").readText()
+
+        assertTrue(stackSource.contains("val popupActionBar: Boolean = false"))
+        assertTrue(stackSource.contains("popupActionBar = options.popupActionBar"))
+        assertTrue(readerSource.contains("popupActionBar = effectiveSettings.popupActionBar"))
+        assertTrue(popupSource.contains("private fun LookupPopupActionBar("))
+        assertTrue(popupSource.contains("Icons.AutoMirrored.Rounded.ArrowBack"))
+        assertTrue(popupSource.contains("Icons.AutoMirrored.Rounded.ArrowForward"))
+        assertTrue(popupSource.contains("Icons.Rounded.Close"))
+        assertTrue(searchSource.contains("popupActionBar = false"))
+    }
 }

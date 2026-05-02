@@ -200,6 +200,14 @@ private fun ReaderAppearanceContent(
                         checked = settings.eInkMode,
                         onCheckedChange = { onSettingsChange(settings.copy(eInkMode = it)) },
                     )
+                    if (settings.theme == ReaderTheme.Sepia) {
+                        AppearanceDivider(palette)
+                        SwitchRow(
+                            label = "Invert in System Dark Theme",
+                            checked = settings.sepiaInvertInDark,
+                            onCheckedChange = { onSettingsChange(settings.copy(sepiaInvertInDark = it)) },
+                        )
+                    }
                 }
             }
             item {
@@ -363,6 +371,12 @@ private fun ReaderAppearanceContent(
                     onValueChange = { value ->
                         onSettingsChange(settings.copy(popupHeight = (round(value / 10) * 10).toInt()))
                     },
+                )
+                AppearanceDivider(palette)
+                SwitchRow(
+                    label = "Show Action Bar",
+                    checked = settings.popupActionBar,
+                    onCheckedChange = { onSettingsChange(settings.copy(popupActionBar = it)) },
                 )
                 AppearanceDivider(palette)
                 SwitchRow(

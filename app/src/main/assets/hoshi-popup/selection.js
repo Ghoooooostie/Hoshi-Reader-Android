@@ -231,6 +231,9 @@ window.hoshiSelection = {
     },
     
     selectText(x, y, maxLength) {
+        if (document.elementFromPoint(x, y)?.closest('a')) {
+            return null;
+        }
         const hit = this.getCharacterAtPoint(x, y);
         
         if (!hit) {

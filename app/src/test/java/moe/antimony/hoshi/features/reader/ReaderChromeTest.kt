@@ -37,6 +37,17 @@ class ReaderChromeTest {
     }
 
     @Test
+    fun invertedSepiaChromeUsesDarkInterfaceColorsInSystemDarkMode() {
+        val colors = readerChromeColors(
+            ReaderSettings(theme = ReaderTheme.Sepia, sepiaInvertInDark = true),
+            systemDark = true,
+        )
+
+        assertEquals(0x661A1A1AL, colors.buttonContainer)
+        assertEquals(0xFFF4F4F4L, colors.buttonContent)
+    }
+
+    @Test
     fun systemThemeChromeFollowsSystemDarkMode() {
         val settings = ReaderSettings(theme = ReaderTheme.System)
 

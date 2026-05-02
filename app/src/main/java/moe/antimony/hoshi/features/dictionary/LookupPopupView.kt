@@ -2,6 +2,8 @@ package moe.antimony.hoshi.features.dictionary
 
 import android.annotation.SuppressLint
 import android.webkit.WebView
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,12 +21,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Start
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import de.manhhao.hoshi.LookupResult
+import moe.antimony.hoshi.dictionary.LookupEngine
 import moe.antimony.hoshi.features.audio.AudioRequestHandler
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.audio.LocalAudioRepository
@@ -50,7 +55,9 @@ import moe.antimony.hoshi.features.sasayaki.SasayakiMatch
 import moe.antimony.hoshi.webview.disableNativeOverscrollStretch
 
 private const val SasayakiPopupControlsTotalHeightValue = 37.0
+private const val LookupPopupActionBarTotalHeightValue = 37.0
 private val SasayakiPopupControlsHeight = 36.dp
+private val LookupPopupActionBarHeight = 36.dp
 private val SasayakiPopupControlSize = 32.dp
 private val SasayakiPopupControlIconSize = 20.dp
 
@@ -70,6 +77,7 @@ data class LookupPopupState(
     val darkMode: Boolean = false,
     val eInkMode: Boolean = false,
     val audioSettings: AudioSettings = AudioSettings(),
+    val popupActionBar: Boolean = false,
 )
 
 @Composable
@@ -113,6 +121,10 @@ fun LookupPopupView(
         )
     }
     var contentReady by remember(html) { mutableStateOf(false) }
+    var backCount by remember(html) { mutableStateOf(0) }
+    var forwardCount by remember(html) { mutableStateOf(0) }
+    var backSignal by remember(html) { mutableStateOf(0) }
+    var forwardSignal by remember(html) { mutableStateOf(0) }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val frame = LookupPopupLayout(
@@ -128,8 +140,11 @@ fun LookupPopupView(
         ).calculate()
         val frameX = frame.centerX - frame.width / 2
         val frameY = frame.centerY - frame.height / 2
+        val hasActionBar = state.popupActionBar || backCount > 0 || forwardCount > 0
         val hasSasayakiControls = sasayakiCue != null
-        val controlsHeight = if (hasSasayakiControls) SasayakiPopupControlsTotalHeightValue else 0.0
+        val controlsHeight =
+            (if (hasActionBar) LookupPopupActionBarTotalHeightValue else 0.0) +
+                (if (hasSasayakiControls) SasayakiPopupControlsTotalHeightValue else 0.0)
         val popupBackground = if (state.darkMode) Color.Black else Color.White
         val popupBorder = when {
             state.eInkMode && state.darkMode -> Color.White
@@ -160,6 +175,29 @@ fun LookupPopupView(
             shadowElevation = 0.dp,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
+                if (hasActionBar) {
+                    LookupPopupActionBar(
+                        backCount = backCount,
+                        forwardCount = forwardCount,
+                        onBack = {
+                            if (backCount > 0) {
+                                backSignal += 1
+                                backCount -= 1
+                                forwardCount += 1
+                            }
+                        },
+                        onForward = {
+                            if (forwardCount > 0) {
+                                forwardSignal += 1
+                                forwardCount -= 1
+                                backCount += 1
+                            }
+                        },
+                        onClose = onSwipeDismiss,
+                        contentColor = controlContentColor,
+                        dividerColor = popupBorder,
+                    )
+                }
                 if (sasayakiCue != null) {
                     SasayakiPopupControls(
                         isPlaying = sasayakiIsPlaying,
@@ -194,10 +232,25 @@ fun LookupPopupView(
                     selectionOffsetX = frameX,
                     selectionOffsetY = frameY + controlsHeight,
                     clearSelectionSignal = clearSelectionSignal,
+                    backSignal = backSignal,
+                    forwardSignal = forwardSignal,
                     callbacks = PopupWebViewCallbacks(
                         onTapOutside = onTapOutside,
                         onSwipeDismiss = onSwipeDismiss,
                         onTextSelected = onTextSelected,
+                        onLookupRedirect = { query ->
+                            LookupEngine.lookup(
+                                query,
+                                state.dictionarySettings.maxResults,
+                                state.dictionarySettings.scanLength,
+                            )
+                        },
+                        onLookupRedirected = { count ->
+                            if (count > 0) {
+                                backCount += 1
+                                forwardCount = 0
+                            }
+                        },
                         onPlayWordAudio = { url, mode ->
                             WordAudioPlayer.get(context).play(url, mode)
                         },
@@ -209,6 +262,66 @@ fun LookupPopupView(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun LookupPopupActionBar(
+    backCount: Int,
+    forwardCount: Int,
+    onBack: () -> Unit,
+    onForward: () -> Unit,
+    onClose: () -> Unit,
+    contentColor: Color,
+    dividerColor: Color,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(LookupPopupActionBarHeight)
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(
+                onClick = onBack,
+                enabled = backCount > 0,
+                modifier = Modifier.size(SasayakiPopupControlSize),
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = "Back",
+                    tint = contentColor.copy(alpha = if (backCount > 0) 1f else 0.3f),
+                    modifier = Modifier.size(SasayakiPopupControlIconSize),
+                )
+            }
+            IconButton(
+                onClick = onForward,
+                enabled = forwardCount > 0,
+                modifier = Modifier.size(SasayakiPopupControlSize),
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                    contentDescription = "Forward",
+                    tint = contentColor.copy(alpha = if (forwardCount > 0) 1f else 0.3f),
+                    modifier = Modifier.size(SasayakiPopupControlIconSize),
+                )
+            }
+            Box(modifier = Modifier.weight(1f))
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier.size(SasayakiPopupControlSize),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = "Close",
+                    tint = contentColor,
+                    modifier = Modifier.size(SasayakiPopupControlIconSize),
+                )
+            }
+        }
+        HorizontalDivider(color = dividerColor)
     }
 }
 
@@ -286,6 +399,8 @@ private fun LookupPopupWebView(
     selectionOffsetX: Double,
     selectionOffsetY: Double,
     clearSelectionSignal: Int,
+    backSignal: Int,
+    forwardSignal: Int,
     callbacks: PopupWebViewCallbacks,
     modifier: Modifier = Modifier,
 ) {
@@ -295,6 +410,8 @@ private fun LookupPopupWebView(
     lookupResultsHolder.results = results
     var loadedHtml by remember { mutableStateOf<String?>(null) }
     var appliedClearSelectionSignal by remember { mutableStateOf(clearSelectionSignal) }
+    var appliedBackSignal by remember { mutableStateOf(backSignal) }
+    var appliedForwardSignal by remember { mutableStateOf(forwardSignal) }
     AndroidView(
         modifier = modifier
             .fillMaxSize()
@@ -341,6 +458,14 @@ private fun LookupPopupWebView(
             if (appliedClearSelectionSignal != clearSelectionSignal) {
                 appliedClearSelectionSignal = clearSelectionSignal
                 webView.evaluateJavascript("window.hoshiSelection.clearSelection()", null)
+            }
+            if (appliedBackSignal != backSignal) {
+                appliedBackSignal = backSignal
+                webView.evaluateJavascript("window.navigateBack()", null)
+            }
+            if (appliedForwardSignal != forwardSignal) {
+                appliedForwardSignal = forwardSignal
+                webView.evaluateJavascript("window.navigateForward()", null)
             }
         },
     )

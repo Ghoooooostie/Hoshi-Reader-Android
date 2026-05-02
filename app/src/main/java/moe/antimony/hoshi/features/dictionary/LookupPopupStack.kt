@@ -24,6 +24,7 @@ internal data class LookupPopupOptions(
     val darkMode: Boolean = false,
     val eInkMode: Boolean = false,
     val audioSettings: AudioSettings = AudioSettings(),
+    val popupActionBar: Boolean = false,
 )
 
 internal data class LookupPopupItem(
@@ -61,6 +62,7 @@ internal fun createLookupPopupItem(
             darkMode = options.darkMode,
             eInkMode = options.eInkMode,
             audioSettings = options.audioSettings,
+            popupActionBar = options.popupActionBar,
         ),
     ) to first.matched.codePointCount(0, first.matched.length)
 }

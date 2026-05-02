@@ -6,6 +6,7 @@ import java.util.Locale
 data class ReaderSettings(
     val theme: ReaderTheme = ReaderTheme.System,
     val eInkMode: Boolean = false,
+    val sepiaInvertInDark: Boolean = false,
     val verticalWriting: Boolean = true,
     val selectedFont: String = ReaderFontManager.defaultMinchoFont,
     val fontSize: Int = 22,
@@ -23,6 +24,7 @@ data class ReaderSettings(
     val showProgressTop: Boolean = true,
     val popupWidth: Int = 320,
     val popupHeight: Int = 250,
+    val popupActionBar: Boolean = false,
     val popupFullWidth: Boolean = false,
     val popupSwipeToDismiss: Boolean = true,
     val popupSwipeThreshold: Int = 30,
@@ -72,7 +74,7 @@ data class ReaderSettings(
         return when (theme) {
             ReaderTheme.System -> if (systemDark) 0xFF000000 else 0xFFFFFFFF
             ReaderTheme.Dark -> 0xFF000000
-            ReaderTheme.Sepia -> 0xFFF2E2C9
+            ReaderTheme.Sepia -> if (sepiaInvertInDark && systemDark) 0xFF18150C else 0xFFF2E2C9
             ReaderTheme.Light -> 0xFFFFFFFF
         }
     }
@@ -85,7 +87,7 @@ data class ReaderSettings(
             ReaderTheme.System -> if (systemDark) "#fff" else "#000"
             ReaderTheme.Light -> "#000"
             ReaderTheme.Dark -> "#fff"
-            ReaderTheme.Sepia -> "#332A1B"
+            ReaderTheme.Sepia -> if (sepiaInvertInDark && systemDark) "#F2E2C9" else "#332A1B"
         }
     }
 }
@@ -101,7 +103,7 @@ fun ReaderSettings.usesDarkInterface(systemDark: Boolean): Boolean = when (theme
     ReaderTheme.System -> systemDark
     ReaderTheme.Light -> false
     ReaderTheme.Dark -> true
-    ReaderTheme.Sepia -> false
+    ReaderTheme.Sepia -> sepiaInvertInDark && systemDark
 }
 
 class ReaderSettingsStore(context: Context) {
@@ -112,6 +114,7 @@ class ReaderSettingsStore(context: Context) {
             ?.let { saved -> ReaderTheme.entries.firstOrNull { it.label == saved } }
             ?: ReaderTheme.System,
         eInkMode = preferences.getBoolean("eInkMode", false),
+        sepiaInvertInDark = preferences.getBoolean("sepiaInvertInDark", false),
         verticalWriting = preferences.getBoolean("verticalWriting", true),
         selectedFont = ReaderFontManager.normalizeDefaultFont(
             preferences.getString("selectedFont", null) ?: ReaderFontManager.defaultMinchoFont,
@@ -131,6 +134,7 @@ class ReaderSettingsStore(context: Context) {
         showProgressTop = preferences.getBoolean("readerShowProgressTop", true),
         popupWidth = preferences.getInt("popupWidth", 320),
         popupHeight = preferences.getInt("popupHeight", 250),
+        popupActionBar = preferences.getBoolean("popupActionBar", false),
         popupFullWidth = preferences.getBoolean("popupFullWidth", false),
         popupSwipeToDismiss = preferences.getBoolean("popupSwipeToDismiss", true),
         popupSwipeThreshold = preferences.getInt("popupSwipeThreshold", 30).coerceIn(20, 60),
@@ -140,6 +144,7 @@ class ReaderSettingsStore(context: Context) {
         preferences.edit()
             .putString("theme", settings.theme.label)
             .putBoolean("eInkMode", settings.eInkMode)
+            .putBoolean("sepiaInvertInDark", settings.sepiaInvertInDark)
             .putBoolean("verticalWriting", settings.verticalWriting)
             .putString("selectedFont", settings.selectedFont)
             .putInt("fontSize", settings.fontSize)
@@ -157,6 +162,7 @@ class ReaderSettingsStore(context: Context) {
             .putBoolean("readerShowProgressTop", settings.showProgressTop)
             .putInt("popupWidth", settings.popupWidth)
             .putInt("popupHeight", settings.popupHeight)
+            .putBoolean("popupActionBar", settings.popupActionBar)
             .putBoolean("popupFullWidth", settings.popupFullWidth)
             .putBoolean("popupSwipeToDismiss", settings.popupSwipeToDismiss)
             .putInt("popupSwipeThreshold", settings.popupSwipeThreshold)

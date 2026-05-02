@@ -11,6 +11,7 @@ data class DictionarySettings(
     val showExpressionTags: Boolean = false,
     val harmonicFrequency: Boolean = false,
     val deduplicatePitchAccents: Boolean = false,
+    val compactPitchAccents: Boolean = true,
     val customCSS: String = "",
 ) {
     fun normalized(): DictionarySettings = copy(
@@ -38,6 +39,7 @@ class DictionarySettingsStore(context: Context) {
         showExpressionTags = preferences.getBoolean(KEY_SHOW_EXPRESSION_TAGS, false),
         harmonicFrequency = preferences.getBoolean(KEY_HARMONIC_FREQUENCY, false),
         deduplicatePitchAccents = preferences.getBoolean(KEY_DEDUPLICATE_PITCH_ACCENTS, false),
+        compactPitchAccents = preferences.getBoolean(KEY_COMPACT_PITCH_ACCENTS, true),
         customCSS = preferences.getString(KEY_CUSTOM_CSS, "").orEmpty(),
     ).normalized()
 
@@ -52,6 +54,7 @@ class DictionarySettingsStore(context: Context) {
             .putBoolean(KEY_SHOW_EXPRESSION_TAGS, normalized.showExpressionTags)
             .putBoolean(KEY_HARMONIC_FREQUENCY, normalized.harmonicFrequency)
             .putBoolean(KEY_DEDUPLICATE_PITCH_ACCENTS, normalized.deduplicatePitchAccents)
+            .putBoolean(KEY_COMPACT_PITCH_ACCENTS, normalized.compactPitchAccents)
             .putString(KEY_CUSTOM_CSS, normalized.customCSS)
             .apply()
     }
@@ -65,6 +68,7 @@ class DictionarySettingsStore(context: Context) {
         const val KEY_SHOW_EXPRESSION_TAGS = "showExpressionTags"
         const val KEY_HARMONIC_FREQUENCY = "harmonicFrequency"
         const val KEY_DEDUPLICATE_PITCH_ACCENTS = "deduplicatePitchAccents"
+        const val KEY_COMPACT_PITCH_ACCENTS = "compactPitchAccents"
         const val KEY_CUSTOM_CSS = "customCSS"
     }
 }

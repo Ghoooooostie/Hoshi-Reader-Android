@@ -686,6 +686,10 @@ private fun DictionarySettingsView(
                     ToggleRow("Deduplicate Pitch Accents", settings.deduplicatePitchAccents) {
                         onSettingsChange { current -> current.copy(deduplicatePitchAccents = it) }
                     }
+                    GroupDivider()
+                    ToggleRow("Compact Pitch Accents", settings.compactPitchAccents) {
+                        onSettingsChange { current -> current.copy(compactPitchAccents = it) }
+                    }
                 }
             }
         }

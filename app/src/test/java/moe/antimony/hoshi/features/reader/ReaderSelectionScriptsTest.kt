@@ -31,6 +31,15 @@ class ReaderSelectionScriptsTest {
     }
 
     @Test
+    fun doesNotStartLookupWhenTapHitsLinkLikeIos() {
+        val script = ReaderSelectionScripts.script()
+
+        assertTrue(script.contains("document.elementFromPoint(x, y)"))
+        assertTrue(script.contains(".closest('a')"))
+        assertTrue(script.contains("return null;"))
+    }
+
+    @Test
     fun convertsAndroidPixelsToWebViewCssPixels() {
         assertEquals(333.33334f, androidPixelsToCssPixels(1000f, 3f), 0.0001f)
     }

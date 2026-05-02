@@ -54,7 +54,7 @@ fun readerChromeColors(settings: ReaderSettings, systemDark: Boolean): ReaderChr
         menuBorder = 0xFF000000,
         infoText = 0xFF000000,
     )
-    settings.theme == ReaderTheme.Dark || (settings.theme == ReaderTheme.System && systemDark) -> ReaderChromeColors(
+    settings.usesDarkInterface(systemDark) -> ReaderChromeColors(
         buttonContainer = 0x661A1A1A,
         buttonContent = 0xFFF4F4F4,
         menuContainer = 0xF21F1F1F,

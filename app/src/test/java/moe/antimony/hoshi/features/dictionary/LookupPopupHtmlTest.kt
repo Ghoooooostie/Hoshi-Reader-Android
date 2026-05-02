@@ -137,6 +137,7 @@ class LookupPopupHtmlTest {
                 showExpressionTags = true,
                 harmonicFrequency = true,
                 deduplicatePitchAccents = true,
+                compactPitchAccents = false,
                 customCSS = ".entry-header { color: red; }",
             ),
         )
@@ -146,6 +147,7 @@ class LookupPopupHtmlTest {
         assertTrue(html.contains("window.showExpressionTags = true;"))
         assertTrue(html.contains("window.harmonicFrequency = true;"))
         assertTrue(html.contains("window.deduplicatePitchAccents = true;"))
+        assertTrue(html.contains("window.compactPitchAccents = false;"))
         assertTrue(html.contains("""window.customCSS = ".entry-header { color: red; }";"""))
     }
 
@@ -284,6 +286,33 @@ class LookupPopupHtmlTest {
 
         assertTrue(html.contains("""window.dictionaryMediaRequestEndpoint = "https://hoshi.local/image";"""))
         assertTrue(html.contains("window.disablePopupImageViewportMaxHeight = true;"))
+    }
+
+    @Test
+    fun androidWebKitShimExposesLookupRedirectForPopupLinks() {
+        val html = LookupPopupHtml.render(
+            listOf(lookupResult(expression = "食べる", reading = "たべる", glossary = "eat")),
+            assets = LookupPopupAssets(popupJs = "", popupCss = ""),
+        )
+
+        assertTrue(html.contains("lookupRedirect: { postMessage: async function(query)"))
+        assertTrue(html.contains("window.HoshiPopup.lookupRedirect(query)"))
+    }
+
+    @Test
+    fun popupJavascriptSupportsRedirectHistoryAndDeduplicatedStyles() {
+        val source = java.io.File("src/main/assets/hoshi-popup/popup.js").readText()
+
+        assertTrue(source.contains("const backStack = [];"))
+        assertTrue(source.contains("const forwardStack = [];"))
+        assertTrue(source.contains("function redirect(count)"))
+        assertTrue(source.contains("window.navigateBack"))
+        assertTrue(source.contains("window.navigateForward"))
+        assertTrue(source.contains("webkit.messageHandlers.lookupRedirect.postMessage(query)"))
+        assertTrue(source.contains("id = 'popup-compact-glossaries'"))
+        assertTrue(source.contains("id = 'popup-compact-pitch-accents'"))
+        assertTrue(source.contains("id = 'popup-custom-css'"))
+        assertTrue(source.contains("container.clickAttached"))
     }
 
     private fun lookupResult(

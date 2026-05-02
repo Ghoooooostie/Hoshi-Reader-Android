@@ -113,6 +113,12 @@ internal object LookupPopupHtml {
                                     return entryJson ? JSON.parse(entryJson) : null;
                                 }
                                 return window.lookupEntries[index];
+                            } },
+                            lookupRedirect: { postMessage: async function(query) {
+                                if (window.HoshiPopup && window.HoshiPopup.lookupRedirect) {
+                                    return window.HoshiPopup.lookupRedirect(query);
+                                }
+                                return 0;
                             } }
                         }
                     };
@@ -121,6 +127,7 @@ internal object LookupPopupHtml {
                     window.showExpressionTags = ${normalizedSettings.showExpressionTags};
                     window.harmonicFrequency = ${normalizedSettings.harmonicFrequency};
                     window.deduplicatePitchAccents = ${normalizedSettings.deduplicatePitchAccents};
+                    window.compactPitchAccents = ${normalizedSettings.compactPitchAccents};
                     window.audioSources = ${audioSourcesJson(audioSettings)};
                     window.audioRequestEndpoint = "https://hoshi.local/audio";
                     window.dictionaryMediaRequestEndpoint = "https://hoshi.local/image";
