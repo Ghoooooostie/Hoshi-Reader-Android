@@ -94,6 +94,19 @@ class EpubBookParserTest {
         assertEquals("image/jpeg", book.mediaType(book.coverHref.orEmpty()))
     }
 
+    @Test
+    fun parsesGeneratedJapaneseEpubFixtureWithoutCrashing() {
+        val root = tempFolder.newFolder("same-dream-book")
+        writeSameDreamLikeExtractedEpub(root)
+
+        val book = EpubBookParser().parse(root)
+
+        assertEquals("また、同じ夢を見ていた", book.title)
+        assertEquals(9, book.chapters.size)
+        assertEquals("item/xhtml/p-cover.xhtml", book.chapters.first().href)
+        assertEquals("item/image/cover.jpg", book.coverHref)
+    }
+
     private fun writeExtractedEpub(
         root: File,
         title: String = "Sample Book",
@@ -138,6 +151,74 @@ class EpubBookParserTest {
               <spine page-progression-direction="rtl">
                 <itemref idref="chapter-2"/>
                 <itemref idref="chapter-1"/>
+              </spine>
+            </package>
+            """.trimIndent(),
+        )
+    }
+
+    private fun writeSameDreamLikeExtractedEpub(root: File) {
+        root.resolve("META-INF").mkdirs()
+        root.resolve("META-INF/container.xml").writeText(
+            """
+            <?xml version="1.0"?>
+            <container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+              <rootfiles>
+                <rootfile full-path="item/standard.opf" media-type="application/oebps-package+xml"/>
+              </rootfiles>
+            </container>
+            """.trimIndent(),
+        )
+
+        root.resolve("item/xhtml").mkdirs()
+        root.resolve("item/style").mkdirs()
+        root.resolve("item/image").mkdirs()
+        val chapterHrefs = listOf(
+            "p-cover.xhtml",
+            "p-001.xhtml",
+            "p-002.xhtml",
+            "p-003.xhtml",
+            "p-004.xhtml",
+            "p-005.xhtml",
+            "p-006.xhtml",
+            "p-007.xhtml",
+            "p-colophon.xhtml",
+        )
+        chapterHrefs.forEachIndexed { index, href ->
+            root.resolve("item/xhtml/$href").writeText(
+                """
+                <html xmlns="http://www.w3.org/1999/xhtml">
+                <head>
+                  <link rel="stylesheet" type="text/css" href="../style/book-style.css"/>
+                  <link rel="stylesheet" type="text/css" href="../style/style-chuo.css"/>
+                </head>
+                <body><p>Chapter ${index + 1}</p></body>
+                </html>
+                """.trimIndent(),
+            )
+        }
+        root.resolve("item/style/book-style.css").writeText("body { writing-mode: vertical-rl; }")
+        root.resolve("item/style/style-chuo.css").writeText(".h-valign-width { -epub-writing-mode: horizontal-tb; }")
+        root.resolve("item/image/cover.jpg").writeBytes(byteArrayOf(1, 2, 3))
+        root.resolve("item/standard.opf").writeText(
+            """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <package xmlns="http://www.idpf.org/2007/opf" version="3.0">
+              <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+                <dc:title>また、同じ夢を見ていた</dc:title>
+              </metadata>
+              <manifest>
+                ${chapterHrefs.joinToString("\n                ") { href ->
+                    """<item id="${href.substringBefore('.')}" href="xhtml/$href" media-type="application/xhtml+xml"/>"""
+                }}
+                <item id="book-style" href="style/book-style.css" media-type="text/css"/>
+                <item id="style-chuo" href="style/style-chuo.css" media-type="text/css"/>
+                <item id="cover" href="image/cover.jpg" media-type="image/jpeg" properties="cover-image"/>
+              </manifest>
+              <spine page-progression-direction="rtl">
+                ${chapterHrefs.joinToString("\n                ") { href ->
+                    """<itemref idref="${href.substringBefore('.')}"/>"""
+                }}
               </spine>
             </package>
             """.trimIndent(),

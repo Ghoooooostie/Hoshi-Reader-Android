@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.net.Uri
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -661,8 +662,15 @@ private class EpubWebViewClient(
             return WebResourceResponse(fontFile.mediaType(), null, fontFile.inputStream())
         }
         val path = uri.path.orEmpty().removePrefix("/epub/")
-        val data = book.readResource(path) ?: return null
-        return WebResourceResponse(book.mediaType(path), null, data.inputStream())
+        val mediaType = book.mediaType(path)
+        val data = book.readResource(path)?.let { sanitizeReaderResource(mediaType, it) } ?: return null
+        val encoding = if (mediaType.substringBefore(';').trim().equals("text/css", ignoreCase = true)) "UTF-8" else null
+        return WebResourceResponse(mediaType, encoding, data.inputStream())
+    }
+
+    override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+        view.destroy()
+        return true
     }
 }
 
