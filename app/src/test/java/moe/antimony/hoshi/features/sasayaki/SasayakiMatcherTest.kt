@@ -103,6 +103,39 @@ class SasayakiMatcherTest {
     }
 
     @Test
+    fun compatibilityIdeographsDoNotShiftLaterCueOffsetsLikeIosReaderJavascript() {
+        val book = EpubBook(
+            title = "Book",
+            chapters = listOf(
+                EpubChapter(
+                    id = "chapter",
+                    href = "chapter.xhtml",
+                    mediaType = "application/xhtml+xml",
+                    html = """
+                        <html><body>
+                          <p>正面にいた重元が三叉槍を手に立ち上がった。その姿はまるで<ruby>猪<rt>ちよ</rt>八<rt>はつ</rt>戒<rt>かい</rt></ruby>だ。「僕も部屋に戻るよ」</p>
+                        </body></html>
+                    """.trimIndent(),
+                ),
+            ),
+        )
+        val cues = listOf(
+            SasayakiCue("3802", 14577.372, 14580.4, "三叉槍を手に立ち上がった。"),
+            SasayakiCue("3803", 14580.4, 14583.852, "その姿はまるで猪八戒だ。"),
+            SasayakiCue("3804", 14584.592, 14588.176, "「僕も部屋に戻るよ」"),
+        )
+
+        val match = SasayakiMatcher.match(book = book, cues = cues, searchWindow = 80)
+
+        assertEquals(listOf("3802", "3803", "3804"), match.matches.map { it.id })
+        assertEquals(0, match.unmatched)
+        assertEquals(8, match.matches[0].start)
+        assertEquals(20, match.matches[1].start)
+        assertEquals(30, match.matches[2].start)
+        assertEquals(10, match.matches[1].length)
+    }
+
+    @Test
     fun skipsGuideTocSpineItemsLikeIosDuringMatch() {
         val root = tempFolder.newFolder("guide-toc-book")
         writeGuideTocExtractedEpub(root)
