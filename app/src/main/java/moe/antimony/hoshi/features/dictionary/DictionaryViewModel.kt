@@ -159,6 +159,15 @@ internal class DictionaryViewModel(
 
     fun moveDictionary(fromIndex: Int, toIndex: Int) {
         val type = _uiState.value.selectedType
+        _uiState.update { state ->
+            val dictionaries = state.dictionaries[type].orEmpty()
+            val reordered = DictionaryDragReorder.previewOrder(dictionaries, fromIndex, toIndex)
+            if (reordered == dictionaries) {
+                state
+            } else {
+                state.copy(dictionaries = state.dictionaries + (type to reordered))
+            }
+        }
         scope.launch {
             withContext(ioDispatcher) {
                 repository.moveDictionary(type, fromIndex, toIndex)

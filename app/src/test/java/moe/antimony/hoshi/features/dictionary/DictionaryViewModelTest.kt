@@ -1,6 +1,7 @@
 package moe.antimony.hoshi.features.dictionary
 
 import android.net.Uri
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -142,6 +143,31 @@ class DictionaryViewModelTest {
         assertTrue(repository.loadDictionariesCount >= 4)
     }
 
+    @Test
+    fun moveDictionaryOptimisticallyReordersUiStateBeforeRepositoryReload() {
+        val first = dictionary("first", "First")
+        val second = dictionary("second", "Second")
+        val third = dictionary("third", "Third")
+        val repository = FakeDictionaryRepository(
+            dictionaries = mapOf(DictionaryType.Term to listOf(first, second, third)),
+        )
+        val viewModel = DictionaryViewModel(
+            repository = repository,
+            coroutineScope = testScope,
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        viewModel.reload()
+        val moveGate = CompletableDeferred<Unit>()
+        repository.onMove = { moveGate.await() }
+
+        viewModel.moveDictionary(0, 2)
+
+        assertEquals(listOf(second, third, first), viewModel.uiState.value.currentDictionaries)
+
+        repository.dictionaries = mapOf(DictionaryType.Term to listOf(second, third, first))
+        moveGate.complete(Unit)
+    }
+
     private companion object {
         val testScope = kotlinx.coroutines.CoroutineScope(Dispatchers.Unconfined)
 
@@ -161,6 +187,7 @@ private class FakeDictionaryRepository(
     var rebuildCount = 0
     var loadDictionariesCount = 0
     var onImport: (() -> Unit)? = null
+    var onMove: (suspend () -> Unit)? = null
     val enabledCalls = mutableListOf<String>()
     val deleteCalls = mutableListOf<String>()
     val moveCalls = mutableListOf<Pair<DictionaryType, Pair<Int, Int>>>()
@@ -183,6 +210,7 @@ private class FakeDictionaryRepository(
 
     override suspend fun moveDictionary(type: DictionaryType, fromIndex: Int, toIndex: Int) {
         moveCalls += type to (fromIndex to toIndex)
+        onMove?.invoke()
     }
 
     override suspend fun rebuildLookupQuery() {

@@ -2,12 +2,23 @@ package moe.antimony.hoshi.features.dictionary
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.core.Animatable
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
+import androidx.compose.foundation.gestures.AnchoredDraggableState
+import androidx.compose.foundation.gestures.DraggableAnchors
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.animateTo
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -16,10 +27,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,14 +54,11 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
@@ -66,20 +76,26 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import moe.antimony.hoshi.LocalHoshiAppContainer
 import moe.antimony.hoshi.dictionary.DictionaryInfo
 import moe.antimony.hoshi.dictionary.DictionaryType
@@ -87,6 +103,7 @@ import moe.antimony.hoshi.features.settings.SettingsDetailScaffold
 import moe.antimony.hoshi.importing.ImportFileType
 import moe.antimony.hoshi.importing.MultipleFileImportContent
 import moe.antimony.hoshi.importing.validateImportFile
+import kotlin.math.roundToInt
 
 private val DictionarySwitchColor = Color(0xFF34C759)
 
@@ -138,28 +155,37 @@ fun DictionaryView(
     val selectedType = uiState.selectedType
     val currentDictionaries = uiState.currentDictionaries
     val listState = rememberLazyListState()
+    val density = LocalDensity.current
+    val autoScrollEdgeThresholdPx = with(density) { 72.dp.toPx() }
+    val autoScrollMaxDeltaPx = with(density) { 28.dp.toPx() }
     var draggedFileName by remember { mutableStateOf<String?>(null) }
     var dragStartIndex by remember { mutableIntStateOf(-1) }
     var dragStartTop by remember { mutableFloatStateOf(0f) }
     var dragStartHeight by remember { mutableFloatStateOf(0f) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    var dragWorkingDictionaries by remember { mutableStateOf<List<DictionaryInfo>?>(null) }
+    var isDragSettling by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    var revealedFileName by remember(selectedType) { mutableStateOf<String?>(null) }
+    val layoutDictionaries = dragWorkingDictionaries ?: currentDictionaries
     val dictionaryStartGlobalIndex = 1 + if (uiState.errorMessage != null) 1 else 0
     val dragTargetIndex by remember(
         listState,
-        currentDictionaries,
+        layoutDictionaries,
         dictionaryStartGlobalIndex,
-        dragStartIndex,
+        draggedFileName,
         dragStartTop,
         dragStartHeight,
         dragOffsetY,
     ) {
         derivedStateOf {
-            if (dragStartIndex !in currentDictionaries.indices) {
-                dragStartIndex
+            val draggedIndex = layoutDictionaries.indexOfFirst { it.path.name == draggedFileName }
+            if (draggedIndex !in layoutDictionaries.indices) {
+                draggedIndex
             } else {
                 val visibleRows = listState.layoutInfo.visibleItemsInfo.mapNotNull { item ->
                     val dictionaryIndex = item.index - dictionaryStartGlobalIndex
-                    if (dictionaryIndex in currentDictionaries.indices) {
+                    if (dictionaryIndex in layoutDictionaries.indices) {
                         DictionaryDragReorder.RowBounds(
                             index = dictionaryIndex,
                             top = item.offset.toFloat(),
@@ -169,12 +195,48 @@ fun DictionaryView(
                         null
                     }
                 }
+                val draggedItem = listState.layoutInfo.visibleItemsInfo.firstOrNull {
+                    it.index == dictionaryStartGlobalIndex + draggedIndex
+                }
+                val draggedCenterY = if (draggedItem != null) {
+                    draggedItem.offset + draggedItem.size / 2f + dragOffsetY
+                } else {
+                    dragStartTop + dragStartHeight / 2f + dragOffsetY
+                }
                 DictionaryDragReorder.targetIndex(
-                    startIndex = dragStartIndex,
-                    draggedCenterY = dragStartTop + dragStartHeight / 2f + dragOffsetY,
+                    startIndex = draggedIndex,
+                    draggedCenterY = draggedCenterY,
                     visibleRows = visibleRows,
                 )
             }
+        }
+    }
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (listState.isScrollInProgress && draggedFileName == null) {
+            revealedFileName = null
+        }
+    }
+
+    LaunchedEffect(currentDictionaries, revealedFileName) {
+        if (revealedFileName != null && currentDictionaries.none { it.path.name == revealedFileName }) {
+            revealedFileName = null
+        }
+    }
+
+    LaunchedEffect(draggedFileName) {
+        while (draggedFileName != null) {
+            val pointerY = dragStartTop + dragStartHeight / 2f + dragOffsetY
+            val delta = DictionaryDragReorder.autoScrollDelta(
+                pointerY = pointerY,
+                viewportStart = listState.layoutInfo.viewportStartOffset.toFloat(),
+                viewportEnd = listState.layoutInfo.viewportEndOffset.toFloat(),
+                edgeThreshold = autoScrollEdgeThresholdPx,
+                maxDelta = autoScrollMaxDeltaPx,
+            )
+            if (delta != 0f) {
+                listState.scrollBy(delta)
+            }
+            delay(16)
         }
     }
 
@@ -184,16 +246,48 @@ fun DictionaryView(
         dragStartTop = 0f
         dragStartHeight = 0f
         dragOffsetY = 0f
+        dragWorkingDictionaries = null
+        isDragSettling = false
     }
 
     fun startDrag(index: Int, fileName: String) {
+        revealedFileName = null
+        if (isDragSettling) return
         val globalIndex = dictionaryStartGlobalIndex + index
         val item = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == globalIndex } ?: return
+        dragWorkingDictionaries = currentDictionaries
         draggedFileName = fileName
         dragStartIndex = index
         dragStartTop = item.offset.toFloat()
         dragStartHeight = item.size.toFloat()
         dragOffsetY = 0f
+    }
+
+    fun updateDrag(delta: Float) {
+        val fileName = draggedFileName ?: return
+        val workingDictionaries = dragWorkingDictionaries ?: return
+        val fromIndex = workingDictionaries.indexOfFirst { it.path.name == fileName }
+        if (fromIndex !in workingDictionaries.indices) return
+        dragOffsetY += delta
+        val toIndex = dragTargetIndex
+        if (toIndex in workingDictionaries.indices && toIndex != fromIndex) {
+            val itemSize = listState.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.index == dictionaryStartGlobalIndex + fromIndex }
+                ?.size
+                ?.toFloat()
+                ?: dragStartHeight
+            dragWorkingDictionaries = DictionaryDragReorder.previewOrder(
+                items = workingDictionaries,
+                fromIndex = fromIndex,
+                toIndex = toIndex,
+            )
+            dragOffsetY = DictionaryDragReorder.adjustedDragOffsetAfterMove(
+                dragOffset = dragOffsetY,
+                fromIndex = fromIndex,
+                toIndex = toIndex,
+                itemSize = itemSize,
+            )
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -377,31 +471,61 @@ fun DictionaryView(
                     }
                 } else {
                     itemsIndexed(
-                        items = currentDictionaries,
+                        items = layoutDictionaries,
                         key = { _, dictionary -> dictionary.path.name },
                     ) { index, dictionary ->
                         val isDragging = draggedFileName == dictionary.path.name
+                        val reorderModifier = if (isDragging) {
+                            Modifier.graphicsLayer { translationY = dragOffsetY }
+                        } else {
+                            Modifier.animateItem()
+                        }
                         DictionaryRow(
                             dictionary = dictionary,
                             onEnabledChange = { dictionaryViewModel.setDictionaryEnabled(dictionary, it) },
-                            onDelete = { dictionaryViewModel.deleteDictionary(dictionary) },
-                            modifier = Modifier
+                            onDelete = {
+                                revealedFileName = null
+                                dictionaryViewModel.deleteDictionary(dictionary)
+                            },
+                            isRevealed = revealedFileName == dictionary.path.name,
+                            onRevealChange = { revealed ->
+                                revealedFileName = if (revealed) {
+                                    dictionary.path.name
+                                } else {
+                                    revealedFileName.takeUnless { it == dictionary.path.name }
+                                }
+                            },
+                            swipeEnabled = draggedFileName == null && !isDragSettling,
+                            modifier = reorderModifier
                                 .zIndex(if (isDragging) 1f else 0f)
-                                .graphicsLayer {
-                                    translationY = if (isDragging) dragOffsetY else 0f
-                                },
-                            onDragStart = { startDrag(index, dictionary.path.name) },
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            onDragStart = {
+                                startDrag(index, dictionary.path.name)
+                            },
                             onDrag = { delta ->
-                                dragOffsetY += delta
+                                updateDrag(delta)
                             },
                             onDragEnd = {
-                                if (dragStartIndex in currentDictionaries.indices &&
-                                    dragTargetIndex in currentDictionaries.indices &&
-                                    dragTargetIndex != dragStartIndex
-                                ) {
-                                    dictionaryViewModel.moveDictionary(dragStartIndex, dragTargetIndex)
+                                if (!isDragSettling) {
+                                    val fromIndex = dragStartIndex
+                                    val toIndex = layoutDictionaries.indexOfFirst {
+                                        it.path.name == draggedFileName
+                                    }
+                                    val releasedOffset = dragOffsetY
+                                    coroutineScope.launch {
+                                        isDragSettling = true
+                                        Animatable(releasedOffset).animateTo(0f, tween(durationMillis = 180)) {
+                                            dragOffsetY = value
+                                        }
+                                        if (fromIndex in currentDictionaries.indices &&
+                                            toIndex in layoutDictionaries.indices &&
+                                            toIndex != fromIndex
+                                        ) {
+                                            dictionaryViewModel.moveDictionary(fromIndex, toIndex)
+                                        }
+                                        resetDrag()
+                                    }
                                 }
-                                resetDrag()
                             },
                         )
                     }
@@ -423,94 +547,178 @@ private val DictionaryType.displayName: String
         DictionaryType.Pitch -> "Pitch"
     }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private enum class DictionarySwipeRevealValue {
+    Covered,
+    Revealed,
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DictionaryRow(
     dictionary: DictionaryInfo,
     onEnabledChange: (Boolean) -> Unit,
     onDelete: () -> Unit,
+    isRevealed: Boolean,
+    onRevealChange: (Boolean) -> Unit,
+    swipeEnabled: Boolean,
     modifier: Modifier = Modifier,
     onDragStart: () -> Unit,
     onDrag: (Float) -> Unit,
     onDragEnd: () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val dismissState = rememberSwipeToDismissBoxState()
-
-    LaunchedEffect(dismissState.currentValue) {
-        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-            onDelete()
+    val density = LocalDensity.current
+    val actionWidth = 84.dp
+    val actionWidthPx = with(density) { actionWidth.toPx() }
+    val anchors = remember(actionWidthPx) {
+        DraggableAnchors {
+            DictionarySwipeRevealValue.Covered at 0f
+            DictionarySwipeRevealValue.Revealed at -actionWidthPx
         }
     }
+    val revealState = remember(dictionary.path.name, anchors) {
+        AnchoredDraggableState<DictionarySwipeRevealValue>(
+            initialValue = DictionarySwipeRevealValue.Covered,
+            anchors = anchors,
+        )
+    }
+    val flingBehavior = AnchoredDraggableDefaults.flingBehavior(
+        state = revealState,
+        positionalThreshold = { distance -> distance * 0.45f },
+        animationSpec = tween(durationMillis = 180),
+    )
 
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        modifier = modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-        backgroundContent = {
+    LaunchedEffect(isRevealed) {
+        val target = if (isRevealed) {
+            DictionarySwipeRevealValue.Revealed
+        } else {
+            DictionarySwipeRevealValue.Covered
+        }
+        revealState.animateTo(target, tween(durationMillis = 180))
+    }
+
+    LaunchedEffect(revealState.currentValue) {
+        onRevealChange(revealState.currentValue == DictionarySwipeRevealValue.Revealed)
+    }
+
+    Box(modifier = modifier) {
+        Row(
+            modifier = Modifier.matchParentSize(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Surface(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(),
+                    .width(actionWidth)
+                    .fillMaxHeight()
+                    .clickable { onDelete() },
                 shape = RoundedCornerShape(20.dp),
                 color = colorScheme.error,
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.End,
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Delete,
-                        contentDescription = null,
+                        contentDescription = "Delete Dictionary",
                         tint = colorScheme.onError,
                     )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text("Delete", color = colorScheme.onError)
                 }
             }
-        },
-    ) {
+        }
+
+        val offsetX = revealState.requireOffset().roundToInt()
         Surface(
-            modifier = Modifier.pointerInput(dictionary.path.name) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { _: Offset -> onDragStart() },
-                    onDragCancel = onDragEnd,
-                    onDragEnd = onDragEnd,
-                    onDrag = { _, dragAmount ->
-                        onDrag(dragAmount.y)
-                    },
+            modifier = Modifier
+                .offset { IntOffset(offsetX, 0) }
+                .anchoredDraggable(
+                    state = revealState,
+                    orientation = Orientation.Horizontal,
+                    enabled = swipeEnabled,
+                    flingBehavior = flingBehavior,
                 )
-            },
+                .clickable(
+                    enabled = isRevealed,
+                    onClick = { onRevealChange(false) },
+                ),
             shape = RoundedCornerShape(20.dp),
             color = colorScheme.surface,
             border = BorderStroke(1.dp, colorScheme.outlineVariant),
             tonalElevation = 0.dp,
         ) {
-            ListItem(
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                headlineContent = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .padding(start = 10.dp, end = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val reorderDragState = rememberDraggableState { delta -> onDrag(delta) }
+                DictionaryDragHandle(
+                    modifier = Modifier.draggable(
+                        state = reorderDragState,
+                        orientation = Orientation.Vertical,
+                        startDragImmediately = true,
+                        onDragStarted = { onDragStart() },
+                        onDragStopped = { onDragEnd() },
+                    ),
+                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 10.dp, end = 12.dp),
+                    verticalArrangement = Arrangement.Center,
+                ) {
                     Text(
                         text = dictionary.index.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                },
-                supportingContent = {
                     Text(
                         text = dictionary.index.revision.ifBlank { dictionary.path.name },
                         color = colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                },
-                trailingContent = {
-                    HoshiSwitch(
-                        checked = dictionary.isEnabled,
-                        onCheckedChange = onEnabledChange,
-                    )
-                },
-            )
+                }
+                HoshiSwitch(
+                    checked = dictionary.isEnabled,
+                    onCheckedChange = onEnabledChange,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DictionaryDragHandle(modifier: Modifier = Modifier) {
+    val color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+    Box(
+        modifier = modifier
+            .width(32.dp)
+            .height(56.dp)
+            .semantics { contentDescription = "Reorder Dictionary" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            repeat(3) {
+                Box(
+                    modifier = Modifier
+                        .width(20.dp)
+                        .height(2.dp)
+                        .background(color, RoundedCornerShape(1.dp)),
+                )
+            }
         }
     }
 }

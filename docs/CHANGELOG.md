@@ -12,6 +12,8 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ### Fixed
 
+- Make dictionary management reordering use an explicit drag handle and require tapping the revealed trash button after a left swipe, reducing accidental dictionary deletion.
+- Keep repeated dictionary reordering aligned with the row being dragged when several dictionaries are installed, and prevent the release animation from snapping back before settling.
 - Keep continuous scroll chapter transitions landing at the next chapter start instead of inheriting the previous chapter's WebView scroll offset.
 - Keep the continuous scroll progress counter stable during rapid chapter-boundary flips by ignoring WebView scroll callbacks while chapter restore is in progress.
 - Keep reader content hidden until Android WebView reports restored chapter jumps are visually ready, avoiding intermediate WebView flashes without adding transition animations.
