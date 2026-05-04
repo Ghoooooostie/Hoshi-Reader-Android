@@ -5,6 +5,8 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+## [v0.3.0] - 2026-05-05
+
 ### Added
 
 - Add the iOS-style reader continuous scroll mode with an Appearance layout toggle and chapter boundary swipe distance control.
@@ -15,25 +17,9 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 - Keep dictionary popup entries readable when Android is in system night mode but Hoshi is using the light app theme.
 - Make dictionary management reordering use an explicit drag handle and require tapping the revealed trash button after a left swipe, reducing accidental dictionary deletion.
 - Keep repeated dictionary reordering aligned with the row being dragged when several dictionaries are installed, and prevent the release animation from snapping back before settling.
-- Keep continuous scroll chapter transitions landing at the next chapter start instead of inheriting the previous chapter's WebView scroll offset.
-- Keep the continuous scroll progress counter stable during rapid chapter-boundary flips by ignoring WebView scroll callbacks while chapter restore is in progress.
-- Keep reader content hidden until Android WebView reports restored chapter jumps are visually ready, avoiding intermediate WebView flashes without adding transition animations.
 - Match the bookshelf cover loading placeholder to the shelf background, preventing white cover flashes when returning to Books from the bottom tab bar in dark mode.
 - Wait for saved reader appearance settings and the first bookshelf load before drawing the app shell, avoiding light-theme empty-library flashes during dark-theme cold starts.
 - Let the Android launch screen follow the system light or dark mode before the app UI is ready.
-- Preserve selected popup text when mining AnkiDroid cards, restoring the Lapis `{popup-selection-text}` field.
-- Add dictionary SVG media to AnkiDroid notes as real media files instead of nested image HTML, restoring MK3 gaiji icons in mined Lapis cards.
-- Keep MK3 SVG gaiji inline with surrounding text in AnkiDroid Lapis glossary fields.
-- Bold only the selected sentence occurrence in AnkiDroid `{sentence}` fields when the mined word appears multiple times.
-- Make the Anki field mapping settings list responsive by using lightweight rows and editing mappings in a focused dialog.
-- Make Anki tags use the same focused settings editor as field mappings, without showing handlebar choices.
-- Show imported term dictionaries as `{single-glossary-...}` handlebar choices in AnkiDroid field mappings, matching iOS dictionary-specific glossary mappings.
-- Seed AnkiDroid Lapis field mappings when Fetch switches from blank or non-Lapis settings to Lapis, then keep edited mappings from being refilled by later Lapis-to-Lapis Fetches or mining cards, and preserve still-available deck/model selections when fetching from AnkiDroid again.
-- Keep dictionary-specific AnkiDroid glossary handlebars from falling back to the first glossary when imported dictionary titles include a version suffix.
-- Expand Sasayaki audiobook exports for AnkiDroid `{sasayaki-audio}` to adjacent cues from the selected sentence, matching the iOS sentence-audio behavior.
-- Fill the Lapis `SentenceAudio` field from Sasayaki reader lookups by exporting the matched cue audio before adding the AnkiDroid note.
-- Fill AnkiDroid `{audio}` fields when the selected dictionary audio comes from the imported local audio database.
-- Keep Anki field-to-handlebar mappings editable after closing and reopening the app process without requiring another Fetch.
 - Match the reader loading screen to the active reader background, preventing a white flash when opening books in dark mode.
 - Keep the bookshelf visible while opening an existing book, preventing a brief loading-spinner flash before the reader appears.
 - Refresh Settings detail controls immediately after toggles or option changes, and remove Navigation3 fade transitions so page switches are e-ink friendly.
