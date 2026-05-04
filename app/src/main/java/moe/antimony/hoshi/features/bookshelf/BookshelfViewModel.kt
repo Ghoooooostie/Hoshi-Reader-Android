@@ -88,6 +88,7 @@ internal class BookshelfViewModel(
                 it.copy(
                     bookEntries = result.entries,
                     bookProgressById = result.progressById,
+                    hasLoadedBooks = true,
                 )
             }
         }
@@ -114,6 +115,7 @@ internal class BookshelfViewModel(
                 it.copy(
                     bookEntries = result.entries,
                     bookProgressById = result.progressById,
+                    hasLoadedBooks = true,
                     errorMessage = null,
                 )
             }
@@ -126,6 +128,7 @@ internal class BookshelfViewModel(
             it.copy(
                 bookEntries = result.entries,
                 bookProgressById = result.progressById,
+                hasLoadedBooks = true,
             )
         }
     }

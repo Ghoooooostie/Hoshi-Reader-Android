@@ -8,6 +8,7 @@ data class BookshelfUiState(
     val bookProgressById: Map<String, Double> = emptyMap(),
     val sortOption: BookSortOption = BookSortOption.Recent,
     val sasayakiEnabled: Boolean = false,
+    val hasLoadedBooks: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val openReaderBookId: String? = null,

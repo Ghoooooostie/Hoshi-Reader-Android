@@ -38,22 +38,24 @@ class MainActivity : ComponentActivity() {
             val appContainer = remember { HoshiAppContainer(applicationContext) }
             val readerSettingsRepository = appContainer.readerSettingsRepository
             val scope = rememberCoroutineScope()
-            var readerSettings by remember { mutableStateOf(ReaderSettings()) }
+            var readerSettings by remember { mutableStateOf<ReaderSettings?>(null) }
             LaunchedEffect(readerSettingsRepository) {
                 readerSettingsRepository.settings.collect { settings ->
                     readerSettings = settings
                 }
             }
             val systemDark = isSystemInDarkTheme()
+            val loadedReaderSettings = readerSettings
             CompositionLocalProvider(LocalHoshiAppContainer provides appContainer) {
                 HoshiReaderTheme(
-                    darkTheme = readerSettings.usesDarkInterface(systemDark),
-                    eInkMode = readerSettings.eInkMode,
+                    darkTheme = loadedReaderSettings?.usesDarkInterface(systemDark) ?: systemDark,
+                    eInkMode = loadedReaderSettings?.eInkMode ?: false,
                 ) {
+                    val loadedReaderSettings = readerSettings ?: return@HoshiReaderTheme
                     AppShell(
                         pendingImportUri = pendingImportUri,
                         onPendingImportConsumed = { pendingImportUri = null },
-                        readerSettings = readerSettings,
+                        readerSettings = loadedReaderSettings,
                         onReaderSettingsChange = { settings ->
                             readerSettings = settings
                             scope.launch {

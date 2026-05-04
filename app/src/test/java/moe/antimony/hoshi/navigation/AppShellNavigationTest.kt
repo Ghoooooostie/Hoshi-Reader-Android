@@ -56,6 +56,15 @@ class AppShellNavigationTest {
     }
 
     @Test
+    fun mainActivityWaitsForSavedReaderSettingsBeforeRenderingAppShell() {
+        val mainActivity = File("src/main/java/moe/antimony/hoshi/MainActivity.kt").readText()
+
+        assertTrue(mainActivity.contains("var readerSettings by remember { mutableStateOf<ReaderSettings?>(null) }"))
+        assertTrue(mainActivity.contains("val loadedReaderSettings = readerSettings ?: return@HoshiReaderTheme"))
+        assertFalse(mainActivity.contains("mutableStateOf(ReaderSettings())"))
+    }
+
+    @Test
     fun appShellDisablesNavigationContentTransitions() {
         val appShell = File("src/main/java/moe/antimony/hoshi/navigation/AppShell.kt").readText()
 

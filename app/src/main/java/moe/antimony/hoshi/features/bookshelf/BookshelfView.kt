@@ -195,6 +195,7 @@ fun BookshelfView(
         bookEntries = uiState.bookEntries,
         bookProgressById = uiState.bookProgressById,
         bookRepository = bookRepository,
+        hasLoadedBooks = uiState.hasLoadedBooks,
         isLoading = uiState.isLoading,
         errorMessage = uiState.errorMessage,
         sortOption = uiState.sortOption,
@@ -380,6 +381,7 @@ private fun BooksTab(
     bookEntries: List<BookEntry>,
     bookProgressById: Map<String, Double>,
     bookRepository: BookRepository,
+    hasLoadedBooks: Boolean,
     isLoading: Boolean,
     errorMessage: String?,
     sortOption: BookSortOption,
@@ -433,7 +435,8 @@ private fun BooksTab(
                 isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-                bookEntries.isEmpty() -> EmptyBooksView(
+                !hasLoadedBooks -> Box(Modifier.fillMaxSize())
+                hasLoadedBooks && bookEntries.isEmpty() -> EmptyBooksView(
                     errorMessage = errorMessage,
                     onImport = onImport,
                     modifier = Modifier

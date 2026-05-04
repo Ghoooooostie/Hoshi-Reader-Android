@@ -113,6 +113,8 @@ Also run `./gradlew lint` when changing resources, manifest, UI, packaging, or r
 
 For settings/navigation changes, verify settings controls update immediately and route changes avoid fade transitions on e-ink displays.
 
+For dark-theme cold-start regressions, use emulator screen recording with the App Appearance theme set to Dark and confirm no light `No Books` app frame appears before the bookshelf loads.
+
 For bookshelf tab-switch regressions, use real-device screen recording to confirm cover placeholders do not flash white when returning to Books from the bottom tab bar.
 
 For bookshelf-to-reader regressions, use real-device continuous screenshots or screen recording to confirm no Bookshelf loading spinner or dark-mode white loading frame appears between tapping a book and showing the Reader.

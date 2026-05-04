@@ -108,6 +108,17 @@ class MainShellUiTest {
     }
 
     @Test
+    fun bookshelfDoesNotShowEmptyStateBeforeFirstLoadCompletes() {
+        val source = File("src/main/java/moe/antimony/hoshi/features/bookshelf/BookshelfView.kt").readText()
+        val booksTab = source.substringAfter("private fun BooksTab(")
+            .substringBefore("@Composable\n@OptIn(ExperimentalMaterial3Api::class)\nprivate fun BooksTopAppBar")
+
+        assertTrue(booksTab.contains("hasLoadedBooks: Boolean"))
+        assertTrue(booksTab.contains("!hasLoadedBooks -> Box(Modifier.fillMaxSize())"))
+        assertTrue(booksTab.contains("hasLoadedBooks && bookEntries.isEmpty() -> EmptyBooksView("))
+    }
+
+    @Test
     fun sasayakiMatchMenuOpensAdjustableMatchScreen() {
         val source = File("src/main/java/moe/antimony/hoshi/features/bookshelf/BookshelfView.kt").readText()
         val appShell = File("src/main/java/moe/antimony/hoshi/navigation/AppShell.kt").readText()

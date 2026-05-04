@@ -14,6 +14,13 @@ import java.io.File
 
 class BookshelfViewModelTest {
     @Test
+    fun initialStateWaitsForFirstShelfLoadBeforeShowingEmptyBooks() {
+        val viewModel = BookshelfViewModel(FakeBookshelfRepository(), testScope())
+
+        assertFalse(viewModel.uiState.value.hasLoadedBooks)
+    }
+
+    @Test
     fun reloadBooksPublishesEntriesProgressAndSasayakiState() {
         val entry = bookEntry("book-a")
         val repository = FakeBookshelfRepository(
@@ -27,6 +34,7 @@ class BookshelfViewModelTest {
 
         assertEquals(listOf(entry), viewModel.uiState.value.bookEntries)
         assertEquals(mapOf("book-a" to 0.25), viewModel.uiState.value.bookProgressById)
+        assertTrue(viewModel.uiState.value.hasLoadedBooks)
         assertTrue(viewModel.uiState.value.sasayakiEnabled)
         assertFalse(viewModel.uiState.value.isLoading)
         assertNull(viewModel.uiState.value.errorMessage)
