@@ -223,6 +223,16 @@ class ReaderSettingsTest {
     }
 
     @Test
+    fun appearanceFontSizeStepperAllowsIssue46Maximum() {
+        val source = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderAppearanceView.kt").readText()
+        val fontSizeRow = source.substringAfter("""label = "Font Size"""")
+            .substringBefore("""label = "Hide Furigana"""")
+
+        assertTrue(fontSizeRow.contains("coerceAtLeast(16)"))
+        assertTrue(fontSizeRow.contains("coerceAtMost(60)"))
+    }
+
+    @Test
     fun appearanceSwipeThresholdRangeMatchesAndroidGestureTuning() {
         val source = File("src/main/java/moe/antimony/hoshi/features/reader/ReaderAppearanceView.kt").readText()
         val swipeThresholdRow = source.substringAfter("""label = "Swipe Threshold"""")

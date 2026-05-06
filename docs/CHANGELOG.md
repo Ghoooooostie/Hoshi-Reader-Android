@@ -7,6 +7,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ### Changed
 
+- Raise the reader Appearance maximum font size to 60 for larger text. #46
 - Move Sasayaki audiobook playback and dictionary word audio onto Media3 ExoPlayer for more consistent playback, seeking, speed control, and system media integration.
 
 ### Fixed

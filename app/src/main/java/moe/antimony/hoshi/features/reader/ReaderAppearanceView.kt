@@ -254,7 +254,7 @@ private fun ReaderAppearanceContent(
                     label = "Font Size",
                     value = settings.fontSize.toString(),
                     onDecrease = { onSettingsChange(settings.copy(fontSize = (settings.fontSize - 1).coerceAtLeast(16))) },
-                    onIncrease = { onSettingsChange(settings.copy(fontSize = (settings.fontSize + 1).coerceAtMost(40))) },
+                    onIncrease = { onSettingsChange(settings.copy(fontSize = (settings.fontSize + 1).coerceAtMost(60))) },
                     palette = palette,
                 )
                 AppearanceDivider(palette)
