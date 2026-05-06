@@ -19,6 +19,7 @@ import androidx.media3.exoplayer.source.ProgressiveMediaSource
 class WordAudioPlayer private constructor(context: Context) {
     private val appContext = context.applicationContext
     private val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val focusChangeListener = AudioManager.OnAudioFocusChangeListener { }
     private var player: ExoPlayer? = null
     private var focusRequest: AudioFocusRequest? = null
 
@@ -26,17 +27,23 @@ class WordAudioPlayer private constructor(context: Context) {
         stop()
         if (!requestFocus(mode)) return
         val nextPlayer = ExoPlayer.Builder(appContext).build().apply {
-            setAudioAttributes(audioAttributes(), true)
+            setAudioAttributes(audioAttributes(), false)
             addListener(
                 object : Player.Listener {
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         if (playbackState == Player.STATE_ENDED) {
-                            stop()
+                            this@WordAudioPlayer.stop()
+                        }
+                    }
+
+                    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                        if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM) {
+                            this@WordAudioPlayer.stop()
                         }
                     }
 
                     override fun onPlayerError(error: PlaybackException) {
-                        stop()
+                        this@WordAudioPlayer.stop()
                     }
                 },
             )
@@ -70,6 +77,8 @@ class WordAudioPlayer private constructor(context: Context) {
 
     private fun requestFocus(mode: AudioPlaybackMode): Boolean {
         if (mode == AudioPlaybackMode.Mix) return true
+        // Ducking is a best-effort system focus request; apps that opt out of automatic
+        // ducking may keep their own volume or pause instead.
         val gain = when (mode) {
             AudioPlaybackMode.Interrupt -> AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
             AudioPlaybackMode.Duck -> AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
@@ -78,23 +87,25 @@ class WordAudioPlayer private constructor(context: Context) {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val request = AudioFocusRequest.Builder(gain)
                 .setAudioAttributes(platformAudioAttributes())
+                .setOnAudioFocusChangeListener(focusChangeListener)
                 .build()
-            focusRequest = request
-            audioManager.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            val granted = audioManager.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            if (granted) focusRequest = request
+            granted
         } else {
             @Suppress("DEPRECATION")
-            audioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC, gain) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            audioManager.requestAudioFocus(focusChangeListener, AudioManager.STREAM_MUSIC, gain) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
         }
     }
 
     private fun abandonFocus() {
-        val request = focusRequest
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && request != null) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val request = focusRequest ?: return
             audioManager.abandonAudioFocusRequest(request)
             focusRequest = null
         } else {
             @Suppress("DEPRECATION")
-            audioManager.abandonAudioFocus(null)
+            audioManager.abandonAudioFocus(focusChangeListener)
         }
     }
 

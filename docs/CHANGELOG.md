@@ -12,6 +12,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 ### Fixed
 
 - Keep Sasayaki previous/next cue controls available from Android system media controls, and make paused cue seeks reveal the correct text without flickering back to the old highlight.
+- Make dictionary word audio respect the Background Audio setting, so Interrupt can hand audio focus back afterward while Lower Volume uses Android's best-effort ducking request and Keep Volume keeps background audio playing.
 - Let local audio `android.db` imports appear in stricter vendor Android file pickers while still rejecting non-database files after selection.
 
 ## [v0.3.0] - 2026-05-05

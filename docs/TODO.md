@@ -81,6 +81,7 @@ Status: `in_progress`
 - Read dictionary media through the existing dictionary bridge.
 - Keep Sasayaki sidecars iOS-compatible.
 - Sasayaki audiobook playback and dictionary word audio now use Media3 ExoPlayer; keep standard Android media previous/next controls, paused Sasayaki cue reveal, lookup audio, and Anki cue export behavior-protected.
+- Dictionary word audio now owns short audio-focus policy instead of delegating it to ExoPlayer, preserving Interrupt, best-effort Lower Volume, and Keep Volume background-audio behavior.
 - Local audio `android.db` import uses a broad Android picker MIME for vendor file-manager compatibility, with Hoshi-side `.db` validation after selection.
 
 ### Sync
