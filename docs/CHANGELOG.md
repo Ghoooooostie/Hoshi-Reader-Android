@@ -5,6 +5,8 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+## [v0.3.2] - 2026-05-08
+
 ### Added
 
 - Add a Dictionary setting to stop lookup scanning at non-Japanese text, matching the latest iOS selection behavior.
