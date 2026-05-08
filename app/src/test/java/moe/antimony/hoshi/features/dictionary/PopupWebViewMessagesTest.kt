@@ -47,19 +47,19 @@ class PopupWebViewMessagesTest {
     }
 
     @Test
-    fun popupBridgeBatchesLookupEntryRequestsLikeIos() {
+    fun popupBridgeRequestsLookupEntriesOneAtATime() {
         val bridgeSource = File("src/main/java/moe/antimony/hoshi/features/dictionary/PopupWebViewMessages.kt")
             .readText()
         val htmlSource = File("src/main/java/moe/antimony/hoshi/features/dictionary/LookupPopupHtml.kt")
             .readText()
         val popupSource = File("src/main/assets/hoshi-popup/popup.js").readText()
 
-        assertTrue(bridgeSource.contains("fun getEntries(start: Int, count: Int): String"))
-        assertTrue(htmlSource.contains("getEntries: { postMessage: async function(request)"))
-        assertTrue(popupSource.contains("webkit.messageHandlers.getEntries.postMessage"))
-        assertTrue(popupSource.contains("count: Math.min(4, window.entryCount - idx)"))
-        assertTrue(popupSource.contains("entries.forEach((entry, offset)"))
-        assertTrue(popupSource.contains("if (idx === 0 || (idx + 1) % 4 === 0)"))
+        assertTrue(bridgeSource.contains("fun getEntry(index: Int): String?"))
+        assertTrue(htmlSource.contains("getEntry: { postMessage: async function(index)"))
+        assertTrue(popupSource.contains("webkit.messageHandlers.getEntry.postMessage(idx)"))
+        assertTrue(popupSource.contains("window.lookupEntries[idx] = entry"))
+        assertTrue(popupSource.contains("container.appendChild(entryDiv);\n            await new Promise"))
+        assertFalse(popupSource.contains("webkit.messageHandlers.getEntries.postMessage"))
     }
 
     @Test

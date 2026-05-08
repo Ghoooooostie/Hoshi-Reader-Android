@@ -1521,18 +1521,11 @@ window.renderPopup = function() {
 
     (async () => {
         for (let idx = 0; idx < window.entryCount; idx++) {
-            window.lookupEntries ??= [];
-            if (!window.lookupEntries[idx]) {
-                const entries = await webkit.messageHandlers.getEntries.postMessage({
-                    start: idx,
-                    count: Math.min(4, window.entryCount - idx)
-                });
-                entries.forEach((entry, offset) => {
-                    window.lookupEntries[idx + offset] = entry;
-                });
-            }
-            const entry = window.lookupEntries[idx];
+            const entry = window.lookupEntries?.[idx] ?? await webkit.messageHandlers.getEntry.postMessage(idx);
             if (!entry) continue;
+
+            window.lookupEntries ??= [];
+            window.lookupEntries[idx] = entry;
 
             if (idx > 0) {
                 container.appendChild(document.createElement('hr'));
@@ -1556,6 +1549,7 @@ window.renderPopup = function() {
             }
 
             container.appendChild(entryDiv);
+            await new Promise(r => requestAnimationFrame(r));
 
             const grouped = {};
             entry.glossaries.forEach(g => {
@@ -1569,9 +1563,6 @@ window.renderPopup = function() {
             const dictNames = Object.keys(grouped);
             for (let dictIdx = 0; dictIdx < dictNames.length; dictIdx++) {
                 entryDiv.appendChild(createGlossarySection(dictNames[dictIdx], grouped[dictNames[dictIdx]], dictIdx === 0, idx));
-            }
-
-            if (idx === 0 || (idx + 1) % 4 === 0) {
                 await new Promise(r => requestAnimationFrame(r));
             }
         }

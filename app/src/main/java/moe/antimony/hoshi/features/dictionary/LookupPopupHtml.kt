@@ -110,14 +110,12 @@ internal object LookupPopupHtml {
                             contentReady: { postMessage: function() { window.HoshiAndroidPopup.postMessage('contentReady'); } },
                             mineEntry: { postMessage: async function(content) { return window.HoshiPopup.mineEntry(JSON.stringify(content)); } },
                             duplicateCheck: { postMessage: async function(expression) { return window.HoshiPopup.duplicateCheck(expression); } },
-                            getEntries: { postMessage: async function(request) {
-                                var start = request && typeof request.start === 'number' ? request.start : 0;
-                                var count = request && typeof request.count === 'number' ? request.count : 0;
-                                if (window.HoshiPopup && window.HoshiPopup.getEntries) {
-                                    var entriesJson = window.HoshiPopup.getEntries(start, count);
-                                    return entriesJson ? JSON.parse(entriesJson) : [];
+                            getEntry: { postMessage: async function(index) {
+                                if (window.HoshiPopup && window.HoshiPopup.getEntry) {
+                                    var entryJson = window.HoshiPopup.getEntry(index);
+                                    return entryJson ? JSON.parse(entryJson) : null;
                                 }
-                                return (window.lookupEntries || []).slice(start, start + count);
+                                return window.lookupEntries[index];
                             } },
                             lookupRedirect: { postMessage: async function(query) {
                                 if (window.HoshiPopup && window.HoshiPopup.lookupRedirect) {
