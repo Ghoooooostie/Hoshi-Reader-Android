@@ -62,6 +62,11 @@ internal class DictionaryStorageDataSource(
         File(typeDirectory(type), fileName).deleteRecursively()
     }
 
+    fun hasDictionaryWithIndex(type: DictionaryType, index: DictionaryIndex): Boolean =
+        loadDictionaries(type).any { dictionary ->
+            dictionary.index.title == index.title
+        }
+
     fun enabledDictionaryPaths(type: DictionaryType): List<File> =
         loadDictionaries(type)
             .filter { it.isEnabled }

@@ -13,6 +13,8 @@ class DictionaryImportDataSourceSourceTest {
         assertTrue(source.contains("val tempZip = typeDirectory.resolve(\".dictionary-import-\$importId.zip\")"))
         assertTrue(source.contains("val stagingRoot = typeDirectory.resolve(\".dictionary-import-\$importId\")"))
         assertTrue(source.contains("contentResolver.openInputStream(uri).use { input ->"))
+        assertTrue(source.contains("val index = readDictionaryIndex(input)"))
+        assertTrue(source.contains("if (shouldSkip(index)) return false"))
         assertTrue(source.contains("source.copyTo(output)"))
         assertTrue(source.contains("nativeBridge.importDictionary(tempZip.absolutePath, stagingRoot.absolutePath)"))
         assertTrue(source.contains("commitStagedDictionaries(stagingRoot, typeDirectory)"))

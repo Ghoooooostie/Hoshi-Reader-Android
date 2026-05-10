@@ -75,7 +75,40 @@ class DictionaryStorageDataSourceTest {
         }
     }
 
-    private fun writeDictionary(typeDirectory: File, fileName: String, title: String): File {
+    @Test
+    fun hasDictionaryWithIndexMatchesSameTypeTitleRegardlessOfRevision() {
+        withTempDir { root ->
+            val storage = DictionaryStorageDataSource(root)
+            writeDictionary(storage.typeDirectory(DictionaryType.Term), "JMdict", "JMdict", revision = "rev1")
+            writeDictionary(storage.typeDirectory(DictionaryType.Frequency), "JMdict", "JMdict", revision = "rev1")
+
+            assertTrue(
+                storage.hasDictionaryWithIndex(
+                    DictionaryType.Term,
+                    DictionaryIndex(title = "JMdict", format = 3, revision = "rev1"),
+                ),
+            )
+            assertTrue(
+                storage.hasDictionaryWithIndex(
+                    DictionaryType.Term,
+                    DictionaryIndex(title = "JMdict", format = 3, revision = "rev2"),
+                ),
+            )
+            assertFalse(
+                storage.hasDictionaryWithIndex(
+                    DictionaryType.Pitch,
+                    DictionaryIndex(title = "JMdict", format = 3, revision = "rev1"),
+                ),
+            )
+        }
+    }
+
+    private fun writeDictionary(
+        typeDirectory: File,
+        fileName: String,
+        title: String,
+        revision: String = "rev",
+    ): File {
         val dictionaryDir = typeDirectory.resolve(fileName)
         dictionaryDir.mkdirs()
         dictionaryDir.resolve("index.json").writeText(
@@ -83,7 +116,7 @@ class DictionaryStorageDataSourceTest {
             {
               "title": "$title",
               "format": 3,
-              "revision": "rev"
+              "revision": "$revision"
             }
             """.trimIndent(),
         )

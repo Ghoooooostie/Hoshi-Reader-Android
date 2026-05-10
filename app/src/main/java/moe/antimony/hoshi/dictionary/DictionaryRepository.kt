@@ -14,9 +14,16 @@ internal class DictionaryRepository(
         storage.loadDictionaries(type)
 
     fun importDictionary(contentResolver: ContentResolver, uri: Uri, type: DictionaryType) {
-        importDataSource.importDictionary(contentResolver, uri, storage.typeDirectory(type))
-        storage.saveConfigFromStorage()
-        rebuildLookupQuery()
+        val imported = importDataSource.importDictionary(
+            contentResolver = contentResolver,
+            uri = uri,
+            typeDirectory = storage.typeDirectory(type),
+            shouldSkip = { index -> storage.hasDictionaryWithIndex(type, index) },
+        )
+        if (imported) {
+            storage.saveConfigFromStorage()
+            rebuildLookupQuery()
+        }
     }
 
     fun setDictionaryEnabled(type: DictionaryType, fileName: String, enabled: Boolean) {

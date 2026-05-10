@@ -24,6 +24,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 - Open downloaded update APKs through Android's package installer and route users to the unknown-apps permission when required.
 - Hide downloaded update packages that are not newer than the installed app version from Settings -> About.
 - Stage dictionary imports before committing them, so interrupted imports leave removable staging data instead of partial dictionaries.
+- Skip already-installed dictionary archives before native import when their title matches an installed dictionary of the same type.
 - Release persisted external Sasayaki audio permissions when deleting a book.
 
 ## [v0.3.4] - 2026-05-10

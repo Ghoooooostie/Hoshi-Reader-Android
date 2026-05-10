@@ -7,7 +7,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 class DictionaryImportDataSourceTest {
     @get:Rule
@@ -19,7 +22,7 @@ class DictionaryImportDataSourceTest {
         val bridge = StagingDictionaryBridge("JMdict")
         val dataSource = DictionaryImportDataSource(bridge)
 
-        dataSource.importDictionary(ByteArrayInputStream(byteArrayOf(1, 2, 3)), typeDirectory)
+        dataSource.importDictionary(ByteArrayInputStream(dictionaryArchive("JMdict")), typeDirectory)
 
         assertEquals(1, bridge.outputDirs.size)
         assertTrue(bridge.outputDirs.single().startsWith(typeDirectory.resolve(".dictionary-import-").absolutePath))
@@ -37,7 +40,7 @@ class DictionaryImportDataSourceTest {
         val dataSource = DictionaryImportDataSource(FailingDictionaryBridge())
 
         try {
-            dataSource.importDictionary(ByteArrayInputStream(byteArrayOf(1, 2, 3)), typeDirectory)
+            dataSource.importDictionary(ByteArrayInputStream(dictionaryArchive("Partial")), typeDirectory)
         } catch (expected: IllegalArgumentException) {
             assertTrue(expected.message.orEmpty().contains("Failed to import dictionary"))
         }
@@ -55,12 +58,47 @@ class DictionaryImportDataSourceTest {
         }
         val dataSource = DictionaryImportDataSource(StagingDictionaryBridge("Existing"))
 
-        dataSource.importDictionary(ByteArrayInputStream(byteArrayOf(1, 2, 3)), typeDirectory)
+        dataSource.importDictionary(ByteArrayInputStream(dictionaryArchive("Existing")), typeDirectory)
 
         assertEquals("""{"title":"Existing"}""", typeDirectory.resolve("Existing/index.json").readText())
         assertFalse(typeDirectory.listFiles().orEmpty().any { it.name.contains("-replace-") })
         assertFalse(typeDirectory.listFiles().orEmpty().any { it.name.startsWith(".dictionary-import-") })
     }
+
+    @Test
+    fun importSkipsNativeImporterWhenIncomingIndexMatchesInstalledDictionary() {
+        val typeDirectory = temporaryFolder.newFolder("duplicate-Term")
+        val bridge = StagingDictionaryBridge("JMdict")
+        val dataSource = DictionaryImportDataSource(bridge)
+        val archive = zipBytes(
+            "index.json" to """{"title":"JMdict","format":3,"revision":"rev"}""",
+        )
+
+        val imported = dataSource.importDictionary(
+            input = ByteArrayInputStream(archive),
+            typeDirectory = typeDirectory,
+            shouldSkip = { index -> index.title == "JMdict" && index.revision == "rev" },
+        )
+
+        assertFalse(imported)
+        assertEquals(emptyList<String>(), bridge.outputDirs)
+        assertFalse(typeDirectory.listFiles().orEmpty().any { it.name.startsWith(".dictionary-import-") })
+    }
+
+    private fun zipBytes(vararg entries: Pair<String, String>): ByteArray {
+        val output = ByteArrayOutputStream()
+        ZipOutputStream(output).use { zip ->
+            entries.forEach { (name, content) ->
+                zip.putNextEntry(ZipEntry(name))
+                zip.write(content.toByteArray())
+                zip.closeEntry()
+            }
+        }
+        return output.toByteArray()
+    }
+
+    private fun dictionaryArchive(title: String, revision: String = "rev"): ByteArray =
+        zipBytes("index.json" to """{"title":"$title","format":3,"revision":"$revision"}""")
 
     private class StagingDictionaryBridge(
         private val dictionaryName: String,
