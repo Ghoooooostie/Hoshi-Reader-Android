@@ -5,29 +5,27 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+## [v0.4.0] - 2026-05-11
+
 ### Added
 
 - Add iOS-style bookshelf management with custom shelves, a Reading shelf toggle, shelf previews, toolbar action grouping, single-book and batch moves, batch deletion, and Mark Read.
 - Add iOS-compatible Books and Dictionaries backup restore in Advanced -> Backup using `.hoshi` archives.
-- Add GitHub release update checks with automatic APK downloads and a Settings -> About manual check.
-- Store downloaded update APKs under a stable file name so newer downloads replace older update packages.
-- Show a startup prompt when a newer downloaded update is ready to install.
+- Add GitHub release update checks with automatic APK downloads, mirror fallbacks, Settings -> About manual checks, update-ready startup prompts, and Android package-installer handoff.
 - Add a GitHub repository link to Settings -> About for starring this app's project.
-- Add GitHub release mirror fallbacks for update checks and APK downloads when direct GitHub access fails.
 - Add a Settings -> About storage cleanup tool that scans app-private leftovers by category and asks for confirmation before deleting them.
-- Show the current archive name while importing dictionaries in bulk, with a blocking progress overlay that supports e-ink mode.
-- Reuse the e-ink-friendly blocking progress overlay for EPUB, font, Sasayaki audio, local audio database, and backup file tasks.
-- Let Books import multiple EPUB files in one picker session, showing batch progress and returning to the bookshelf when finished.
+- Add e-ink-friendly blocking progress overlays for EPUB, dictionary, font, Sasayaki audio, local audio database, and backup file tasks, including current archive names during bulk dictionary imports.
+- Let Books import multiple EPUB files in one picker session, with batch progress and automatic return to the bookshelf when finished.
+
+### Changed
+
+- Refresh the Android launcher icon with the iOS Hoshi artwork, circular-mask padding, and no bundled generated PNG assets.
 
 ### Fixed
 
-- Use the iOS Hoshi artwork for the Android launcher icon with circular-mask padding and no bundled generated PNG assets.
 - Show concrete Java crash stack traces in Settings -> Diagnostics after Hoshi restarts from an uncaught exception.
 - Prevent reader lookup popups from crashing when the popup is taller than the available screen area.
-- Open downloaded update APKs through Android's package installer and route users to the unknown-apps permission when required.
-- Hide downloaded update packages that are not newer than the installed app version from Settings -> About.
-- Stage dictionary imports before committing them, so interrupted imports leave removable staging data instead of partial dictionaries.
-- Skip already-installed dictionary archives before native import when their title matches an installed dictionary of the same type.
+- Make dictionary imports safer by staging data before committing it and skipping already-installed dictionary archives whose title and type already match an installed dictionary.
 - Release persisted external Sasayaki audio permissions when deleting a book.
 
 ## [v0.3.4] - 2026-05-10
