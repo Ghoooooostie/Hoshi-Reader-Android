@@ -60,6 +60,18 @@ class ReaderPaginationScriptsTest {
     }
 
     @Test
+    fun exportsVerticalPaddingPxVariablesForAndroidWebView() {
+        val script = ReaderPaginationScripts.shellScript(
+            settings = ReaderSettings(verticalPadding = 22),
+        )
+
+        assertTrue(script.contains("--hoshi-vertical-padding-block"))
+        assertTrue(script.contains("window.innerHeight * 0.11"))
+        assertTrue(script.contains("--hoshi-vertical-padding-gap"))
+        assertTrue(script.contains("window.innerHeight * 0.22"))
+    }
+
+    @Test
     fun doesNotPatchViewportResizeInsideReaderJavaScript() {
         val script = ReaderPaginationScripts.shellScript()
 
@@ -240,7 +252,7 @@ class ReaderPaginationScriptsTest {
     fun appendsTrailingSpacerUsingIosDefaultVerticalLayout() {
         val script = ReaderPaginationScripts.shellScript()
 
-        assertTrue(script.contains("spacer.style.height = 'calc(0.0vh + 22px)'"))
+        assertTrue(script.contains("spacer.style.height = 'calc(var(--hoshi-vertical-padding-block, 0.0vh) + 22px)'"))
         assertTrue(script.contains("spacer.style.width = '0'"))
     }
 
@@ -249,9 +261,9 @@ class ReaderPaginationScriptsTest {
         val css = ReaderContentStyles.styleTag()
 
         assertTrue(css.contains("font-size: 22px !important"))
-        assertTrue(css.contains("column-gap: calc(0vh + 22px);"))
-        assertTrue(css.contains("padding: 0.0vh 2.5vw !important;"))
-        assertTrue(css.contains("padding-bottom: calc(0.0vh + 22px) !important;"))
+        assertTrue(css.contains("column-gap: calc(var(--hoshi-vertical-padding-gap, 0vh) + 22px);"))
+        assertTrue(css.contains("padding: var(--hoshi-vertical-padding-block, 0.0vh) 2.5vw !important;"))
+        assertTrue(css.contains("padding-bottom: calc(var(--hoshi-vertical-padding-block, 0.0vh) + 22px) !important;"))
         assertFalse(css.contains("line-height: 1.65 !important;"))
         assertTrue(css.contains("text-align: start !important;"))
         assertTrue(css.contains("max-width: var(--hoshi-image-max-width, 95vw) !important"))

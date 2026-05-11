@@ -77,6 +77,33 @@ class ReaderWebViewStateHolderTest {
     }
 
     @Test
+    fun syncedLayoutSettingsReloadAtDisplayedPosition() {
+        val holder = stateHolder(initialIndex = 1)
+        holder.markWebViewRestored()
+        holder.recordDisplayedProgress(0.35)
+        val previousEpoch = holder.webViewRestoreEpoch
+
+        holder.syncSettings(ReaderSettings(verticalPadding = 22))
+
+        assertEquals(ReaderChapterPosition(index = 1, progress = 0.35), holder.readerPosition.loadPosition)
+        assertEquals(22, holder.effectiveSettings.verticalPadding)
+        assertTrue(holder.isWebViewRestoring)
+        assertEquals(previousEpoch + 1, holder.webViewRestoreEpoch)
+    }
+
+    @Test
+    fun syncedChromeOnlySettingsDoNotReloadWebView() {
+        val holder = stateHolder(initialIndex = 1)
+        holder.markWebViewRestored()
+        val previousEpoch = holder.webViewRestoreEpoch
+
+        holder.syncSettings(ReaderSettings(showTitle = false, showProgressTop = false))
+
+        assertFalse(holder.isWebViewRestoring)
+        assertEquals(previousEpoch, holder.webViewRestoreEpoch)
+    }
+
+    @Test
     fun emptyLookupStackConsumesSasayakiResumeRequest() {
         val holder = stateHolder()
         holder.markSasayakiPausedByLookup()

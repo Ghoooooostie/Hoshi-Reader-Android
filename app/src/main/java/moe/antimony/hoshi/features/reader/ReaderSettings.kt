@@ -56,19 +56,20 @@ data class ReaderSettings(
 
     val columnGapCss: String
         get() {
-            val unit = if (verticalWriting) "vh" else "vw"
-            val value = if (verticalWriting) verticalPadding else horizontalPadding
-            return "calc(${value}${unit} + ${bottomOverlapPx}px)"
+            if (verticalWriting) {
+                return "calc(var(--hoshi-vertical-padding-gap, ${verticalPadding}vh) + ${bottomOverlapPx}px)"
+            }
+            return "${horizontalPadding}vw"
         }
 
     val pagePaddingCss: String
-        get() = "${(verticalPadding / 2.0).cssNumber()}vh ${(horizontalPadding / 2.0).cssNumber()}vw"
+        get() = "var(--hoshi-vertical-padding-block, ${(verticalPadding / 2.0).cssNumber()}vh) ${(horizontalPadding / 2.0).cssNumber()}vw"
 
     val bottomPaddingCss: String
         get() = if (verticalWriting && bottomOverlapPx > 0) {
-            "calc(${(verticalPadding / 2.0).cssNumber()}vh + ${bottomOverlapPx}px)"
+            "calc(var(--hoshi-vertical-padding-block, ${(verticalPadding / 2.0).cssNumber()}vh) + ${bottomOverlapPx}px)"
         } else {
-            "${(verticalPadding / 2.0).cssNumber()}vh"
+            "var(--hoshi-vertical-padding-block, ${(verticalPadding / 2.0).cssNumber()}vh)"
         }
 
     val imageMaxWidthFallbackCss: String

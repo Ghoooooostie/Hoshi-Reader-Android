@@ -44,7 +44,11 @@ internal class ReaderWebViewStateHolder(
         private set
 
     fun syncSettings(settings: ReaderSettings) {
+        val shouldReloadContent = effectiveSettings.readerContentLayoutKey() != settings.readerContentLayoutKey()
         effectiveSettings = settings
+        if (shouldReloadContent) {
+            prepareReloadAtDisplayedPosition()
+        }
     }
 
     fun applySettings(settings: ReaderSettings) {
@@ -170,3 +174,40 @@ internal class ReaderWebViewStateHolder(
         webViewViewportSize = size
     }
 }
+
+private data class ReaderContentLayoutKey(
+    val theme: ReaderTheme,
+    val eInkMode: Boolean,
+    val sepiaInvertInDark: Boolean,
+    val verticalWriting: Boolean,
+    val selectedFont: String,
+    val fontSize: Int,
+    val hideFurigana: Boolean,
+    val continuousMode: Boolean,
+    val horizontalPadding: Int,
+    val verticalPadding: Int,
+    val avoidPageBreak: Boolean,
+    val justifyText: Boolean,
+    val layoutAdvanced: Boolean,
+    val lineHeight: Double,
+    val characterSpacing: Double,
+)
+
+private fun ReaderSettings.readerContentLayoutKey(): ReaderContentLayoutKey =
+    ReaderContentLayoutKey(
+        theme = theme,
+        eInkMode = eInkMode,
+        sepiaInvertInDark = sepiaInvertInDark,
+        verticalWriting = verticalWriting,
+        selectedFont = selectedFont,
+        fontSize = fontSize,
+        hideFurigana = hideFurigana,
+        continuousMode = continuousMode,
+        horizontalPadding = horizontalPadding,
+        verticalPadding = verticalPadding,
+        avoidPageBreak = avoidPageBreak,
+        justifyText = justifyText,
+        layoutAdvanced = layoutAdvanced,
+        lineHeight = lineHeight,
+        characterSpacing = characterSpacing,
+    )

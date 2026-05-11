@@ -51,9 +51,9 @@ class ReaderSettingsTest {
         assertTrue(css.contains("font-size: 28px !important;"))
         assertTrue(css.contains("line-height: 1.85 !important;"))
         assertTrue(css.contains("letter-spacing: 0.02em !important;"))
-        assertTrue(css.contains("column-gap: calc(8vh + 28px);"))
-        assertTrue(css.contains("padding: 4.0vh 6.0vw !important;"))
-        assertTrue(css.contains("padding-bottom: calc(4.0vh + 28px) !important;"))
+        assertTrue(css.contains("column-gap: calc(var(--hoshi-vertical-padding-gap, 8vh) + 28px);"))
+        assertTrue(css.contains("padding: var(--hoshi-vertical-padding-block, 4.0vh) 6.0vw !important;"))
+        assertTrue(css.contains("padding-bottom: calc(var(--hoshi-vertical-padding-block, 4.0vh) + 28px) !important;"))
     }
 
     @Test

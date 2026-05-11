@@ -520,6 +520,8 @@ internal object ReaderPaginationScripts {
           document.head.appendChild(newViewport);
           var pageHeight = window.innerHeight + ${settings.bottomOverlapPx};
           var pageWidth = window.innerWidth;
+          document.documentElement.style.setProperty('--hoshi-vertical-padding-block', (window.innerHeight * ${settings.verticalPadding / 200.0}) + 'px');
+          document.documentElement.style.setProperty('--hoshi-vertical-padding-gap', (window.innerHeight * ${settings.verticalPadding / 100.0}) + 'px');
           document.documentElement.style.setProperty('--page-height', pageHeight + 'px');
           document.documentElement.style.setProperty('--page-width', pageWidth + 'px');
           document.documentElement.style.setProperty('--hoshi-image-max-width', Math.max(1, Math.floor(pageWidth * ${settings.imageWidthViewportRatio})) + 'px');
@@ -863,6 +865,8 @@ internal object ReaderPaginationScripts {
           newViewport.name = 'viewport';
           newViewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
           document.head.appendChild(newViewport);
+          document.documentElement.style.setProperty('--hoshi-vertical-padding-block', (window.innerHeight * ${settings.verticalPadding / 200.0}) + 'px');
+          document.documentElement.style.setProperty('--hoshi-vertical-padding-gap', (window.innerHeight * ${settings.verticalPadding / 100.0}) + 'px');
           document.documentElement.style.setProperty('--hoshi-continuous-height', window.innerHeight + 'px');
           document.documentElement.style.setProperty('--hoshi-image-max-width', Math.max(1, Math.floor(window.innerWidth * ${settings.imageWidthViewportRatio})) + 'px');
           document.documentElement.style.setProperty('--hoshi-image-max-height', Math.max(1, window.innerHeight - ${settings.bottomOverlapPx}) + 'px');

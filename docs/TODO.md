@@ -89,3 +89,5 @@ For bookshelf-to-reader regressions, use real-device continuous screenshots or s
 For reader/dictionary/audio user flows, perform targeted emulator or device validation using the test data listed in `AGENTS.md`; for dictionary external-link regressions, use the `pixivで読む` definition link case.
 
 For reader appearance chrome regressions, verify Show Title off, Progress Position Bottom, and all progress indicators hidden against the paginated reader text area.
+
+For reader text layout regressions, verify Appearance -> Layout changes such as Vertical Padding reload the current chapter at the displayed position and visibly affect text spacing.
