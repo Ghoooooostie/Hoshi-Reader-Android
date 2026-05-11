@@ -569,7 +569,7 @@ private fun SegmentedRow(
 }
 
 internal fun segmentedControlWidthDp(optionCount: Int): Int =
-    if (optionCount <= 2) 180 else optionCount * 82
+    if (optionCount <= 2) 220 else optionCount * 82
 
 @Composable
 private fun ReaderFontRow(

@@ -263,8 +263,8 @@ class ReaderSettingsTest {
     }
 
     @Test
-    fun twoOptionAppearanceSegmentsReserveEnoughWidthForBottomLabel() {
-        assertEquals(180, segmentedControlWidthDp(optionCount = 2))
+    fun twoOptionAppearanceSegmentsReserveEnoughWidthForContinuousLabel() {
+        assertEquals(220, segmentedControlWidthDp(optionCount = 2))
     }
 
 }
