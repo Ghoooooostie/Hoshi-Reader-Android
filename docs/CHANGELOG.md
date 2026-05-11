@@ -8,6 +8,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 ### Fixed
 
 - Open dictionary definition web links in Android's external default browser, matching iOS popup behavior.
+- Update the paginated reader's top progress counter on every page turn when the next page begins exactly at a text boundary.
 - Let pitch dictionaries whose content banks have bad ZIP CRC metadata import successfully when their `index.json` is readable.
 
 ## [v0.4.0] - 2026-05-11

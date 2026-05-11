@@ -393,7 +393,7 @@ internal object ReaderPaginationScripts {
             var exploredChars = 0;
             while (low <= high) {
               var mid = Math.floor((low + high) / 2);
-              if (stops[mid].scroll < currentScroll) {
+              if (stops[mid].scroll <= currentScroll + 1) {
                 exploredChars = stops[mid].exploredChars;
                 low = mid + 1;
               } else {
