@@ -36,6 +36,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.key.Key
@@ -65,6 +67,8 @@ import kotlin.math.abs
 
 private const val DictionaryPopupTopInset = 118.0
 private const val DictionaryPopupBottomInset = 150.0
+
+internal fun dictionarySearchCursorColor(foregroundColor: Color): Color = foregroundColor
 
 internal fun dictionarySearchPopupOptions(
     readerSettings: ReaderSettings,
@@ -302,6 +306,7 @@ private fun DictionarySearchBar(
         ) {
             SearchGlyph(modifier = Modifier.size(20.dp))
             Box(modifier = Modifier.weight(1f)) {
+                val fieldForegroundColor = MaterialTheme.colorScheme.onSurface
                 if (query.isEmpty()) {
                     Text(
                         text = "Search",
@@ -324,7 +329,8 @@ private fun DictionarySearchBar(
                         },
                     enabled = !isSearching,
                     singleLine = true,
-                    textStyle = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                    textStyle = MaterialTheme.typography.titleLarge.copy(color = fieldForegroundColor),
+                    cursorBrush = SolidColor(dictionarySearchCursorColor(fieldForegroundColor)),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
                 )
