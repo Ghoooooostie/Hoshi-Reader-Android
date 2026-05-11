@@ -430,6 +430,7 @@ fun ReaderWebView(
         }
     }
 
+    val chromeLayout = readerChromeLayout(chromeState, effectiveSettings)
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -440,7 +441,7 @@ fun ReaderWebView(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(top = ReaderWebViewTopPadding, bottom = ReaderWebViewBottomPadding),
+                .padding(top = chromeLayout.topWebViewPaddingDp.dp, bottom = ReaderWebViewBottomPadding),
         ) {
             ChapterWebView(
                 book = book,
@@ -513,19 +514,10 @@ fun ReaderWebView(
                 .statusBarsPadding()
                 .padding(start = 96.dp, end = 96.dp),
         )
-        if (!effectiveSettings.showProgressTop) {
-            ReaderBottomProgress(
-                state = chromeState,
-                settings = effectiveSettings,
-                colors = readerChromeColors(effectiveSettings, systemDarkTheme),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = 62.dp),
-            )
-        }
         ReaderBottomChrome(
+            state = chromeState,
             settings = effectiveSettings,
+            layout = chromeLayout,
             colors = readerChromeColors(effectiveSettings, systemDarkTheme),
             onClose = ::closeReader,
             onMenu = stateHolder::showReaderMenu,
@@ -622,25 +614,10 @@ private fun ReaderTopInfo(
 }
 
 @Composable
-private fun ReaderBottomProgress(
+private fun BoxScope.ReaderBottomChrome(
     state: ReaderChromeState,
     settings: ReaderSettings,
-    colors: ReaderChromeColors,
-    modifier: Modifier = Modifier,
-) {
-    val progress = state.progressText(settings)
-    if (progress.isBlank()) return
-    Text(
-        text = progress,
-        color = Color(colors.infoText),
-        style = MaterialTheme.typography.labelMedium,
-        modifier = modifier,
-    )
-}
-
-@Composable
-private fun BoxScope.ReaderBottomChrome(
-    settings: ReaderSettings,
+    layout: ReaderChromeLayout,
     colors: ReaderChromeColors,
     onClose: () -> Unit,
     onMenu: () -> Unit,
@@ -671,40 +648,52 @@ private fun BoxScope.ReaderBottomChrome(
                 .padding(end = 24.dp, bottom = 58.dp),
         )
     }
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(start = 26.dp, end = 26.dp, top = 8.dp, bottom = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        ReaderGlassButton(colors = colors, onClick = onClose) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = "Back",
-                modifier = Modifier.size(28.dp),
-                tint = Color(colors.buttonContent),
+        if (layout.showProgressInBottomBar) {
+            Text(
+                text = state.progressText(settings),
+                color = Color(colors.infoText),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.align(Alignment.Center),
             )
         }
-        Spacer(Modifier.weight(1f))
-        if (onSasayakiToggle != null) {
-            ReaderGlassButton(colors = colors, onClick = onSasayakiToggle) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ReaderGlassButton(colors = colors, onClick = onClose) {
                 Icon(
-                    imageVector = if (sasayakiPlaying) Icons.Rounded.Pause else Icons.Rounded.GraphicEq,
-                    contentDescription = if (sasayakiPlaying) "Pause Sasayaki" else "Play Sasayaki",
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = "Back",
+                    modifier = Modifier.size(28.dp),
+                    tint = Color(colors.buttonContent),
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            if (onSasayakiToggle != null) {
+                ReaderGlassButton(colors = colors, onClick = onSasayakiToggle) {
+                    Icon(
+                        imageVector = if (sasayakiPlaying) Icons.Rounded.Pause else Icons.Rounded.GraphicEq,
+                        contentDescription = if (sasayakiPlaying) "Pause Sasayaki" else "Play Sasayaki",
+                        modifier = Modifier.size(26.dp),
+                        tint = Color(colors.buttonContent),
+                    )
+                }
+                Spacer(Modifier.width(14.dp))
+            }
+            ReaderGlassButton(colors = colors, onClick = onMenu) {
+                Icon(
+                    imageVector = Icons.Rounded.Tune,
+                    contentDescription = "Reader Menu",
                     modifier = Modifier.size(26.dp),
                     tint = Color(colors.buttonContent),
                 )
             }
-            Spacer(Modifier.width(14.dp))
-        }
-        ReaderGlassButton(colors = colors, onClick = onMenu) {
-            Icon(
-                imageVector = Icons.Rounded.Tune,
-                contentDescription = "Reader Menu",
-                modifier = Modifier.size(26.dp),
-                tint = Color(colors.buttonContent),
-            )
         }
     }
 }
@@ -1295,7 +1284,6 @@ private var readerPageTurnProgressRequestId = 0L
 private const val MAX_SELECTION_LENGTH = 16
 private const val CONTINUOUS_PROGRESS_THROTTLE_MS = 250L
 private const val PAGE_TURN_PROGRESS_SAVE_DELAY_MS = 1_000L
-private val ReaderWebViewTopPadding = 44.dp
 private val ReaderWebViewBottomPadding = 56.dp
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {

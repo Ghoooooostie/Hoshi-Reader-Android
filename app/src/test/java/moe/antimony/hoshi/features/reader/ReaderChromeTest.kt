@@ -31,6 +31,48 @@ class ReaderChromeTest {
     }
 
     @Test
+    fun topReaderPaddingFollowsVisibleTopChromeRows() {
+        val state = ReaderChromeState(
+            title = "屍人荘の殺人",
+            currentCharacter = 355,
+            totalCharacters = 169325,
+        )
+
+        assertEquals(44, readerWebViewTopPaddingDp(state, ReaderSettings()))
+        assertEquals(24, readerWebViewTopPaddingDp(state, ReaderSettings(showProgressTop = false)))
+        assertEquals(24, readerWebViewTopPaddingDp(state, ReaderSettings(showTitle = false)))
+        assertEquals(4, readerWebViewTopPaddingDp(state, ReaderSettings(showTitle = false, showProgressTop = false)))
+        assertEquals(
+            4,
+            readerWebViewTopPaddingDp(
+                state,
+                ReaderSettings(showTitle = false, showCharacters = false, showPercentage = false),
+            ),
+        )
+    }
+
+    @Test
+    fun bottomProgressBelongsToBottomChromeWhenProgressIsNotTop() {
+        val state = ReaderChromeState(
+            title = "屍人荘の殺人",
+            currentCharacter = 355,
+            totalCharacters = 169325,
+        )
+
+        assertFalse(readerChromeLayout(state, ReaderSettings()).showProgressInBottomBar)
+        assertEquals(
+            true,
+            readerChromeLayout(state, ReaderSettings(showProgressTop = false)).showProgressInBottomBar,
+        )
+        assertFalse(
+            readerChromeLayout(
+                state,
+                ReaderSettings(showProgressTop = false, showCharacters = false, showPercentage = false),
+            ).showProgressInBottomBar,
+        )
+    }
+
+    @Test
     fun usesThemeMatchedChromeColors() {
         assertEquals(0x40FFFFFFL, readerChromeColors(ReaderSettings(theme = ReaderTheme.Sepia), systemDark = true).buttonContainer)
         assertEquals(0x661A1A1AL, readerChromeColors(ReaderSettings(theme = ReaderTheme.Dark), systemDark = false).buttonContainer)

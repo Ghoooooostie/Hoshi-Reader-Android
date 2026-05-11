@@ -37,6 +37,28 @@ data class ReaderChromeColors(
     val infoText: Long,
 )
 
+data class ReaderChromeLayout(
+    val topWebViewPaddingDp: Int,
+    val showProgressInBottomBar: Boolean,
+)
+
+fun readerChromeLayout(state: ReaderChromeState, settings: ReaderSettings): ReaderChromeLayout {
+    val progress = state.progressText(settings)
+    return ReaderChromeLayout(
+        topWebViewPaddingDp = readerWebViewTopPaddingDp(state, settings),
+        showProgressInBottomBar = !settings.showProgressTop && progress.isNotBlank(),
+    )
+}
+
+fun readerWebViewTopPaddingDp(state: ReaderChromeState, settings: ReaderSettings): Int {
+    val progress = state.progressText(settings)
+    val visibleRows = listOf(
+        settings.showTitle,
+        settings.showProgressTop && progress.isNotBlank(),
+    ).count { it }
+    return ReaderWebViewTopBasePaddingDp + (visibleRows * ReaderChromeLineHeightDp)
+}
+
 fun readerChromeColors(settings: ReaderSettings, systemDark: Boolean): ReaderChromeColors = when {
     settings.eInkMode && settings.usesDarkInterface(systemDark) -> ReaderChromeColors(
         buttonContainer = 0xFF000000,
@@ -79,3 +101,6 @@ fun readerChromeColors(settings: ReaderSettings, systemDark: Boolean): ReaderChr
         infoText = 0x8A000000,
     )
 }
+
+private const val ReaderWebViewTopBasePaddingDp = 4
+private const val ReaderChromeLineHeightDp = 20

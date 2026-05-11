@@ -5,6 +5,10 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep the reader text area aligned with iOS when hiding the title or moving progress to the bottom, avoiding unused top space and progress text overlapping the book text.
+
 ## [v0.4.1] - 2026-05-12
 
 ### Fixed
