@@ -5,6 +5,8 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+## [v0.4.3] - 2026-05-12
+
 ### Added
 
 - Add an iOS-style reader focus mode that hides reader chrome and the Android status bar while keeping the reading layout stable.
