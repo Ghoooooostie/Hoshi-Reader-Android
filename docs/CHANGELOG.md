@@ -5,6 +5,8 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+## [v0.4.4] - 2026-05-13
+
 ### Added
 
 - Focus the Dictionary tab search field when opening it and hint Japanese input to installed keyboards.
