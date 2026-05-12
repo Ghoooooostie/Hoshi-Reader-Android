@@ -11,4 +11,12 @@ class DictionarySearchFieldColorsTest {
 
         assertEquals(darkModeForeground, dictionarySearchCursorColor(darkModeForeground))
     }
+
+    @Test
+    fun searchKeyboardHintsJapaneseInputAndShowsOnFocus() {
+        val options = dictionarySearchKeyboardOptions()
+
+        assertEquals("ja-JP", options.hintLocales?.single()?.toLanguageTag())
+        assertEquals(true, options.showKeyboardOnFocus)
+    }
 }

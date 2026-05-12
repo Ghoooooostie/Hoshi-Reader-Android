@@ -5,6 +5,10 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+### Added
+
+- Focus the Dictionary tab search field when opening it and hint Japanese input to installed keyboards.
+
 ### Fixed
 
 - Show clear AnkiDroid setup errors when fetching decks and note types fails, distinguish missing AnkiDroid from denied access, and offer a shortcut to app settings after permission denial.

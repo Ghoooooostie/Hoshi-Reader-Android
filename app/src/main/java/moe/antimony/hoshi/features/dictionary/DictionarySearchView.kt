@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,7 +40,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -47,7 +49,11 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.intl.Locale
+import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.ViewModel
@@ -69,6 +75,12 @@ private const val DictionaryPopupTopInset = 118.0
 private const val DictionaryPopupBottomInset = 150.0
 
 internal fun dictionarySearchCursorColor(foregroundColor: Color): Color = foregroundColor
+
+internal fun dictionarySearchKeyboardOptions(): KeyboardOptions = KeyboardOptions(
+    imeAction = ImeAction.Search,
+    showKeyboardOnFocus = true,
+    hintLocales = LocaleList(Locale("ja-JP")),
+)
 
 internal fun dictionarySearchPopupOptions(
     readerSettings: ReaderSettings,
@@ -288,6 +300,14 @@ private fun DictionarySearchBar(
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+        keyboardController?.show()
+    }
+
     Surface(
         modifier = modifier,
         shape = CircleShape,
@@ -319,6 +339,7 @@ private fun DictionarySearchBar(
                     onValueChange = onQueryChange,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .focusRequester(focusRequester)
                         .onPreviewKeyEvent { event ->
                             if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
                                 onSubmit()
@@ -331,7 +352,7 @@ private fun DictionarySearchBar(
                     singleLine = true,
                     textStyle = MaterialTheme.typography.titleLarge.copy(color = fieldForegroundColor),
                     cursorBrush = SolidColor(dictionarySearchCursorColor(fieldForegroundColor)),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardOptions = dictionarySearchKeyboardOptions(),
                     keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
                 )
             }
