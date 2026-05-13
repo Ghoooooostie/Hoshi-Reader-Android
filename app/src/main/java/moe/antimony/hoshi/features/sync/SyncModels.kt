@@ -19,7 +19,7 @@ enum class SyncMode(val rawValue: String) {
 }
 
 enum class SyncAuthProvider {
-    Gms,
+    DeviceCode,
 }
 
 enum class StatisticsSyncMode(val rawValue: String) {
@@ -36,20 +36,20 @@ data class SyncSettings(
     val enabled: Boolean = false,
     val mode: SyncMode = SyncMode.Auto,
     val autoSyncEnabled: Boolean = false,
-    val authProvider: SyncAuthProvider = SyncAuthProvider.Gms,
+    val authProvider: SyncAuthProvider = SyncAuthProvider.DeviceCode,
 )
 
 sealed interface DriveAuthStatus {
     data object Connected : DriveAuthStatus
     data object NotConnected : DriveAuthStatus
-    data object GooglePlayServicesUnavailable : DriveAuthStatus
+    data object MissingConfiguration : DriveAuthStatus
     data class Failed(val message: String) : DriveAuthStatus
 }
 
 sealed interface DriveAuthorizationResult {
     data class Authorized(val accessToken: String) : DriveAuthorizationResult
-    data class RequiresResolution(val request: androidx.activity.result.IntentSenderRequest) : DriveAuthorizationResult
-    data object GooglePlayServicesUnavailable : DriveAuthorizationResult
+    data object Pending : DriveAuthorizationResult
+    data object SlowDown : DriveAuthorizationResult
     data class Failed(val message: String) : DriveAuthorizationResult
 }
 

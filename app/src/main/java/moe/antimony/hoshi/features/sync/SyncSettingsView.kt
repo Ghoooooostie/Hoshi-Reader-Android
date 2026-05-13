@@ -5,12 +5,7 @@ import android.content.Context
 import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.result.IntentSenderRequest
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +32,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -54,8 +50,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import java.security.MessageDigest
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import moe.antimony.hoshi.LocalHoshiAppContainer
 import moe.antimony.hoshi.features.settings.collectAsLoadedSettings
@@ -69,7 +67,7 @@ fun SyncSettingsView(
     val context = LocalContext.current
     val appContainer = LocalHoshiAppContainer.current
     val repository = appContainer.syncSettingsRepository
-    val authorizer = appContainer.driveAuthorizer
+    val authorizer = appContainer.deviceCodeDriveAuthorizer
     val scope = rememberCoroutineScope()
     val settings = repository.settings.collectAsLoadedSettings()
     var authStatus by remember { mutableStateOf<DriveAuthStatus?>(null) }
@@ -77,9 +75,10 @@ fun SyncSettingsView(
     var message by remember { mutableStateOf<String?>(null) }
     var copyMessage by remember { mutableStateOf<String?>(null) }
     var isAuthorizing by remember { mutableStateOf(false) }
-    var pendingAuthorizationResolution by remember { mutableStateOf<IntentSenderRequest?>(null) }
-    val packageName = remember(context) { context.packageName }
-    val sha1 = remember(context) { context.signingCertificateSha1() }
+    var clientId by remember { mutableStateOf("") }
+    var clientSecret by remember { mutableStateOf("") }
+    var devicePrompt by remember { mutableStateOf<DeviceCodePrompt?>(null) }
+    var pollIntervalSeconds by remember { mutableStateOf(5L) }
     val screenState = SyncSettingsScreenState(settings = settings, authStatus = authStatus)
     val currentSettings = settings
     val currentAuthStatus = authStatus
@@ -91,31 +90,56 @@ fun SyncSettingsView(
         }
     }
 
-    val authorizationLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult(),
-    ) { result ->
-        isAuthorizing = false
-        val resolved = resolveDriveAuthorizationActivityResult(
-            resultCode = result.resultCode,
-            hasData = result.data != null,
-            authorizationResult = { authorizer.authorizationResultFromIntent(result.data) },
-        )
-        authStatus = resolved.status
-        message = resolved.message
-        resolved.resolutionRequest?.let { request ->
-            pendingAuthorizationResolution = request
-        }
-    }
-
-    LaunchedEffect(pendingAuthorizationResolution) {
-        val request = pendingAuthorizationResolution ?: return@LaunchedEffect
-        pendingAuthorizationResolution = null
-        isAuthorizing = true
-        authorizationLauncher.launch(request)
-    }
-
     LaunchedEffect(authorizer) {
+        authorizer.configuredClient()?.let { client ->
+            clientId = client.clientId
+            clientSecret = client.clientSecret
+        }
         authStatus = authorizer.status()
+    }
+
+    LaunchedEffect(devicePrompt, isAuthorizing) {
+        val prompt = devicePrompt ?: return@LaunchedEffect
+        if (!isAuthorizing) return@LaunchedEffect
+        val expiresAtMillis = System.currentTimeMillis() + prompt.expiresInSeconds * 1000L
+        var nextIntervalSeconds = pollIntervalSeconds
+        while (isAuthorizing && System.currentTimeMillis() < expiresAtMillis) {
+            delay(nextIntervalSeconds * 1000L)
+            val result = try {
+                authorizer.pollAuthorization(prompt)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                DriveAuthorizationResult.Failed(error.message ?: "Google Drive authorization failed.")
+            }
+            when (result) {
+                is DriveAuthorizationResult.Authorized -> {
+                    isAuthorizing = false
+                    devicePrompt = null
+                    authStatus = DriveAuthStatus.Connected
+                    message = null
+                    break
+                }
+                DriveAuthorizationResult.Pending -> Unit
+                DriveAuthorizationResult.SlowDown -> {
+                    nextIntervalSeconds += DeviceCodeDriveAuthorizer.SlowDownIncrementSeconds
+                    pollIntervalSeconds = nextIntervalSeconds
+                }
+                is DriveAuthorizationResult.Failed -> {
+                    isAuthorizing = false
+                    devicePrompt = null
+                    authStatus = DriveAuthStatus.Failed(result.message)
+                    message = result.message
+                    break
+                }
+            }
+        }
+        if (isAuthorizing && devicePrompt == prompt) {
+            isAuthorizing = false
+            devicePrompt = null
+            authStatus = DriveAuthStatus.NotConnected
+            message = "Google Drive authorization code expired."
+        }
     }
 
     fun connectGoogleDrive() {
@@ -123,26 +147,31 @@ fun SyncSettingsView(
         isAuthorizing = true
         message = null
         copyMessage = null
+        devicePrompt = null
         scope.launch {
-            when (val result = authorizer.authorize()) {
-                is DriveAuthorizationResult.Authorized -> {
-                    isAuthorizing = false
-                    authStatus = DriveAuthStatus.Connected
-                }
-                is DriveAuthorizationResult.RequiresResolution -> {
-                    authorizationLauncher.launch(result.request)
-                }
-                DriveAuthorizationResult.GooglePlayServicesUnavailable -> {
-                    isAuthorizing = false
-                    authStatus = DriveAuthStatus.GooglePlayServicesUnavailable
-                    message = GmsDriveAuthorizer.GmsRequiredMessage
-                }
-                is DriveAuthorizationResult.Failed -> {
-                    isAuthorizing = false
-                    authStatus = DriveAuthStatus.Failed(result.message)
-                    message = result.message
-                }
+            if (clientId.isBlank() || clientSecret.isBlank()) {
+                isAuthorizing = false
+                authStatus = DriveAuthStatus.MissingConfiguration
+                message = DeviceCodeDriveAuthorizer.MissingConfigurationMessage
+                return@launch
             }
+            authorizer.saveClient(clientId, clientSecret)
+            runCatching { authorizer.requestDeviceCode() }
+                .onSuccess { prompt ->
+                    pollIntervalSeconds = prompt.intervalSeconds
+                    devicePrompt = prompt
+                    authStatus = DriveAuthStatus.NotConnected
+                    message = "Open ${prompt.verificationUrl} and enter ${prompt.userCode}."
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(prompt.verificationUrl)))
+                    }
+                }
+                .onFailure { error ->
+                    isAuthorizing = false
+                    val text = error.message ?: "Google Drive authorization failed."
+                    authStatus = DriveAuthStatus.Failed(text)
+                    message = text
+                }
         }
     }
 
@@ -150,9 +179,11 @@ fun SyncSettingsView(
         scope.launch {
             authorizer.revokeAccess()
             appContainer.googleDriveClient.clearCache()
-            authStatus = DriveAuthStatus.NotConnected
+            authStatus = authorizer.status()
             message = null
             copyMessage = null
+            devicePrompt = null
+            isAuthorizing = false
         }
     }
 
@@ -249,33 +280,63 @@ fun SyncSettingsView(
                         supportingContent = { Text(currentAuthStatus.label()) },
                     )
                     SettingsDivider()
-                    ListItem(
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        headlineContent = {
-                            Text("Package")
-                        },
-                        supportingContent = { Text(packageName) },
-                        trailingContent = {
-                            CopyValueButton(
-                                label = "package name",
-                                value = packageName,
-                                onCopied = { copyMessage = "Package name copied" },
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = clientId,
+                            onValueChange = { clientId = it },
+                            label = { Text("Device client ID") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = clientSecret,
+                            onValueChange = { clientSecret = it },
+                            label = { Text("Device client secret") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+                devicePrompt?.let { prompt ->
+                    SettingsCard {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Text(
+                                text = "Authorize Google Drive",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
                             )
-                        },
-                    )
-                    SettingsDivider()
-                    ListItem(
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        headlineContent = { Text("SHA-1") },
-                        supportingContent = { Text(sha1) },
-                        trailingContent = {
-                            CopyValueButton(
-                                label = "SHA-1",
-                                value = sha1,
-                                onCopied = { copyMessage = "SHA-1 copied" },
+                            Text(
+                                text = prompt.verificationUrl,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = colorScheme.onSurfaceVariant,
                             )
-                        },
-                    )
+                            Text(
+                                text = prompt.userCode,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            OutlinedButton(
+                                onClick = {
+                                    context.copyTextToClipboard("Google device code", prompt.userCode)
+                                    copyMessage = "Device code copied"
+                                },
+                            ) {
+                                Icon(
+                                    Icons.Rounded.ContentCopy,
+                                    contentDescription = null,
+                                    modifier = Modifier.padding(end = 8.dp),
+                                )
+                                Text("Copy code")
+                            }
+                        }
+                    }
                 }
                 copyMessage?.let { text ->
                     Text(
@@ -288,7 +349,7 @@ fun SyncSettingsView(
                 message?.let { text ->
                     Text(
                         text = text,
-                        color = colorScheme.error,
+                        color = if (currentAuthStatus is DriveAuthStatus.Failed) colorScheme.error else colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(start = 16.dp, top = 8.dp),
                     )
@@ -334,7 +395,7 @@ private fun GoogleCloudOAuthSetupCard() {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = "Google Cloud OAuth setup",
+                text = "Device Code setup",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = colorScheme.onSurface,
@@ -386,7 +447,7 @@ private fun DriveAuthStatus.label(): String =
     when (this) {
         DriveAuthStatus.Connected -> "Connected"
         DriveAuthStatus.NotConnected -> "Not connected"
-        DriveAuthStatus.GooglePlayServicesUnavailable -> "Google Play services unavailable"
+        DriveAuthStatus.MissingConfiguration -> "OAuth client not configured"
         is DriveAuthStatus.Failed -> message
     }
 
@@ -414,21 +475,4 @@ private fun SettingsDivider() {
         modifier = Modifier.padding(horizontal = 16.dp),
         color = MaterialTheme.colorScheme.outlineVariant,
     )
-}
-
-@Suppress("DEPRECATION")
-private fun Context.signingCertificateSha1(): String {
-    val signatures = runCatching {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-                .signingInfo
-                ?.apkContentsSigners
-                .orEmpty()
-        } else {
-            packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES).signatures.orEmpty()
-        }
-    }.getOrDefault(emptyArray())
-    val first = signatures.firstOrNull() ?: return "Unavailable"
-    val digest = MessageDigest.getInstance("SHA-1").digest(first.toByteArray())
-    return digest.joinToString(":") { byte -> "%02X".format(byte.toInt() and 0xFF) }
 }

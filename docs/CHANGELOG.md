@@ -5,11 +5,15 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+### Fixed
+
+- Replace Google Drive sync authorization with user-configured Device Code flow so Android can use the same Google Cloud project as iOS/ッツ sync.
+
 ## [v0.6.0] - 2026-05-14
 
 ### Added
 
-- Add iOS-compatible Google Drive sync using Android Google Play services authorization, with Advanced -> Syncing settings, Google Cloud OAuth setup guidance, bookshelf long-press manual sync, reader auto import/export triggers, statistics sync options, and Sasayaki playback-position sync.
+- Add iOS-compatible Google Drive sync with Advanced -> Syncing settings, Google Cloud OAuth setup guidance, bookshelf long-press manual sync, reader auto import/export triggers, statistics sync options, and Sasayaki playback-position sync.
 
 ### Fixed
 

@@ -34,7 +34,7 @@ class SyncSettingsRepository(
             enabled = this[KEY_ENABLED] ?: false,
             mode = SyncMode.fromRawValue(this[KEY_MODE]),
             autoSyncEnabled = this[KEY_AUTO_SYNC_ENABLED] ?: false,
-            authProvider = SyncAuthProvider.Gms,
+            authProvider = SyncAuthProvider.DeviceCode,
         )
 
     private fun MutablePreferences.writeSyncSettings(settings: SyncSettings) {

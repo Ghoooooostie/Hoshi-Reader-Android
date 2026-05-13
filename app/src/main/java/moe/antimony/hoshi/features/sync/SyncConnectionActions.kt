@@ -18,9 +18,9 @@ internal fun syncConnectionActions(
             showSignOut = true,
             signOutEnabled = !isAuthorizing,
         )
-        DriveAuthStatus.GooglePlayServicesUnavailable -> SyncConnectionActions(
+        DriveAuthStatus.MissingConfiguration -> SyncConnectionActions(
             showConnect = true,
-            connectEnabled = false,
+            connectEnabled = !isAuthorizing,
             showSignOut = false,
             signOutEnabled = false,
         )

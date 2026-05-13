@@ -33,11 +33,9 @@ import moe.antimony.hoshi.features.reader.readerSettingsRepository
 import moe.antimony.hoshi.features.sasayaki.SasayakiSettingsRepository
 import moe.antimony.hoshi.features.sasayaki.sasayakiSettingsRepository
 import moe.antimony.hoshi.features.storage.StorageCleanupRepository
+import moe.antimony.hoshi.features.sync.DeviceCodeDriveAuthorizer
 import moe.antimony.hoshi.features.sync.DriveAuthorizer
-import moe.antimony.hoshi.features.sync.DriveConnectionAuthorizer
-import moe.antimony.hoshi.features.sync.GmsDriveAuthorizer
 import moe.antimony.hoshi.features.sync.GoogleDriveClient
-import moe.antimony.hoshi.features.sync.SharedPreferencesDriveConnectionStore
 import moe.antimony.hoshi.features.sync.SyncManager
 import moe.antimony.hoshi.features.sync.SyncSettingsRepository
 import moe.antimony.hoshi.features.sync.syncSettingsRepository
@@ -69,11 +67,8 @@ internal class HoshiAppContainer(context: Context) {
     val localAudioRepository: LocalAudioRepository = LocalAudioRepository(appContext.filesDir)
     val backupRepository: HoshiBackupRepository = HoshiBackupRepository(appContext.filesDir)
     val storageCleanupRepository: StorageCleanupRepository = StorageCleanupRepository(appContext.filesDir, appContext.cacheDir)
-    private val gmsDriveAuthorizer: GmsDriveAuthorizer = GmsDriveAuthorizer(appContext)
-    val driveAuthorizer: DriveAuthorizer = DriveConnectionAuthorizer(
-        delegate = gmsDriveAuthorizer,
-        connectionStore = SharedPreferencesDriveConnectionStore(appContext),
-    )
+    val deviceCodeDriveAuthorizer: DeviceCodeDriveAuthorizer = DeviceCodeDriveAuthorizer(appContext)
+    val driveAuthorizer: DriveAuthorizer = deviceCodeDriveAuthorizer
     val googleDriveClient: GoogleDriveClient = GoogleDriveClient(appContext, driveAuthorizer)
     val syncManager: SyncManager = SyncManager(
         bookRepository = bookRepository,
