@@ -5,6 +5,8 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+## [v0.6.2] - 2026-05-14
+
 ### Added
 
 - Add a reader popup Reduced Motion Scrolling option that scrolls lookup popups by a configurable percentage of the current popup height.
