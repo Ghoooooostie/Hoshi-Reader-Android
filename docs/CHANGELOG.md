@@ -5,6 +5,10 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+### Added
+
+- Add a Behavior setting to keep the screen awake while reading books without Sasayaki audio.
+
 ### Fixed
 
 - Keep continuous-mode reader lookup popups aligned with selected text when reader padding is applied.

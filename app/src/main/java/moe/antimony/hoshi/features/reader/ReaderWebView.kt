@@ -116,7 +116,6 @@ import moe.antimony.hoshi.features.sasayaki.BookSasayakiPlaybackRepository
 import moe.antimony.hoshi.features.sasayaki.SasayakiAudioRepository
 import moe.antimony.hoshi.features.sasayaki.SasayakiCueRange
 import moe.antimony.hoshi.features.sasayaki.SasayakiPlayer
-import moe.antimony.hoshi.features.sasayaki.SasayakiScreenAwake
 import moe.antimony.hoshi.features.sasayaki.SasayakiSettings
 import moe.antimony.hoshi.features.sasayaki.SasayakiSheet
 import moe.antimony.hoshi.webview.applyHoshiWebViewSecurityDefaults
@@ -714,13 +713,14 @@ fun ReaderWebView(
         onReaderKeyEventHandlerChange { event -> currentReaderKeyHandler.value(event) }
         onDispose { onReaderKeyEventHandlerChange(null) }
     }
-    val keepScreenOnForSasayaki = SasayakiScreenAwake.shouldKeepScreenOn(
-        isPlaying = sasayakiPlayer?.isPlaying == true,
-        autoScroll = sasayakiSettings.autoScroll,
+    val keepScreenOn = ReaderScreenAwake.shouldKeepScreenOn(
+        keepScreenOnWhileReading = effectiveSettings.keepScreenOnWhileReading,
+        sasayakiIsPlaying = sasayakiPlayer?.isPlaying == true,
+        sasayakiAutoScroll = sasayakiSettings.autoScroll,
     )
-    DisposableEffect(context, keepScreenOnForSasayaki) {
+    DisposableEffect(context, keepScreenOn) {
         val window = context.findActivity()?.window
-        if (keepScreenOnForSasayaki) {
+        if (keepScreenOn) {
             window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

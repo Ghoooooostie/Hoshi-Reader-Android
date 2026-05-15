@@ -52,7 +52,7 @@ fun ReaderBehaviorScreen(
                 val loadedUpdateSettings = updateSettings ?: return@item
                 BehaviorSettingsCard {
                     BehaviorSwitchRow(
-                        label = "Volume Keys Turn Pages",
+                        label = ReaderBehaviorRow.VolumeKeysTurnPages.label,
                         checked = settings.volumeKeysTurnPages,
                         onCheckedChange = {
                             onSettingsChange(settings.copy(volumeKeysTurnPages = it))
@@ -70,7 +70,7 @@ fun ReaderBehaviorScreen(
                     }
                     BehaviorDivider()
                     BehaviorSwitchRow(
-                        label = "Reverse Volume Key Direction",
+                        label = ReaderBehaviorRow.ReverseVolumeKeyDirection.label,
                         checked = settings.reverseVolumeKeyDirection,
                         onCheckedChange = {
                             onSettingsChange(settings.copy(reverseVolumeKeyDirection = it))
@@ -78,7 +78,15 @@ fun ReaderBehaviorScreen(
                     )
                     BehaviorDivider()
                     BehaviorSwitchRow(
-                        label = "Automatically Check for Updates",
+                        label = ReaderBehaviorRow.KeepScreenOn.label,
+                        checked = settings.keepScreenOnWhileReading,
+                        onCheckedChange = {
+                            onSettingsChange(settings.copy(keepScreenOnWhileReading = it))
+                        },
+                    )
+                    BehaviorDivider()
+                    BehaviorSwitchRow(
+                        label = ReaderBehaviorRow.AutomaticallyCheckForUpdates.label,
                         checked = loadedUpdateSettings.autoCheckUpdates,
                         onCheckedChange = { enabled ->
                             scope.launch {
@@ -101,7 +109,17 @@ fun ReaderBehaviorScreen(
 }
 
 internal fun readerBehaviorSasayakiRows(): List<String> =
-    listOf("Volume Keys Seek Sasayaki")
+    listOf(ReaderBehaviorRow.VolumeKeysSeekSasayaki.label)
+
+internal fun readerBehaviorRows(): List<String> = ReaderBehaviorRow.entries.map { it.label }
+
+private enum class ReaderBehaviorRow(val label: String) {
+    VolumeKeysTurnPages("Volume Keys Turn Pages"),
+    VolumeKeysSeekSasayaki("Volume Keys Seek Sasayaki"),
+    ReverseVolumeKeyDirection("Reverse Volume Key Direction"),
+    KeepScreenOn("Keep Screen On"),
+    AutomaticallyCheckForUpdates("Automatically Check for Updates"),
+}
 
 @Composable
 private fun BehaviorSettingsCard(content: @Composable () -> Unit) {
