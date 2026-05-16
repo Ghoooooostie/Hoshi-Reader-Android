@@ -15,6 +15,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ### Fixed
 
+- Shrink the reader highlight color picker so the five color choices appear as compact swatches after tapping Highlight.
 - Align the reader text-selection highlight action with iOS by showing one Highlight action directly in the Android selection toolbar, then replacing the toolbar with a nearby color picker.
 - Prevent native reader text-selection drags from scrolling paginated content to another page while creating highlights.
 - Keep reader text-selection handle drags from being treated as page swipes while extending a selection.

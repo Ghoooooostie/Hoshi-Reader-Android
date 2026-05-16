@@ -14,6 +14,7 @@ import android.graphics.Color as AndroidColor
 import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import android.net.Uri
 import android.os.SystemClock
 import android.webkit.JavascriptInterface
@@ -2080,8 +2081,8 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
                 setStroke((1f * density).toInt().coerceAtLeast(1), 0x22000000)
             }
             elevation = 8f * density
-            val paddingHorizontal = (8f * density).toInt()
-            val paddingVertical = (6f * density).toInt()
+            val paddingHorizontal = (ReaderHighlightSelectionMenu.colorPickerHorizontalPaddingDp * density).toInt()
+            val paddingVertical = (ReaderHighlightSelectionMenu.colorPickerVerticalPaddingDp * density).toInt()
             setPadding(paddingHorizontal, paddingVertical, paddingHorizontal, paddingVertical)
             ReaderHighlightSelectionMenu.colorItems.forEach { item ->
                 addView(highlightColorButton(item, density))
@@ -2132,17 +2133,23 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
     }
 
     private fun highlightColorButton(item: ReaderHighlightSelectionMenuItem, density: Float): TextView {
-        val size = (42f * density).toInt()
-        val margin = (3f * density).toInt()
+        val touchTargetSize = (ReaderHighlightSelectionMenu.colorPickerTouchTargetSizeDp * density).toInt()
+        val swatchInset = (
+            (ReaderHighlightSelectionMenu.colorPickerTouchTargetSizeDp - ReaderHighlightSelectionMenu.colorPickerSwatchSizeDp) *
+                density / 2f
+            ).toInt()
+        val margin = (ReaderHighlightSelectionMenu.colorPickerButtonMarginDp * density).toInt()
         return TextView(context).apply {
             contentDescription = item.title
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(item.color.swatchArgb.toInt())
-                setStroke((1f * density).toInt().coerceAtLeast(1), 0x33000000)
-            }
+            background = InsetDrawable(
+                GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(item.color.swatchArgb.toInt())
+                },
+                swatchInset,
+            )
             setOnClickListener { createHighlightFromNativeSelection(item.color) }
-            layoutParams = LinearLayout.LayoutParams(size, size).apply {
+            layoutParams = LinearLayout.LayoutParams(touchTargetSize, touchTargetSize).apply {
                 setMargins(margin, 0, margin, 0)
             }
         }

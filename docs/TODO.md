@@ -58,7 +58,7 @@ This file is the short operational handoff for future agents.
 ### Highlights And Notes
 
 - Blocked: device-validate reader Highlights sheet grouping for highlights in unlabeled EPUB spine entries once a repeatable fixture or saved reader state exists.
-- Device-validate remaining reader highlight restore, jump, delete, all-color, and continuous-mode behavior against iOS after paginated creation, primary Highlight toolbar placement, anchored color-picker placement, and native selection drag page-locking were verified on Android targets.
+- Device-validate remaining reader highlight restore, jump, delete, all-color, compact color-picker swatches, and continuous-mode behavior against iOS after paginated creation, primary Highlight toolbar placement, anchored color-picker placement, and native selection drag page-locking were verified on Android targets.
 - Blocked: real-device WebView selection can enter a valid native text-selection state while Samsung/Android does not show the floating selection toolbar; keep this tracked as a platform interaction issue before adding more highlight toolbar patches.
 - Add note editing only if/when iOS exposes a user-visible notes flow.
 

@@ -9,6 +9,14 @@ internal object ReaderHighlightSelectionMenu {
     const val groupId = 0x4849
     const val parentItemId = 0x484900
     const val itemOrder = Menu.NONE
+    const val colorPickerSwatchSizeDp = 16
+    const val colorPickerTouchTargetSizeDp = 32
+    const val colorPickerButtonMarginDp = 7
+    const val colorPickerHorizontalPaddingDp = 8
+    const val colorPickerVerticalPaddingDp = 10
+    val colorPickerApproximateWidthDp: Int
+        get() = colorPickerHorizontalPaddingDp * 2 +
+            colorItems.size * (colorPickerTouchTargetSizeDp + colorPickerButtonMarginDp * 2)
 
     val actionModeItems: List<ReaderHighlightActionModeItem> =
         listOf(
