@@ -99,6 +99,24 @@ class LookupPopupHtmlTest {
     }
 
     @Test
+    fun popupHtmlExposesActiveAnkiConnectBackendToPopupJavascript() {
+        val html = LookupPopupHtml.render(
+            listOf(lookupResult(expression = "食べる", reading = "たべる", glossary = "to eat")),
+            assets = LookupPopupAssets(
+                popupJs = "window.renderPopup = function() {};",
+                popupCss = ".entry-header {}",
+                selectionJs = "window.hoshiSelection = { selectText: function() {} };",
+            ),
+            ankiSettings = AnkiPopupSettings(
+                isConfigured = true,
+                useAnkiConnect = true,
+            ),
+        )
+
+        assertTrue(html.contains("window.useAnkiConnect = true;"))
+    }
+
+    @Test
     fun deinflectionTraceIncludesBridgeDescriptionsForPopupOverlay() {
         val html = LookupPopupHtml.render(
             listOf(

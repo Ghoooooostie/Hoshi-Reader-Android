@@ -21,6 +21,8 @@ interface AnkiBackend {
         checkDuplicatesAcrossAllModels: Boolean,
     ): Boolean
     fun addMediaFromUri(uriString: String, preferredName: String, mimeType: String): String?
+    fun addMediaFromBytes(bytes: ByteArray, preferredName: String, mimeType: String): String? = null
+    fun sync(): Boolean = false
 }
 
 enum class AnkiFetchFailure(

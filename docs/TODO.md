@@ -65,8 +65,8 @@ This file is the short operational handoff for future agents.
 
 ### Anki
 
-- Add Android AnkiConnect parity behind the existing Anki backend boundary: connection, fetch, duplicate checks, media storage, add-note, and optional force-sync behavior.
-- Keep backend coverage for duplicate checks, AnkiDroid fetch failures, and the future AnkiConnect implementation.
+- Device-validate Android AnkiConnect against both an HTTPS internet host and a private HTTP host: connect, fetch, duplicate check, media storage, add-note, and optional force-sync behavior.
+- Keep backend coverage for duplicate checks, AnkiDroid fetch failures, and AnkiConnect request shaping.
 - Keep popup mining decoupled from direct HTTP calls; route backend differences through the Anki backend boundary.
 
 ### Sync

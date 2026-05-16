@@ -14,6 +14,9 @@ data class AnkiUiState(
     val decks: List<AnkiDeck> = emptyList(),
     val noteTypes: List<AnkiNoteType> = emptyList(),
     val isFetching: Boolean = false,
+    val isConnectingAnkiConnect: Boolean = false,
+    val isAnkiConnectReachable: Boolean = false,
+    val ankiConnectMessage: String? = null,
     val errorMessage: String? = null,
     val errorAction: AnkiErrorAction? = null,
 ) {
@@ -33,6 +36,7 @@ data class AnkiUiState(
     val popupSettings: AnkiPopupSettings
         get() = AnkiPopupSettings(
             isConfigured = isConfigured,
+            useAnkiConnect = settings.backendKind == AnkiBackendKind.AnkiConnect,
             needsAudio = settings.fieldMappings.values.contains("{audio}"),
             allowDupes = settings.allowDupes,
             compactGlossaries = settings.compactGlossaries,
@@ -49,6 +53,7 @@ class AnkiViewModel(
     private val _uiState = MutableStateFlow(AnkiUiState())
     val uiState: StateFlow<AnkiUiState> = _uiState.asStateFlow()
     private var attemptedRestoreFetch = false
+    private var attemptedAnkiConnectPing = false
 
     init {
         viewModelScope.launch {
@@ -63,6 +68,14 @@ class AnkiViewModel(
                     attemptedRestoreFetch = true
                     fetchConfiguration()
                 }
+                if (
+                    !attemptedAnkiConnectPing &&
+                    settings.backendKind == AnkiBackendKind.AnkiConnect &&
+                    settings.ankiConnectUrl.isNotBlank()
+                ) {
+                    attemptedAnkiConnectPing = true
+                    pingAnkiConnect()
+                }
             }
         }
     }
@@ -75,6 +88,8 @@ class AnkiViewModel(
                     decks = result.decks,
                     noteTypes = result.noteTypes,
                     isFetching = false,
+                    isAnkiConnectReachable = _uiState.value.settings.backendKind == AnkiBackendKind.AnkiConnect ||
+                        _uiState.value.isAnkiConnectReachable,
                     errorAction = null,
                 )
                 is AnkiFetchResult.Error -> _uiState.value = _uiState.value.copy(
@@ -159,6 +174,45 @@ class AnkiViewModel(
         }
     }
 
+    fun updateBackendKind(value: AnkiBackendKind) {
+        viewModelScope.launch {
+            repository.updateSettings { it.copy(backendKind = value) }
+        }
+    }
+
+    fun updateAnkiConnectUrl(value: String) {
+        viewModelScope.launch {
+            repository.updateSettings {
+                it.copy(
+                    ankiConnectUrl = value,
+                    backendKind = AnkiBackendKind.AnkiConnect,
+                )
+            }
+            _uiState.value = _uiState.value.copy(isAnkiConnectReachable = false, ankiConnectMessage = null)
+        }
+    }
+
+    fun pingAnkiConnect() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isConnectingAnkiConnect = true,
+                ankiConnectMessage = null,
+            )
+            when (val result = repository.pingAnkiConnect()) {
+                AnkiConnectConnectionResult.Connected -> _uiState.value = _uiState.value.copy(
+                    isConnectingAnkiConnect = false,
+                    isAnkiConnectReachable = true,
+                    ankiConnectMessage = "Connected",
+                )
+                is AnkiConnectConnectionResult.Error -> _uiState.value = _uiState.value.copy(
+                    isConnectingAnkiConnect = false,
+                    isAnkiConnectReachable = false,
+                    ankiConnectMessage = result.message,
+                )
+            }
+        }
+    }
+
     fun updateCheckDuplicatesAcrossAllModels(value: Boolean) {
         viewModelScope.launch {
             repository.updateSettings { it.copy(checkDuplicatesAcrossAllModels = value) }
@@ -168,6 +222,12 @@ class AnkiViewModel(
     fun updateDuplicateScope(value: AnkiDuplicateScope) {
         viewModelScope.launch {
             repository.updateSettings { it.copy(duplicateScope = value) }
+        }
+    }
+
+    fun updateAnkiConnectForceSync(value: Boolean) {
+        viewModelScope.launch {
+            repository.updateSettings { it.copy(ankiConnectForceSync = value) }
         }
     }
 

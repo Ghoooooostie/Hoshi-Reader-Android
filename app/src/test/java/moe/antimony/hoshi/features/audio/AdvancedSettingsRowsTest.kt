@@ -13,16 +13,18 @@ class AdvancedSettingsRowsTest {
         assertEquals(
             listOf(
                 listOf("Audio", "Statistics", "Sasayaki (Audiobooks)"),
-                listOf("ッツ Sync"),
+                listOf("ッツ Sync", "AnkiConnect"),
                 listOf("Backup"),
             ),
             sections.map { section -> section.rows.map { it.title } },
         )
 
         val syncRow = sections.flatMap { it.rows }.single { it.destination == AdvancedDestination.Syncing }
+        val ankiConnectRow = sections.flatMap { it.rows }.single { it.destination == AdvancedDestination.AnkiConnect }
         val backupRow = sections.flatMap { it.rows }.single { it.destination == AdvancedDestination.Backup }
 
         assertEquals(AdvancedSettingsIcon.Cloud, syncRow.icon)
+        assertEquals(AdvancedSettingsIcon.AnkiConnect, ankiConnectRow.icon)
         assertEquals(AdvancedSettingsIcon.ExternalDrive, backupRow.icon)
         assertFalse(backupRow.icon == AdvancedSettingsIcon.Cloud)
         assertTrue(sections.indexOfFirst { it.rows.any { row -> row.destination == AdvancedDestination.Syncing } } !=

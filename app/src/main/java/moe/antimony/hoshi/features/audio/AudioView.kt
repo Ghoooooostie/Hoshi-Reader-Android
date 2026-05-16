@@ -28,6 +28,7 @@ import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -64,6 +65,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.antimony.hoshi.LocalHoshiAppContainer
+import moe.antimony.hoshi.features.anki.AnkiConnectView
 import moe.antimony.hoshi.features.backup.BackupSettingsView
 import moe.antimony.hoshi.features.reader.ReaderSettings
 import moe.antimony.hoshi.features.reader.ReaderStatisticsSettingsView
@@ -118,6 +120,13 @@ fun AdvancedSettingsView(
     }
     if (destination == AdvancedDestination.Syncing) {
         SyncSettingsView(
+            onClose = { destination = null },
+            modifier = modifier,
+        )
+        return
+    }
+    if (destination == AdvancedDestination.AnkiConnect) {
+        AnkiConnectView(
             onClose = { destination = null },
             modifier = modifier,
         )
@@ -561,6 +570,7 @@ internal enum class AdvancedDestination {
     Sasayaki,
     Backup,
     Syncing,
+    AnkiConnect,
 }
 
 internal enum class AdvancedSettingsIcon {
@@ -568,6 +578,7 @@ internal enum class AdvancedSettingsIcon {
     Chart,
     Waveform,
     Cloud,
+    AnkiConnect,
     ExternalDrive,
 }
 
@@ -612,6 +623,11 @@ internal fun advancedSettingsSections(): List<AdvancedSettingsSection> =
                     destination = AdvancedDestination.Syncing,
                     icon = AdvancedSettingsIcon.Cloud,
                 ),
+                AdvancedSettingsRow(
+                    title = "AnkiConnect",
+                    destination = AdvancedDestination.AnkiConnect,
+                    icon = AdvancedSettingsIcon.AnkiConnect,
+                ),
             ),
         ),
         AdvancedSettingsSection(
@@ -631,6 +647,7 @@ private fun AdvancedSettingsIcon.imageVector(): ImageVector =
         AdvancedSettingsIcon.Chart -> Icons.AutoMirrored.Rounded.ShowChart
         AdvancedSettingsIcon.Waveform -> Icons.Rounded.GraphicEq
         AdvancedSettingsIcon.Cloud -> Icons.Rounded.Cloud
+        AdvancedSettingsIcon.AnkiConnect -> Icons.Rounded.Link
         AdvancedSettingsIcon.ExternalDrive -> Icons.Rounded.Storage
     }
 

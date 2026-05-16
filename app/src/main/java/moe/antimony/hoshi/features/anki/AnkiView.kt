@@ -93,6 +93,7 @@ fun AnkiView(
     val fetchAnki = {
         when (
             ankiFetchAction(
+                backendKind = uiState.settings.backendKind,
                 isAnkiDroidAvailable = viewModel.isAnkiDroidAvailable(),
                 permissionGranted = ContextCompat.checkSelfPermission(
                     context,
@@ -121,10 +122,16 @@ fun AnkiView(
                 AnkiCard {
                     ListItem(
                         colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
-                        headlineContent = { Text("AnkiDroid") },
+                        headlineContent = { Text(if (uiState.settings.backendKind == AnkiBackendKind.AnkiConnect) "AnkiConnect" else "AnkiDroid") },
                         supportingContent = {
                             Column {
-                                Text(uiState.errorMessage ?: "Fetch decks and note types from AnkiDroid.")
+                                Text(
+                                    uiState.errorMessage ?: if (uiState.settings.backendKind == AnkiBackendKind.AnkiConnect) {
+                                        "Fetch decks and note types from AnkiConnect."
+                                    } else {
+                                        "Fetch decks and note types from AnkiDroid."
+                                    },
+                                )
                                 if (uiState.errorAction == AnkiErrorAction.OpenPermissionSettings) {
                                     TextButton(
                                         onClick = {
@@ -220,10 +227,12 @@ internal enum class AnkiFetchAction {
 }
 
 internal fun ankiFetchAction(
+    backendKind: AnkiBackendKind = AnkiBackendKind.AnkiDroid,
     isAnkiDroidAvailable: Boolean,
     permissionGranted: Boolean,
 ): AnkiFetchAction =
     when {
+        backendKind == AnkiBackendKind.AnkiConnect -> AnkiFetchAction.FetchConfiguration
         !isAnkiDroidAvailable -> AnkiFetchAction.ShowApiUnavailable
         permissionGranted -> AnkiFetchAction.FetchConfiguration
         else -> AnkiFetchAction.RequestPermission

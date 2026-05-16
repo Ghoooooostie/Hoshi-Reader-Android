@@ -14,6 +14,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 - Add JMnedict to recommended dictionary downloads and switch the recommended JMdict package to the no-proper-names edition.
 - Show iOS-aligned deinflection explanation popups when tapping conjugation tags in dictionary lookup results.
 - Detect dictionary archive types during manual import and place term, frequency, and pitch data in their matching tabs without choosing a type first.
+- Add Advanced AnkiConnect settings and AnkiConnect mining support, including HTTPS internet hosts, private HTTP hosts, deck/model fetch, duplicate checks, media storage, add-note, and optional force sync.
 
 ### Fixed
 
