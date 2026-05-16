@@ -10,6 +10,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 - Add iOS-style reader highlights with color selection, persistent `highlights.json` storage, restore on chapter load, and a reader Highlights sheet for jumping to or deleting highlights.
 - Add iOS-style reader jump return controls so chapter, character, highlight, and internal-link jumps can return to the previous reading position.
 - Add iOS-style lookup popup font CSS support and a popup scale setting, including Custom CSS insertion menus for imported reader fonts and dictionary selectors.
+- Add iOS-style book title renaming from the Books long-press menu, including renamed titles in sorting, reader metadata, confirmations, and sync messages.
 
 ### Fixed
 
@@ -19,6 +20,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 - Avoid intermittent reader highlight creation failures by keeping the WebView selection alive until the highlight is created.
 - Keep reader long-press text selection available for highlight creation instead of converting the long press into a lookup tap.
 - Show iOS-aligned deinflection explanation popups when tapping conjugation tags in dictionary lookup results.
+- Use the selected EPUB file name as the visible book title when imported metadata has no usable title.
 
 ## [v0.6.3] - 2026-05-15
 

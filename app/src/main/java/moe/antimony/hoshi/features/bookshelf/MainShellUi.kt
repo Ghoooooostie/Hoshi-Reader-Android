@@ -195,7 +195,7 @@ fun bookshelfSections(
     fun List<BookEntry>.sortedForShelf(): List<BookEntry> =
         when (sortOption) {
             BookSortOption.Recent -> sortedByDescending { it.metadata.lastAccess }
-            BookSortOption.Title -> sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.metadata.title.orEmpty() })
+            BookSortOption.Title -> sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayTitle })
         }
 
     if (showReading) {

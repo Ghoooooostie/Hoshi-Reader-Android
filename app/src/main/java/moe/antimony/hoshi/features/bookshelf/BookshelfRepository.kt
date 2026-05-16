@@ -35,6 +35,7 @@ internal interface BookshelfRepository {
     suspend fun deleteShelf(name: String)
     suspend fun moveShelf(fromIndex: Int, toIndex: Int)
     suspend fun markRead(entry: BookEntry)
+    suspend fun renameBook(entry: BookEntry, title: String?)
     suspend fun changeSort(sortOption: BookSortOption)
     suspend fun changeShowReading(showReading: Boolean)
     suspend fun rebuildLookupQuery()
@@ -143,6 +144,11 @@ internal class AndroidBookshelfRepository(
         )
     }
 
+    override suspend fun renameBook(entry: BookEntry, title: String?) = withContext(ioDispatcher) {
+        val metadata = bookRepository.loadMetadata(entry.root) ?: entry.metadata
+        bookRepository.saveMetadata(entry.root, metadata.copy(renamedTitle = title))
+    }
+
     override suspend fun changeSort(sortOption: BookSortOption) {
         settingsRepository.update { it.copy(sortOption = sortOption) }
     }
@@ -178,6 +184,7 @@ internal class AndroidBookshelfRepository(
             cover = bookRepository.metadataCoverPath(root, parsedBook.coverHref),
             folder = root.name,
             lastAccess = bookRepository.currentAppleReferenceDateSeconds(),
+            renamedTitle = previous?.renamedTitle,
         )
         bookRepository.saveMetadata(root, metadata)
     }

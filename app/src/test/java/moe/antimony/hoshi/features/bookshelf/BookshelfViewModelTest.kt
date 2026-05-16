@@ -337,6 +337,29 @@ class BookshelfViewModelTest {
     }
 
     @Test
+    fun renameBookTrimsTitlePersistsItAndReloadsShelf() {
+        val entry = bookEntry("book-a")
+        val repository = FakeBookshelfRepository(entries = listOf(entry))
+        val viewModel = BookshelfViewModel(repository, testScope())
+
+        viewModel.renameBook(entry, "  Custom Title  ")
+
+        assertEquals(listOf(entry to "Custom Title"), repository.renamedBooks)
+        assertEquals(listOf(BookSortOption.Recent), repository.loadRequests)
+    }
+
+    @Test
+    fun renameBookClearsCustomTitleWhenBlank() {
+        val entry = bookEntry("book-a")
+        val repository = FakeBookshelfRepository(entries = listOf(entry))
+        val viewModel = BookshelfViewModel(repository, testScope())
+
+        viewModel.renameBook(entry, "   ")
+
+        assertEquals(listOf(entry to null), repository.renamedBooks)
+    }
+
+    @Test
     fun sasayakiEnabledCanBeDrivenByObservedSettingsState() {
         val viewModel = BookshelfViewModel(FakeBookshelfRepository(), testScope())
 
@@ -430,6 +453,7 @@ class BookshelfViewModelTest {
         val movedShelves = mutableListOf<Pair<Int, Int>>()
         val markedReadEntries = mutableListOf<BookEntry>()
         val showReadingUpdates = mutableListOf<Boolean>()
+        val renamedBooks = mutableListOf<Pair<BookEntry, String?>>()
 
         override suspend fun loadBooks(sortOption: BookSortOption): BookshelfLoadResult {
             loadRequests += sortOption
@@ -466,6 +490,10 @@ class BookshelfViewModelTest {
 
         override suspend fun markRead(entry: BookEntry) {
             markedReadEntries += entry
+        }
+
+        override suspend fun renameBook(entry: BookEntry, title: String?) {
+            renamedBooks += entry to title
         }
 
         override suspend fun changeSort(sortOption: BookSortOption) {

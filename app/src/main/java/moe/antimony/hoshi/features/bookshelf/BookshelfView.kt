@@ -168,6 +168,8 @@ fun BookshelfView(
     var contextMenuTarget by remember { mutableStateOf<BookContextMenuTarget?>(null) }
     var deleteCandidate by remember { mutableStateOf<BookEntry?>(null) }
     var markReadCandidate by remember { mutableStateOf<BookEntry?>(null) }
+    var renameCandidate by remember { mutableStateOf<BookEntry?>(null) }
+    var renameText by remember { mutableStateOf("") }
     var showBulkDeleteConfirmation by remember { mutableStateOf(false) }
     var showShelfManagement by remember { mutableStateOf(false) }
 
@@ -250,6 +252,10 @@ fun BookshelfView(
         onContextMenuTargetChange = { contextMenuTarget = it },
         onDeleteCandidate = { deleteCandidate = it },
         onMarkReadCandidate = { markReadCandidate = it },
+        onRenameCandidate = {
+            renameCandidate = it
+            renameText = it.displayTitle
+        },
         onMoveBook = booksViewModel::moveBook,
         sasayakiEnabled = uiState.sasayakiEnabled,
         onMatchSasayaki = { entry ->
@@ -295,7 +301,7 @@ fun BookshelfView(
     deleteCandidate?.let { candidate ->
         AlertDialog(
             onDismissRequest = { deleteCandidate = null },
-            title = { Text("Delete \"${candidate.metadata.title ?: ""}\"?") },
+            title = { Text("Delete \"${candidate.displayTitle}\"?") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -317,7 +323,7 @@ fun BookshelfView(
     markReadCandidate?.let { candidate ->
         AlertDialog(
             onDismissRequest = { markReadCandidate = null },
-            title = { Text("Mark \"${candidate.metadata.title ?: ""}\" as read?") },
+            title = { Text("Mark \"${candidate.displayTitle}\" as read?") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -330,6 +336,37 @@ fun BookshelfView(
             },
             dismissButton = {
                 TextButton(onClick = { markReadCandidate = null }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
+    renameCandidate?.let { candidate ->
+        AlertDialog(
+            onDismissRequest = { renameCandidate = null },
+            title = { Text("Rename") },
+            text = {
+                OutlinedTextField(
+                    value = renameText,
+                    onValueChange = { renameText = it },
+                    label = { Text("Title") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        booksViewModel.renameBook(candidate, renameText)
+                        renameCandidate = null
+                    },
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { renameCandidate = null }) {
                     Text("Cancel")
                 }
             },
@@ -563,6 +600,7 @@ private fun BooksTab(
     onContextMenuTargetChange: (BookContextMenuTarget?) -> Unit,
     onDeleteCandidate: (BookEntry) -> Unit,
     onMarkReadCandidate: (BookEntry) -> Unit,
+    onRenameCandidate: (BookEntry) -> Unit,
     onMoveBook: (BookEntry, String?) -> Unit,
     sasayakiEnabled: Boolean,
     onMatchSasayaki: (BookEntry) -> Unit,
@@ -696,6 +734,7 @@ private fun BooksTab(
                                             onMoveBook = onMoveBook,
                                             onMatchSasayaki = onMatchSasayaki,
                                             onMarkReadCandidate = onMarkReadCandidate,
+                                            onRenameCandidate = onRenameCandidate,
                                             onDeleteCandidate = onDeleteCandidate,
                                             syncSettings = syncSettings,
                                             onSyncBook = onSyncBook,
@@ -1006,7 +1045,7 @@ private fun BookGridCell(
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = entry.metadata.title ?: entry.root.name,
+            text = entry.displayTitle,
             style = layoutSpec.bookTitleTextStyle.toTextStyle(),
             fontWeight = layoutSpec.bookTitleFontWeight.toFontWeight(),
             color = MaterialTheme.colorScheme.onBackground,
@@ -1157,6 +1196,7 @@ private fun BookContextMenu(
     onMoveBook: (BookEntry, String?) -> Unit,
     onMatchSasayaki: (BookEntry) -> Unit,
     onMarkReadCandidate: (BookEntry) -> Unit,
+    onRenameCandidate: (BookEntry) -> Unit,
     onDeleteCandidate: (BookEntry) -> Unit,
     syncSettings: SyncSettings,
     onSyncBook: (BookEntry, SyncDirection?) -> Unit,
@@ -1220,6 +1260,13 @@ private fun BookContextMenu(
                 },
             )
         }
+        DropdownMenuItem(
+            text = { Text("Rename") },
+            onClick = {
+                onRenameCandidate(entry)
+                onDismiss()
+            },
+        )
         DropdownMenuItem(
             text = { Text("Mark Read") },
             onClick = {

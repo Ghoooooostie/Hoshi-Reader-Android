@@ -229,6 +229,13 @@ internal class BookshelfViewModel(
         }
     }
 
+    fun renameBook(entry: BookEntry, title: String) {
+        workScope.launch {
+            repository.renameBook(entry, title.trim().takeIf { it.isNotEmpty() })
+            reloadBookEntriesSync()
+        }
+    }
+
     fun changeShowReading(showReading: Boolean) {
         workScope.launch {
             repository.changeShowReading(showReading)

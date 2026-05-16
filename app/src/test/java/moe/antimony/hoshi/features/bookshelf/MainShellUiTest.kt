@@ -100,6 +100,22 @@ class MainShellUiTest {
     }
 
     @Test
+    fun bookshelfSectionsSortEachSectionByRenamedDisplayTitleWhenRequested() {
+        val originalA = bookEntry(id = "original-a", title = "Alpha", lastAccess = 1.0)
+        val renamedToZ = bookEntry(id = "renamed", title = "Beta", lastAccess = 2.0, renamedTitle = "Zeta")
+
+        val sections = bookshelfSections(
+            entries = listOf(renamedToZ, originalA),
+            shelves = emptyList(),
+            progressById = emptyMap(),
+            showReading = false,
+            sortOption = BookSortOption.Title,
+        )
+
+        assertEquals(listOf("original-a", "renamed"), sections.single().books.map { it.metadata.id })
+    }
+
+    @Test
     fun compactWindowsUseBottomNavigationAndTwoBookColumns() {
         val spec = MainShellLayoutSpec.forWidthDp(360)
 
@@ -204,12 +220,18 @@ class MainShellUiTest {
         assertEquals("100.0%", bookshelfProgressText(progress = 1.0))
     }
 
-    private fun bookEntry(id: String, title: String, lastAccess: Double): BookEntry =
+    private fun bookEntry(
+        id: String,
+        title: String,
+        lastAccess: Double,
+        renamedTitle: String? = null,
+    ): BookEntry =
         BookEntry(
             root = File(id),
             metadata = BookMetadata(
                 id = id,
                 title = title,
+                renamedTitle = renamedTitle,
                 cover = null,
                 folder = id,
                 lastAccess = lastAccess,

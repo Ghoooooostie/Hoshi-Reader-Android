@@ -69,7 +69,7 @@ Validation:
 
 ### 3. Bookshelf title rename and metadata fallback
 
-Status: queued
+Status: completed on Android.
 
 Commit:
 
@@ -89,12 +89,13 @@ Android notes:
 - Android already falls back to the unpacked root/file name in EPUB parsing, but `BookMetadata.title` and `folder` are still nullable for iOS sidecar compatibility.
 - Prefer adding `renamedTitle` and a `displayTitle` model/helper instead of breaking existing sidecar reads.
 - Keep old iOS/Android sidecars readable when `renamedTitle` is absent.
+- Android now stores optional `renamedTitle`, seeds Rename with the current display title, clears the custom title on blank input, sorts by display title, and keeps reader/sync visible metadata on the display title while preserving the original EPUB title in metadata.
+- EPUB import now passes the selected file name as the parser fallback when OPF title metadata is blank.
 
 Validation:
 
-- Rename a book, sort by title, open reader, view chapters/highlights/statistics/Sasayaki metadata, delete confirmation, Mark Read confirmation, and backup/restore.
-- Clear the rename and confirm original title returns.
-- Import an EPUB with missing title metadata and confirm the visible title falls back to the file name.
+- Unit coverage: `BookMetadataStorageTest`, `EpubBookParserTest`, `MainShellUiTest`, and `BookshelfViewModelTest`.
+- Device validation remains recommended for long-press Rename, clearing the rename, reader metadata, delete/Mark Read dialogs, backup/restore, and importing an EPUB with missing title metadata.
 
 ### 4. Dictionary import, recommendation list, and collapsed cleanup
 
@@ -164,7 +165,7 @@ Validation:
 | --- | --- | --- | --- |
 | `f524178` | 2026-05-14 | Custom fonts in popup | Completed |
 | `a384533` | 2026-05-15 | Popup scale/zoom | Completed |
-| `96f44d3` | 2026-05-15 | Rename book titles; metadata fallback | Queued |
+| `96f44d3` | 2026-05-15 | Rename book titles; metadata fallback | Completed |
 | `746a7ac` | 2026-05-15 | Add Sasayaki seek controls | Covered |
 | `53c6980` | 2026-05-15 | Simplify iOS reader buttons | No direct Android action |
 | `9626f84` | 2026-05-15 | Avoid direct popup index access | Covered; re-test with popup work |
@@ -183,7 +184,6 @@ Validation:
 
 1. Popup action buttons and frame sync.
 2. Dictionary import/recommendation cleanup.
-3. Bookshelf title rename.
-4. Highlight grouping.
+3. Highlight grouping.
 
 This order keeps the riskiest WebView/popup work together, then moves to dictionary storage/import behavior, then lower-risk model/UI slices.

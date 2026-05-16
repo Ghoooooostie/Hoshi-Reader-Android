@@ -23,6 +23,7 @@ class BookMetadataStorageTest {
         val metadata = BookMetadata(
             id = bookId,
             title = "屍人荘の殺人",
+            renamedTitle = "Custom Shelf Title",
             cover = "Books/book-a/cover.jpg",
             folder = "book-a",
             lastAccess = 798720000.0,
@@ -34,9 +35,33 @@ class BookMetadataStorageTest {
         assertEquals(bookId, saved.getValue("id").jsonPrimitive.content)
         UUID.fromString(saved.getValue("id").jsonPrimitive.content)
         assertEquals("屍人荘の殺人", saved.getValue("title").jsonPrimitive.content)
+        assertEquals("Custom Shelf Title", saved.getValue("renamedTitle").jsonPrimitive.content)
         assertEquals("Books/book-a/cover.jpg", saved.getValue("cover").jsonPrimitive.content)
         assertEquals("book-a", saved.getValue("folder").jsonPrimitive.content)
         assertEquals(798720000.0, saved.getValue("lastAccess").jsonPrimitive.double, 0.0)
+    }
+
+    @Test
+    fun metadataWithoutRenamedTitleStillLoadsFromOldSidecar() = runBlocking {
+        val storage = BookStorage(Files.createTempDirectory("hoshi-metadata-old-title").toFile())
+        val bookRoot = storage.createBookDirectory("book")
+        bookRoot.resolve("metadata.json").writeText(
+            """
+            {
+                "id": "00000000-0000-0000-0000-000000000001",
+                "title": "Original Title",
+                "cover": null,
+                "folder": "book",
+                "lastAccess": 42.0
+            }
+            """.trimIndent(),
+        )
+
+        val metadata = requireNotNull(storage.loadMetadata(bookRoot))
+
+        assertEquals("Original Title", metadata.title)
+        assertEquals(null, metadata.renamedTitle)
+        assertEquals("Original Title", metadata.displayTitle)
     }
 
     @Test

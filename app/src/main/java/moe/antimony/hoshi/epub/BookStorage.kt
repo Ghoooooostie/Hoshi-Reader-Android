@@ -35,7 +35,11 @@ data class BookMetadata(
     val cover: String?,
     val folder: String?,
     val lastAccess: Double,
-)
+    val renamedTitle: String? = null,
+) {
+    val displayTitle: String
+        get() = renamedTitle?.takeIf { it.isNotBlank() } ?: title.orEmpty()
+}
 
 @Serializable
 data class BookShelf(
@@ -46,7 +50,10 @@ data class BookShelf(
 data class BookEntry(
     val root: File,
     val metadata: BookMetadata,
-)
+) {
+    val displayTitle: String
+        get() = metadata.displayTitle.ifBlank { root.name }
+}
 
 enum class BookSortOption {
     Recent,

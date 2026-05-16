@@ -45,7 +45,7 @@ class BookRepository(
         }
         return when (sortOption) {
             BookSortOption.Recent -> entries.sortedByDescending { it.metadata.lastAccess }
-            BookSortOption.Title -> entries.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.metadata.title.orEmpty() })
+            BookSortOption.Title -> entries.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayTitle })
         }
     }
 
@@ -307,7 +307,10 @@ class BookImportDataSource(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     suspend fun importBook(contentResolver: ContentResolver, uri: Uri): File = withContext(ioDispatcher) {
-        contentResolver.validateImportFile(uri, ImportFileType.Epub)
+        val displayName = contentResolver.validateImportFile(uri, ImportFileType.Epub)
+        val fallbackTitle = displayName
+            .substringBeforeLast('.', missingDelimiterValue = displayName)
+            .takeIf { it.isNotBlank() }
         val tempRoot = File(filesDir, "ImportTemp/${UUID.randomUUID()}").canonicalFile
         contentResolver.openInputStream(uri).use { input ->
             requireNotNull(input) { "Unable to open selected EPUB" }
@@ -336,7 +339,7 @@ class BookImportDataSource(
                 throw it
             }
         }
-        val parsedBook = runCatching { parser.parse(tempRoot) }
+        val parsedBook = runCatching { parser.parse(tempRoot, fallbackTitle = fallbackTitle) }
             .onFailure { tempRoot.deleteRecursively() }
             .getOrThrow()
         val targetRoot = fileDataSource.createBookDirectoryForImportedTitle(parsedBook.title)
