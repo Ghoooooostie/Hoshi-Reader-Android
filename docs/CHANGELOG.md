@@ -5,6 +5,8 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+## [v0.7.1] - 2026-05-17
+
 ### Added
 
 - Keep lookup popup audio and Anki controls native and aligned to entry headers while popup content scrolls, including under Sasayaki popup controls, matching iOS behavior.
