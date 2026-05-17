@@ -9,6 +9,10 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 - Keep lookup popup audio and Anki controls native and aligned to entry headers while popup content scrolls, including under Sasayaki popup controls, matching iOS behavior.
 
+### Fixed
+
+- Prevent reader lookup popups from leaving an invisible touch-blocking layer after scrolling and dismissing the popup.
+
 ## [v0.7.0] - 2026-05-16
 
 ### Added

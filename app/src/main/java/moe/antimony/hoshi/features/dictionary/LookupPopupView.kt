@@ -4,6 +4,7 @@ import moe.antimony.hoshi.epub.SasayakiMatch
 
 import android.annotation.SuppressLint
 import android.util.Log
+import android.view.View
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.foundation.BorderStroke
@@ -99,6 +100,12 @@ data class LookupPopupState(
     val popupActionBar: Boolean = false,
     val ankiContext: AnkiMiningContext = AnkiMiningContext(sentence = selection.sentence),
 )
+
+internal fun lookupPopupReceivesInput(
+    isPopupActive: Boolean,
+    isContentVisible: Boolean,
+    contentReady: Boolean,
+): Boolean = isPopupActive && isContentVisible && contentReady
 
 @Composable
 fun LookupPopupView(
@@ -225,16 +232,20 @@ fun LookupPopupView(
             state.darkMode -> Color(0xFFEBEBF5)
             else -> Color(0x993C3C43)
         }
-        val popupVisible = isPopupActive && contentReady && isContentVisible
+        val popupReceivesInput = lookupPopupReceivesInput(
+            isPopupActive = isPopupActive,
+            isContentVisible = isContentVisible,
+            contentReady = contentReady,
+        )
         Surface(
             modifier = Modifier
                 .absoluteOffset(
-                    x = if (isPopupActive) frameX.dp else (-10_000).dp,
-                    y = if (isPopupActive) frameY.dp else (-10_000).dp,
+                    x = if (popupReceivesInput) frameX.dp else (-10_000).dp,
+                    y = if (popupReceivesInput) frameY.dp else (-10_000).dp,
                 )
-                .width(if (isPopupActive) frame.width.dp else 1.dp)
-                .height(if (isPopupActive) frame.height.dp else 1.dp)
-                .alpha(if (popupVisible) 1f else 0f)
+                .width(if (popupReceivesInput) frame.width.dp else 1.dp)
+                .height(if (popupReceivesInput) frame.height.dp else 1.dp)
+                .alpha(if (popupReceivesInput) 1f else 0f)
                 .zIndex(2f),
             shape = if (state.eInkMode) RectangleShape else RoundedCornerShape(8.dp),
             color = popupBackground,
@@ -243,7 +254,7 @@ fun LookupPopupView(
             shadowElevation = 0.dp,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                if (hasActionBar) {
+                if (hasActionBar && popupReceivesInput) {
                     LookupPopupActionBar(
                         backCount = backCount,
                         forwardCount = forwardCount,
@@ -266,7 +277,7 @@ fun LookupPopupView(
                         dividerColor = popupBorder,
                     )
                 }
-                if (sasayakiCue != null) {
+                if (sasayakiCue != null && popupReceivesInput) {
                     SasayakiPopupControls(
                         isPlaying = sasayakiIsPlaying,
                         wasPaused = sasayakiWasPaused,
@@ -362,11 +373,12 @@ fun LookupPopupView(
                         },
                     ),
                     warmShell = warmShell,
+                    isInteractive = popupReceivesInput,
                     modifier = Modifier.weight(1f),
                 )
             }
         }
-        if (isPopupActive && isContentVisible) {
+        if (popupReceivesInput) {
             PopupSelectionHighlightOverlay(
                 rects = selectionHighlightRects,
                 darkMode = state.darkMode,
@@ -552,6 +564,7 @@ private fun LookupPopupWebView(
     forwardSignal: Int,
     callbacks: PopupWebViewCallbacks,
     warmShell: Boolean,
+    isInteractive: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val callbackHolder = remember { PopupWebViewCallbackHolder(callbacks) }
@@ -606,6 +619,12 @@ private fun LookupPopupWebView(
         update = { webView ->
             callbackHolder.callbacks = callbacks
             webView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            webView.visibility = if (isInteractive) View.VISIBLE else View.INVISIBLE
+            webView.isEnabled = isInteractive
+            webView.isClickable = isInteractive
+            if (!isInteractive) {
+                webView.clearFocus()
+            }
             if (loadedHtml != html) {
                 loadedHtml = html
                 shellReady = false

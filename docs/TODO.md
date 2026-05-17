@@ -39,7 +39,7 @@ This file is the short operational handoff for future agents.
 - Device-validate paginated page turns with top and bottom progress counters enabled on E-ink, confirming the counter no longer refreshes before the page flip.
 - Device-validate E-ink reader lookup underlines in horizontal and vertical text, confirming the line sits close to selected text without obscuring glyphs.
 - Device-validate reader popup Reduced Motion Scrolling on an E-ink target, including vertical swipe threshold, 40%-100% scroll amount, mouse wheel/page-wheel input, and coexistence with horizontal swipe-to-dismiss.
-- Device-validate the warm reader root lookup popup shell, confirming repeated root lookups reuse the popup without breaking child popups, redirects, action-bar history, or popup dismiss behavior.
+- Device-validate the warm reader root lookup popup shell on additional devices, confirming repeated root lookups reuse the popup without breaking child popups, redirects, action-bar history, or dismiss/touch passthrough after popup scroll.
 - Device-validate popup-to-popup lookup selections, confirming child popup display syncs with Compose-drawn parent selection marks, E-ink mode uses underlines, and scrolling a parent popup dismisses child popups.
 - Device-validate reader lookup popup open and dismiss on a slow E-ink target, confirming popup content does not flash a blank white shell, the Compose-drawn selected-word highlight appears and disappears with the popup, and highlighted text stays readable.
 - Finish remaining iOS `PopupWebView` Anki mining behavior beyond selected popup text export.

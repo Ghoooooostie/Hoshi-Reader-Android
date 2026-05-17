@@ -4,6 +4,7 @@ import moe.antimony.hoshi.features.reader.ReaderSelectionData
 import moe.antimony.hoshi.features.reader.ReaderSelectionRect
 import moe.antimony.hoshi.features.audio.AudioSettings
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -191,6 +192,38 @@ class LookupPopupTest {
         assertTrue(themed.single().state.darkMode)
         assertTrue(themed.single().state.eInkMode)
         assertTrue(themed.single().state.audioSettings.enableAutoplay)
+    }
+
+    @Test
+    fun hiddenWarmRootPopupDoesNotReceiveInput() {
+        assertTrue(
+            lookupPopupReceivesInput(
+                isPopupActive = true,
+                isContentVisible = true,
+                contentReady = true,
+            ),
+        )
+        assertFalse(
+            lookupPopupReceivesInput(
+                isPopupActive = true,
+                isContentVisible = false,
+                contentReady = true,
+            ),
+        )
+        assertFalse(
+            lookupPopupReceivesInput(
+                isPopupActive = true,
+                isContentVisible = true,
+                contentReady = false,
+            ),
+        )
+        assertFalse(
+            lookupPopupReceivesInput(
+                isPopupActive = false,
+                isContentVisible = true,
+                contentReady = true,
+            ),
+        )
     }
 
 }
