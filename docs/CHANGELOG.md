@@ -5,6 +5,8 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+## [v1.0.0] - 2026-05-21
+
 ### Added
 
 - Add a Reader Appearance option to blur large reader images and SVG image containers until tapped.
