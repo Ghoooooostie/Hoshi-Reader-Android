@@ -990,6 +990,16 @@ private fun DictionarySettingsView(
                         canIncrease = settings.scanLength < DictionarySettings.MAX_SCAN_LENGTH,
                     )
                 }
+                SectionLabel(stringResource(R.string.dictionary_settings_import))
+                SettingsGroup {
+                    ToggleRow(
+                        title = stringResource(R.string.dictionary_low_ram_import),
+                        checked = settings.lowRamDictionaryImport,
+                        supportingText = stringResource(R.string.dictionary_low_ram_import_description),
+                    ) {
+                        onSettingsChange { current -> current.copy(lowRamDictionaryImport = it) }
+                    }
+                }
                 SectionLabel(stringResource(R.string.dictionary_collapse_dictionaries))
                 SettingsGroup {
                     ListItem(
@@ -1352,7 +1362,11 @@ private fun StepperRow(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(value.toString())
+                Text(
+                    text = value.toString(),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Surface(
                     shape = RoundedCornerShape(24.dp),
                     color = colorScheme.surfaceVariant,
@@ -1396,11 +1410,13 @@ private fun StepperRow(
 private fun ToggleRow(
     title: String,
     checked: Boolean,
+    supportingText: String? = null,
     onCheckedChange: (Boolean) -> Unit,
 ) {
     ListItem(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         headlineContent = { Text(title) },
+        supportingContent = supportingText?.let { text -> { Text(text) } },
         trailingContent = {
             HoshiSwitch(
                 checked = checked,

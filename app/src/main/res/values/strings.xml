@@ -9,7 +9,7 @@
     <string name="action_back">Back</string>
     <string name="action_forward">Forward</string>
     <string name="action_close">Close</string>
-    <string name="action_import">Import</string>
+    <string name="action_import" comment="Generic import action label.">Import</string>
     <string name="action_export">Export</string>
     <string name="action_update">Update</string>
     <string name="action_download">Download</string>
@@ -127,6 +127,7 @@
     <string name="dictionary_delete_action">Delete Dictionary</string>
     <string name="dictionary_reorder_action">Reorder Dictionary</string>
     <string name="dictionary_settings_lookup">Lookup</string>
+    <string name="dictionary_settings_import" comment="Dictionary settings section label, intentionally matching the Import action noun.">Import</string>
     <string name="dictionary_scan_non_japanese">Scan Non-Japanese Text</string>
     <string name="dictionary_max_results">Max Results</string>
     <string name="dictionary_scan_length">Scan Length</string>
@@ -142,6 +143,8 @@
     <string name="dictionary_harmonic_frequency">Harmonic Frequency</string>
     <string name="dictionary_deduplicate_pitch">Deduplicate Pitch Accents</string>
     <string name="dictionary_compact_pitch">Compact Pitch Accents</string>
+    <string name="dictionary_low_ram_import">Low Memory Usage Mode</string>
+    <string name="dictionary_low_ram_import_description">Reduces memory usage during dictionary import. Recommended on devices with low RAM (&lt; 3 GB).</string>
     <string name="dictionary_no_term_dictionaries">No term dictionaries</string>
     <string name="dictionary_collapsed">Collapsed</string>
     <string name="dictionary_expanded">Expanded</string>

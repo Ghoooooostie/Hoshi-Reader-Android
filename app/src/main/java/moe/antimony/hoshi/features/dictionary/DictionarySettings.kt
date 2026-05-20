@@ -41,6 +41,7 @@ data class DictionarySettings(
     val harmonicFrequency: Boolean = false,
     val deduplicatePitchAccents: Boolean = false,
     val compactPitchAccents: Boolean = true,
+    val lowRamDictionaryImport: Boolean = false,
     val customCSS: String = "",
 ) {
     fun normalized(): DictionarySettings = copy(
@@ -85,6 +86,7 @@ class DictionarySettingsStore(context: Context) : DictionarySettingsLegacySource
         harmonicFrequency = preferences.getBoolean(KEY_HARMONIC_FREQUENCY, false),
         deduplicatePitchAccents = preferences.getBoolean(KEY_DEDUPLICATE_PITCH_ACCENTS, false),
         compactPitchAccents = preferences.getBoolean(KEY_COMPACT_PITCH_ACCENTS, true),
+        lowRamDictionaryImport = preferences.getBoolean(KEY_LOW_RAM_DICTIONARY_IMPORT, false),
         customCSS = preferences.getString(KEY_CUSTOM_CSS, "").orEmpty(),
     ).normalized()
 
@@ -103,6 +105,7 @@ class DictionarySettingsStore(context: Context) : DictionarySettingsLegacySource
             .putBoolean(KEY_HARMONIC_FREQUENCY, normalized.harmonicFrequency)
             .putBoolean(KEY_DEDUPLICATE_PITCH_ACCENTS, normalized.deduplicatePitchAccents)
             .putBoolean(KEY_COMPACT_PITCH_ACCENTS, normalized.compactPitchAccents)
+            .putBoolean(KEY_LOW_RAM_DICTIONARY_IMPORT, normalized.lowRamDictionaryImport)
             .putString(KEY_CUSTOM_CSS, normalized.customCSS)
             .apply()
     }
@@ -121,6 +124,7 @@ class DictionarySettingsStore(context: Context) : DictionarySettingsLegacySource
         const val KEY_HARMONIC_FREQUENCY = "harmonicFrequency"
         const val KEY_DEDUPLICATE_PITCH_ACCENTS = "deduplicatePitchAccents"
         const val KEY_COMPACT_PITCH_ACCENTS = "compactPitchAccents"
+        const val KEY_LOW_RAM_DICTIONARY_IMPORT = "lowRamDictionaryImport"
         const val KEY_CUSTOM_CSS = "customCSS"
     }
 }
@@ -178,6 +182,7 @@ class DictionarySettingsRepository(
             harmonicFrequency = this[KEY_HARMONIC_FREQUENCY] ?: false,
             deduplicatePitchAccents = this[KEY_DEDUPLICATE_PITCH_ACCENTS] ?: false,
             compactPitchAccents = this[KEY_COMPACT_PITCH_ACCENTS] ?: true,
+            lowRamDictionaryImport = this[KEY_LOW_RAM_DICTIONARY_IMPORT] ?: false,
             customCSS = this[KEY_CUSTOM_CSS].orEmpty(),
         ).normalized()
     }
@@ -196,6 +201,7 @@ class DictionarySettingsRepository(
         this[KEY_HARMONIC_FREQUENCY] = normalized.harmonicFrequency
         this[KEY_DEDUPLICATE_PITCH_ACCENTS] = normalized.deduplicatePitchAccents
         this[KEY_COMPACT_PITCH_ACCENTS] = normalized.compactPitchAccents
+        this[KEY_LOW_RAM_DICTIONARY_IMPORT] = normalized.lowRamDictionaryImport
         this[KEY_CUSTOM_CSS] = normalized.customCSS
     }
 
@@ -217,6 +223,7 @@ class DictionarySettingsRepository(
         private val KEY_HARMONIC_FREQUENCY = booleanPreferencesKey("harmonicFrequency")
         private val KEY_DEDUPLICATE_PITCH_ACCENTS = booleanPreferencesKey("deduplicatePitchAccents")
         private val KEY_COMPACT_PITCH_ACCENTS = booleanPreferencesKey("compactPitchAccents")
+        private val KEY_LOW_RAM_DICTIONARY_IMPORT = booleanPreferencesKey("lowRamDictionaryImport")
         private val KEY_CUSTOM_CSS = stringPreferencesKey("customCSS")
     }
 }

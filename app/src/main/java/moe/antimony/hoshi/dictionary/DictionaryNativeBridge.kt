@@ -13,7 +13,7 @@ internal data class NativeDictionaryImportResult(
 )
 
 internal interface DictionaryNativeBridge {
-    fun importDictionary(zipPath: String, outputDir: String): NativeDictionaryImportResult
+    fun importDictionary(zipPath: String, outputDir: String, lowRam: Boolean): NativeDictionaryImportResult
 
     fun rebuildQuery(
         termPaths: Array<String>,
@@ -23,8 +23,8 @@ internal interface DictionaryNativeBridge {
 }
 
 internal object HoshiDictionaryNativeBridge : DictionaryNativeBridge {
-    override fun importDictionary(zipPath: String, outputDir: String): NativeDictionaryImportResult =
-        HoshiDicts.importDictionary(zipPath, outputDir).let { result ->
+    override fun importDictionary(zipPath: String, outputDir: String, lowRam: Boolean): NativeDictionaryImportResult =
+        HoshiDicts.importDictionary(zipPath, outputDir, lowRam).let { result ->
             NativeDictionaryImportResult(
                 success = result.success,
                 title = result.title,

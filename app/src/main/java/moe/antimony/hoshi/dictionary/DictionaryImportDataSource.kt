@@ -25,32 +25,40 @@ internal class DictionaryImportDataSource(
         contentResolver: ContentResolver,
         uri: Uri,
         typeDirectory: File,
+        lowRamImport: Boolean = false,
         shouldSkip: (DictionaryIndex) -> Boolean = { false },
     ): Boolean {
         contentResolver.validateImportFile(uri, ImportFileType.DictionaryArchive)
         return contentResolver.openInputStream(uri).use { input ->
             requireNotNull(input) { "Unable to open dictionary file." }
-            importDictionary(input, typeDirectory, shouldSkip)
+            importDictionary(input, typeDirectory, lowRamImport, shouldSkip)
         }
     }
 
     fun importDictionary(
         input: InputStream,
         typeDirectory: File,
+        lowRamImport: Boolean = false,
         shouldSkip: (DictionaryIndex) -> Boolean = { false },
-    ): Boolean = importDictionaryWithResult(input, typeDirectory, shouldSkip).isNotEmpty()
+    ): Boolean = importDictionaryWithResult(
+        input = input,
+        typeDirectory = typeDirectory,
+        lowRamImport = lowRamImport,
+        shouldSkip = shouldSkip,
+    ).isNotEmpty()
 
     fun importDictionaryByDetectedTypes(
         contentResolver: ContentResolver,
         uri: Uri,
         importRootDirectory: File,
         typeDirectories: Map<DictionaryType, File>,
+        lowRamImport: Boolean = false,
         shouldSkip: (DictionaryType, DictionaryIndex) -> Boolean = { _, _ -> false },
     ): Map<DictionaryType, List<ImportedDictionary>> {
         contentResolver.validateImportFile(uri, ImportFileType.DictionaryArchive)
         return contentResolver.openInputStream(uri).use { input ->
             requireNotNull(input) { "Unable to open dictionary file." }
-            importDictionaryByDetectedTypes(input, importRootDirectory, typeDirectories, shouldSkip)
+            importDictionaryByDetectedTypes(input, importRootDirectory, typeDirectories, lowRamImport, shouldSkip)
         }
     }
 
@@ -58,6 +66,7 @@ internal class DictionaryImportDataSource(
         input: InputStream,
         importRootDirectory: File,
         typeDirectories: Map<DictionaryType, File>,
+        lowRamImport: Boolean = false,
         shouldSkip: (DictionaryType, DictionaryIndex) -> Boolean = { _, _ -> false },
     ): Map<DictionaryType, List<ImportedDictionary>> {
         importRootDirectory.mkdirs()
@@ -69,7 +78,7 @@ internal class DictionaryImportDataSource(
                 tempZip.outputStream().use { output -> source.copyTo(output) }
             }
             stagingRoot.mkdirs()
-            val result = nativeBridge.importDictionary(tempZip.absolutePath, stagingRoot.absolutePath)
+            val result = nativeBridge.importDictionary(tempZip.absolutePath, stagingRoot.absolutePath, lowRamImport)
             require(result.success) { "Failed to import dictionary." }
             val targetTypes = result.detectedTypes()
             require(targetTypes.isNotEmpty()) { "Failed to detect dictionary type." }
@@ -83,6 +92,7 @@ internal class DictionaryImportDataSource(
     fun importDictionaryWithResult(
         input: InputStream,
         typeDirectory: File,
+        lowRamImport: Boolean = false,
         shouldSkip: (DictionaryIndex) -> Boolean = { false },
     ): List<ImportedDictionary> {
         typeDirectory.mkdirs()
@@ -96,7 +106,7 @@ internal class DictionaryImportDataSource(
             val index = readDictionaryIndexFromZip(tempZip)
             if (shouldSkip(index)) return emptyList()
             stagingRoot.mkdirs()
-            val result = nativeBridge.importDictionary(tempZip.absolutePath, stagingRoot.absolutePath)
+            val result = nativeBridge.importDictionary(tempZip.absolutePath, stagingRoot.absolutePath, lowRamImport)
             require(result.success) { "Failed to import dictionary." }
             return commitStagedDictionaries(stagingRoot, typeDirectory)
         } finally {

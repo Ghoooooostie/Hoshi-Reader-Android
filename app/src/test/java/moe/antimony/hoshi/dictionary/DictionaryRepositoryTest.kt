@@ -113,7 +113,7 @@ class DictionaryRepositoryTest {
         repository.setDictionaryEnabled(DictionaryType.Term, installedIndex.title, enabled = false)
 
         val progress = mutableListOf<String>()
-        val summary = repository.updateDictionaries { update ->
+        val summary = repository.updateDictionaries(lowRamImport = true) { update ->
             progress += "${update.stage}:${update.title}"
         }
 
@@ -127,6 +127,7 @@ class DictionaryRepositoryTest {
             progress,
         )
         assertEquals(listOf(remoteIndex.downloadUrl), remote.downloadedUrls)
+        assertEquals(listOf(true), bridge.lowRamModes)
         assertFalse(storage.typeDirectory(DictionaryType.Term).resolve(installedIndex.title).exists())
         val updated = repository.loadDictionaries(DictionaryType.Term)
         assertEquals(listOf("First", remoteIndex.title, "Third"), updated.map { it.index.title })
@@ -236,7 +237,7 @@ class DictionaryRepositoryTest {
         )
         val progress = mutableListOf<String>()
 
-        repository.importRecommendedDictionaries(selected) { update ->
+        repository.importRecommendedDictionaries(selected, lowRamImport = true) { update ->
             progress += "${update.stage}:${update.title}"
         }
 
@@ -258,6 +259,7 @@ class DictionaryRepositoryTest {
             listOf(jmdictIndex.downloadUrl, jitenIndex.downloadUrl, jitendexIndex.downloadUrl),
             remote.downloadedUrls,
         )
+        assertEquals(listOf(true, true, true), bridge.lowRamModes)
         assertEquals(listOf(jmdictIndex.title, jitendexIndex.title), repository.loadDictionaries(DictionaryType.Term).map { it.index.title })
         assertEquals(listOf(jitenIndex.title), repository.loadDictionaries(DictionaryType.Frequency).map { it.index.title })
         assertEquals(
@@ -295,11 +297,15 @@ class DictionaryRepositoryTest {
             DictionaryLookupQueryService(bridge),
         )
 
-        repository.importDictionary(ByteArrayInputStream(dictionaryArchive(DictionaryIndex("Mixed", 3, "rev"))))
+        repository.importDictionary(
+            input = ByteArrayInputStream(dictionaryArchive(DictionaryIndex("Mixed", 3, "rev"))),
+            lowRamImport = true,
+        )
 
         assertEquals(listOf("Mixed"), repository.loadDictionaries(DictionaryType.Term).map { it.index.title })
         assertEquals(listOf("Mixed"), repository.loadDictionaries(DictionaryType.Frequency).map { it.index.title })
         assertEquals(listOf("Mixed"), repository.loadDictionaries(DictionaryType.Pitch).map { it.index.title })
+        assertEquals(listOf(true), bridge.lowRamModes)
         assertEquals(listOf(filesDir.resolve("Dictionaries/Term/Mixed").absolutePath), bridge.termPaths.toList())
         assertEquals(listOf(filesDir.resolve("Dictionaries/Frequency/Mixed").absolutePath), bridge.freqPaths.toList())
         assertEquals(listOf(filesDir.resolve("Dictionaries/Pitch/Mixed").absolutePath), bridge.pitchPaths.toList())
@@ -380,7 +386,8 @@ class DictionaryRepositoryTest {
             mediaCount = 0,
         ),
     ) : RecordingDictionaryNativeBridge() {
-        override fun importDictionary(zipPath: String, outputDir: String): NativeDictionaryImportResult {
+        override fun importDictionary(zipPath: String, outputDir: String, lowRam: Boolean): NativeDictionaryImportResult {
+            lowRamModes += lowRam
             val index = ZipFile(File(zipPath)).use { zip ->
                 val entry = zip.getEntry("index.json")
                 val json = zip.getInputStream(entry).use { it.readBytes().decodeToString() }
@@ -401,9 +408,11 @@ class DictionaryRepositoryTest {
             private set
         var pitchPaths: Array<String> = emptyArray()
             private set
+        val lowRamModes = mutableListOf<Boolean>()
 
-        override fun importDictionary(zipPath: String, outputDir: String): NativeDictionaryImportResult =
-            NativeDictionaryImportResult(
+        override fun importDictionary(zipPath: String, outputDir: String, lowRam: Boolean): NativeDictionaryImportResult {
+            lowRamModes += lowRam
+            return NativeDictionaryImportResult(
                 success = true,
                 title = "",
                 termCount = 1,
@@ -412,6 +421,7 @@ class DictionaryRepositoryTest {
                 pitchCount = 0,
                 mediaCount = 0,
             )
+        }
 
         override fun rebuildQuery(
             termPaths: Array<String>,

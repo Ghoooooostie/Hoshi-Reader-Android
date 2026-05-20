@@ -26,7 +26,7 @@ class DictionaryLookupQueryServiceTest {
         lateinit var freqPaths: Array<String>
         lateinit var pitchPaths: Array<String>
 
-        override fun importDictionary(zipPath: String, outputDir: String): NativeDictionaryImportResult =
+        override fun importDictionary(zipPath: String, outputDir: String, lowRam: Boolean): NativeDictionaryImportResult =
             NativeDictionaryImportResult(
                 success = true,
                 title = "",

@@ -103,6 +103,21 @@ class DictionaryImportDataSourceTest {
         assertTrue(typeDirectory.resolve("新明解日本語アクセント辞典/index.json").isFile)
     }
 
+    @Test
+    fun importPassesLowRamModeToNativeImporter() {
+        val typeDirectory = temporaryFolder.newFolder("low-ram-Term")
+        val bridge = StagingDictionaryBridge("JMdict")
+        val dataSource = DictionaryImportDataSource(bridge)
+
+        dataSource.importDictionary(
+            input = ByteArrayInputStream(dictionaryArchive("JMdict")),
+            typeDirectory = typeDirectory,
+            lowRamImport = true,
+        )
+
+        assertEquals(listOf(true), bridge.lowRamModes)
+    }
+
     private fun zipBytes(vararg entries: Pair<String, String>): ByteArray {
         val output = ByteArrayOutputStream()
         ZipOutputStream(output).use { zip ->
@@ -183,9 +198,15 @@ class DictionaryImportDataSourceTest {
         private val dictionaryName: String,
     ) : DictionaryNativeBridge {
         val outputDirs = mutableListOf<String>()
+        val lowRamModes = mutableListOf<Boolean>()
 
-        override fun importDictionary(zipPath: String, outputDir: String): NativeDictionaryImportResult {
+        override fun importDictionary(
+            zipPath: String,
+            outputDir: String,
+            lowRam: Boolean,
+        ): NativeDictionaryImportResult {
             outputDirs += outputDir
+            lowRamModes += lowRam
             File(outputDir, "$dictionaryName/index.json").also { file ->
                 file.parentFile!!.mkdirs()
                 file.writeText("""{"title":"$dictionaryName","format":3,"revision":"rev"}""")
@@ -205,7 +226,11 @@ class DictionaryImportDataSourceTest {
     }
 
     private class FailingDictionaryBridge : DictionaryNativeBridge {
-        override fun importDictionary(zipPath: String, outputDir: String): NativeDictionaryImportResult {
+        override fun importDictionary(
+            zipPath: String,
+            outputDir: String,
+            lowRam: Boolean,
+        ): NativeDictionaryImportResult {
             File(outputDir, "Partial/index.json").also { file ->
                 file.parentFile!!.mkdirs()
                 file.writeText("""{"title":"Partial"}""")

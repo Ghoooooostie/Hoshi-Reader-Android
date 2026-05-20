@@ -18,12 +18,13 @@ internal class DictionaryRepository(
     fun updatableDictionaries(): List<DictionaryUpdateCandidate> =
         storage.updatableDictionaries()
 
-    fun importDictionary(contentResolver: ContentResolver, uri: Uri) {
+    fun importDictionary(contentResolver: ContentResolver, uri: Uri, lowRamImport: Boolean = false) {
         val imported = importDataSource.importDictionaryByDetectedTypes(
             contentResolver = contentResolver,
             uri = uri,
             importRootDirectory = storage.importRootDirectory(),
             typeDirectories = typeDirectories(),
+            lowRamImport = lowRamImport,
             shouldSkip = { type, index -> storage.hasDictionaryWithIndex(type, index) },
         ).values.sumOf { it.size }
         if (imported > 0) {
@@ -32,11 +33,12 @@ internal class DictionaryRepository(
         }
     }
 
-    fun importDictionary(input: InputStream) {
+    fun importDictionary(input: InputStream, lowRamImport: Boolean = false) {
         val imported = importDataSource.importDictionaryByDetectedTypes(
             input = input,
             importRootDirectory = storage.importRootDirectory(),
             typeDirectories = typeDirectories(),
+            lowRamImport = lowRamImport,
             shouldSkip = { type, index -> storage.hasDictionaryWithIndex(type, index) },
         ).values.sumOf { it.size }
         if (imported > 0) {
@@ -64,6 +66,7 @@ internal class DictionaryRepository(
     }
 
     fun updateDictionaries(
+        lowRamImport: Boolean = false,
         onProgress: (DictionaryUpdateProgress) -> Unit = {},
     ): DictionaryUpdateSummary {
         val candidates = updatableDictionaries()
@@ -82,6 +85,7 @@ internal class DictionaryRepository(
                 importDataSource.importDictionaryWithResult(
                     input = input,
                     typeDirectory = storage.typeDirectory(candidate.type),
+                    lowRamImport = lowRamImport,
                 )
             }
             val replacement = imported.firstOrNull() ?: return@forEach
@@ -116,6 +120,7 @@ internal class DictionaryRepository(
 
     fun importRecommendedDictionaries(
         dictionaries: List<RecommendedDictionary>,
+        lowRamImport: Boolean = false,
         onProgress: (DictionaryUpdateProgress) -> Unit = {},
     ) {
         var importedCount = 0
@@ -128,6 +133,7 @@ internal class DictionaryRepository(
                 importDataSource.importDictionaryWithResult(
                     input = input,
                     typeDirectory = storage.typeDirectory(dictionary.type),
+                    lowRamImport = lowRamImport,
                     shouldSkip = { index -> storage.hasDictionaryWithIndex(dictionary.type, index) },
                 )
             }

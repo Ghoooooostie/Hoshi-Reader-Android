@@ -8,6 +8,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 ### Added
 
 - Add a Reader Appearance option to blur large reader images and SVG image containers until tapped.
+- Add a Dictionaries import setting for Low Memory Usage Mode, with default-off behavior and a short import-speed tradeoff note.
 
 ### Fixed
 

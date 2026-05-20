@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -72,9 +73,14 @@ internal class AndroidDictionaryViewModelRepository(
         items: List<DictionaryImportItem>,
         onProgress: (DictionaryImportItem) -> Unit,
     ) {
+        val lowRamImport = settingsRepository.settings.first().lowRamDictionaryImport
         items.forEach { item ->
             onProgress(item)
-            dictionaryRepository.importDictionary(contentResolver, requireNotNull(item.uri))
+            dictionaryRepository.importDictionary(
+                contentResolver = contentResolver,
+                uri = requireNotNull(item.uri),
+                lowRamImport = lowRamImport,
+            )
         }
     }
 
@@ -85,13 +91,20 @@ internal class AndroidDictionaryViewModelRepository(
         dictionaries: List<RecommendedDictionary>,
         onProgress: (DictionaryUpdateProgress) -> Unit,
     ) {
-        dictionaryRepository.importRecommendedDictionaries(dictionaries, onProgress)
+        dictionaryRepository.importRecommendedDictionaries(
+            dictionaries = dictionaries,
+            onProgress = onProgress,
+            lowRamImport = settingsRepository.settings.first().lowRamDictionaryImport,
+        )
     }
 
     override suspend fun updateDictionaries(
         onProgress: (DictionaryUpdateProgress) -> Unit,
     ): DictionaryUpdateSummary =
-        dictionaryRepository.updateDictionaries(onProgress)
+        dictionaryRepository.updateDictionaries(
+            onProgress = onProgress,
+            lowRamImport = settingsRepository.settings.first().lowRamDictionaryImport,
+        )
 
     override suspend fun setDictionaryEnabled(type: DictionaryType, fileName: String, enabled: Boolean) {
         dictionaryRepository.setDictionaryEnabled(type, fileName, enabled)

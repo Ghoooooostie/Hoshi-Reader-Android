@@ -66,7 +66,7 @@ object HoshiDicts {
 
     val lookupObject: Long = createLookupObject()
 
-    external fun importDictionary(zipPath: String, outputDir: String): ImportResult
+    external fun importDictionary(zipPath: String, outputDir: String, lowRam: Boolean = false): ImportResult
     external fun createLookupObject(): Long
     external fun destroyLookupObject(session: Long)
     external fun rebuildQuery(
