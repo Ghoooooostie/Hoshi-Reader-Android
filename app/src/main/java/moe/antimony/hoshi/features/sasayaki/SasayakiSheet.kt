@@ -55,6 +55,9 @@ import moe.antimony.hoshi.importing.validateImportFile
 import moe.antimony.hoshi.ui.asString
 import moe.antimony.hoshi.ui.HoshiBlockingProgressOverlay
 
+internal val SasayakiSpeedSliderRange = 0.5f..2.0f
+internal const val SasayakiSpeedSliderSteps = 29
+
 @Composable
 fun SasayakiSheet(
     player: SasayakiPlayer,
@@ -204,8 +207,8 @@ fun SasayakiSheet(
                     label = stringResource(R.string.sasayaki_speed),
                     valueText = String.format(java.util.Locale.US, "%.2fx", player.rate),
                     value = player.rate,
-                    range = 0.5f..1.5f,
-                    steps = 19,
+                    range = SasayakiSpeedSliderRange,
+                    steps = SasayakiSpeedSliderSteps,
                     onValueChange = { player.setRate(it) },
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))

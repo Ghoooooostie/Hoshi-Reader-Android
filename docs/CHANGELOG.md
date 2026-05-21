@@ -9,6 +9,10 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 - Add a Sasayaki setting to reverse only the reader bottom skip button actions in vertical writing mode.
 
+### Changed
+
+- Allow Sasayaki audiobook playback speed up to 2x.
+
 ### Fixed
 
 - Keep editable text-field cursors visible in dark and E-ink themes, and keep single-line fields horizontally scrolling with cursor movement when editing long text.
