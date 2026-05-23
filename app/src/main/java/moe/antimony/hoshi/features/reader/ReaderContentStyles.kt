@@ -103,8 +103,8 @@ internal object ReaderContentStyles {
                 $hiddenOverflowAxis: hidden !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                background: $backgroundColor !important;
-                color: $textColor !important;
+                background: var(--hoshi-background-color) !important;
+                color: var(--hoshi-text-color) !important;
                 writing-mode: ${settings.writingModeCss} !important;
             }
             body {
@@ -128,8 +128,8 @@ internal object ReaderContentStyles {
                 width: var(--page-width, 100vw) !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                background: $backgroundColor !important;
-                color: $textColor !important;
+                background: var(--hoshi-background-color) !important;
+                color: var(--hoshi-text-color) !important;
                 writing-mode: ${settings.writingModeCss} !important;
             }
             body {
@@ -153,6 +153,8 @@ internal object ReaderContentStyles {
         @media (prefers-color-scheme: light) { :root { --hoshi-system-text-color: #000; } }
         @media (prefers-color-scheme: dark) { :root { --hoshi-system-text-color: #fff; } }
         :root {
+            --hoshi-background-color: $backgroundColor;
+            --hoshi-text-color: $textColor;
             --hoshi-sasayaki-text-color: ${sasayakiTextColor.toReaderCssColor()};
             --hoshi-sasayaki-background-color: ${sasayakiBackgroundColor.toReaderCssColor(includeAlpha = true)};
         }
@@ -225,7 +227,7 @@ private fun String.cssSingleQuotedUrl(): String =
 private fun Double.cssLetterSpacingEm(): String =
     String.format(java.util.Locale.US, "%.2f", this / 100.0)
 
-private fun Long.toReaderCssColor(includeAlpha: Boolean = false): String = when {
+internal fun Long.toReaderCssColor(includeAlpha: Boolean = false): String = when {
     includeAlpha && (this ushr 24) != 0xFFL -> {
         val alpha = (this ushr 24) and 0xFF
         val rgb = this and 0xFFFFFF

@@ -1805,6 +1805,15 @@ private fun ChapterWebView(
     val readerContentReloadKey = remember(readerSettings) {
         readerSettings.readerContentReloadKey()
     }
+    val readerAppearanceScript = remember(
+        readerSettings.theme,
+        readerSettings.eInkMode,
+        readerSettings.systemLightSepia,
+        readerSettings.sepiaInvertInDark,
+        systemDark,
+    ) {
+        readerAppearanceScript(readerSettings, systemDark)
+    }
     val readerSetupScript = remember(
         chapter,
         chapterPosition.progress,
@@ -1979,8 +1988,14 @@ private fun ChapterWebView(
                     }
                 })
             }
+            webView.evaluateJavascript(readerAppearanceScript, null)
             if (!readerWebViewReadyToLoad(webViewViewportSize)) return@AndroidView
-            val loadKey = "$baseUrl#${readerSetupScript.hashCode()}#$webViewViewportSize"
+            val loadKey = readerWebViewLoadKey(
+                baseUrl = baseUrl,
+                readerContentReloadKey = readerContentReloadKey,
+                readerSetupScript = readerSetupScript,
+                webViewViewportSize = webViewViewportSize,
+            )
             if (webView.tag != loadKey) {
                 webView.tag = loadKey
                 webView.hideForReaderRestore()
@@ -1996,6 +2011,14 @@ private fun ChapterWebView(
 
 internal fun readerWebViewReadyToLoad(webViewViewportSize: IntSize): Boolean =
     webViewViewportSize != IntSize.Zero
+
+internal fun readerWebViewLoadKey(
+    baseUrl: String,
+    readerContentReloadKey: ReaderContentReloadKey,
+    readerSetupScript: String,
+    webViewViewportSize: IntSize,
+): String =
+    "$baseUrl#${readerContentReloadKey.hashCode()}#${readerSetupScript.hashCode()}#$webViewViewportSize"
 
 internal fun readerShouldReserveSasayakiTopToggle(bookRoot: File?, settings: SasayakiSettings): Boolean =
     settings.enabled &&
@@ -2268,6 +2291,20 @@ private fun readerSetupScript(
           window.scanNonJapaneseText = $scanNonJapaneseText;
           $selectionScript
           $paginationScript
+        })();
+    """.trimIndent()
+}
+
+private fun readerAppearanceScript(
+    settings: ReaderSettings,
+    systemDark: Boolean,
+): String {
+    val backgroundColor = settings.backgroundColor(systemDark).toReaderCssColor().javaScriptStringLiteral()
+    val textColor = settings.textColorCss(systemDark).javaScriptStringLiteral()
+    return """
+        (function() {
+          document.documentElement.style.setProperty('--hoshi-background-color', $backgroundColor);
+          document.documentElement.style.setProperty('--hoshi-text-color', $textColor);
         })();
     """.trimIndent()
 }

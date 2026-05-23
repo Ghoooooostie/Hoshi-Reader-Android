@@ -181,6 +181,29 @@ class ReaderWebViewStateHolderTest {
     }
 
     @Test
+    fun readerWebViewLoadKeyTracksContentReloadKey() {
+        val baseSettings = ReaderSettings()
+        val changedSettings = baseSettings.copy(fontSize = 28)
+        val setupScript = "same rendered setup script"
+        val viewportSize = IntSize(800, 1200)
+
+        val baseLoadKey = readerWebViewLoadKey(
+            baseUrl = "https://hoshi.local/epub/chapter.xhtml",
+            readerContentReloadKey = baseSettings.readerContentReloadKey(),
+            readerSetupScript = setupScript,
+            webViewViewportSize = viewportSize,
+        )
+        val changedLoadKey = readerWebViewLoadKey(
+            baseUrl = "https://hoshi.local/epub/chapter.xhtml",
+            readerContentReloadKey = changedSettings.readerContentReloadKey(),
+            readerSetupScript = setupScript,
+            webViewViewportSize = viewportSize,
+        )
+
+        assertFalse(baseLoadKey == changedLoadKey)
+    }
+
+    @Test
     fun sasayakiTopToggleSpaceIsReservedBeforeSidecarsAreParsed() {
         val root = createTempDirectory("hoshi-sasayaki-sidecar").toFile()
         try {
@@ -219,6 +242,18 @@ class ReaderWebViewStateHolderTest {
         val previousEpoch = holder.webViewRestoreEpoch
 
         holder.syncSettings(ReaderSettings(showTitle = false, showProgressTop = false))
+
+        assertFalse(holder.isWebViewRestoring)
+        assertEquals(previousEpoch, holder.webViewRestoreEpoch)
+    }
+
+    @Test
+    fun syncedEInkModeDoesNotReloadWebView() {
+        val holder = stateHolder(initialIndex = 1)
+        holder.markWebViewRestored()
+        val previousEpoch = holder.webViewRestoreEpoch
+
+        holder.syncSettings(ReaderSettings(eInkMode = true))
 
         assertFalse(holder.isWebViewRestoring)
         assertEquals(previousEpoch, holder.webViewRestoreEpoch)
@@ -265,7 +300,17 @@ class ReaderWebViewStateHolderTest {
         val base = ReaderSettings()
 
         assertFalse(base.readerContentReloadKey() == base.copy(fontSize = 28).readerContentReloadKey())
-        assertFalse(base.readerContentReloadKey() == base.copy(systemLightSepia = true).readerContentReloadKey())
+        assertFalse(base.readerContentReloadKey() == base.copy(verticalWriting = false).readerContentReloadKey())
+    }
+
+    @Test
+    fun readerContentReloadKeyIgnoresAppearanceColors() {
+        val base = ReaderSettings()
+
+        assertEquals(base.readerContentReloadKey(), base.copy(theme = ReaderTheme.Dark).readerContentReloadKey())
+        assertEquals(base.readerContentReloadKey(), base.copy(systemLightSepia = true).readerContentReloadKey())
+        assertEquals(base.readerContentReloadKey(), base.copy(sepiaInvertInDark = true).readerContentReloadKey())
+        assertEquals(base.readerContentReloadKey(), base.copy(eInkMode = true).readerContentReloadKey())
     }
 
     @Test

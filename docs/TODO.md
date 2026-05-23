@@ -108,7 +108,7 @@ For bookshelf-to-reader regressions, use real-device continuous screenshots or s
 
 For reader/dictionary/audio user flows, perform targeted emulator or device validation using the test data listed in `AGENTS.md`; include external AnkiconnectAndroid Local Audio URL add behavior and built-in Local Audio enable behavior when touching audio sources, and use the `pixivで読む` definition link case for dictionary external-link regressions.
 
-For reader/dictionary theme regressions, verify open Dictionary tab results, the Dictionary search cursor, open reader lookup popups, and System theme's Use Sepia as Light Theme toggle update immediately when switching between Light, Dark, System, and E-ink appearance modes.
+For reader/dictionary theme regressions, verify open Dictionary tab results, the Dictionary search cursor, reader lookup taps and open reader lookup popups, and System theme's Use Sepia as Light Theme toggle update immediately when switching between Light, Dark, System, and E-ink appearance modes.
 
 For Dictionary tab input regressions, verify opening the tab focuses the search field, shows the soft keyboard, and hints Japanese input when a Japanese-capable keyboard is installed.
 

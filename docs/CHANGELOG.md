@@ -7,6 +7,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ### Fixed
 
+- Keep reader word lookup clickable after toggling E-ink Mode from the reader Appearance sheet.
 - Restore stylus taps for reader lookup on tablets and let stylus taps outside the reader lookup popup close it, while preserving finger taps and lookup popup interactions.
 - Keep the light reader bottom menu outline visible against the white reader background.
 - Prevent Books from crashing when the Reading Shelf is enabled while a user-created shelf is also named Reading.

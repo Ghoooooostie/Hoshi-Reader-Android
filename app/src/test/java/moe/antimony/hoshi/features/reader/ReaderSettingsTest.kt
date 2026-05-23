@@ -260,8 +260,10 @@ class ReaderSettingsTest {
             systemDark = true,
         )
 
-        assertTrue(css.contains("background: #000 !important;"))
-        assertTrue(css.contains("color: #fff !important;"))
+        assertTrue(css.contains("--hoshi-background-color: #000;"))
+        assertTrue(css.contains("--hoshi-text-color: #fff;"))
+        assertTrue(css.contains("background: var(--hoshi-background-color) !important;"))
+        assertTrue(css.contains("color: var(--hoshi-text-color) !important;"))
     }
 
     @Test

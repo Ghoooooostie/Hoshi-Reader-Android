@@ -254,10 +254,6 @@ internal class ReaderWebViewStateHolder(
 }
 
 internal data class ReaderContentReloadKey(
-    val theme: ReaderTheme,
-    val eInkMode: Boolean,
-    val systemLightSepia: Boolean,
-    val sepiaInvertInDark: Boolean,
     val verticalWriting: Boolean,
     val selectedFont: String,
     val fontSize: Int,
@@ -274,10 +270,6 @@ internal data class ReaderContentReloadKey(
 
 internal fun ReaderSettings.readerContentReloadKey(): ReaderContentReloadKey =
     ReaderContentReloadKey(
-        theme = theme,
-        eInkMode = eInkMode,
-        systemLightSepia = systemLightSepia,
-        sepiaInvertInDark = sepiaInvertInDark,
         verticalWriting = verticalWriting,
         selectedFont = selectedFont,
         fontSize = fontSize,
