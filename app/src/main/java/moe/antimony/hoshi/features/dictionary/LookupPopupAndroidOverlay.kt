@@ -262,6 +262,11 @@ private class LookupPopupOverlayController(
     }
 
     private fun applyUpdate(update: OverlayUpdate) {
+        // The overlay sits above the reader WebView. When no popup is visible it must leave the
+        // input path entirely; some stylus implementations do not pass through a visible full-size
+        // parent even when its touch dispatch returns false.
+        view.visibility = lookupPopupOverlayVisibility(hasPopups = update.popups.isNotEmpty())
+
         val rootPopup = if (warmRootEnabled) {
             update.popups.firstOrNull()
                 ?.withRootSelectionOffset(update.rootSelectionOffsetX, update.rootSelectionOffsetY)
@@ -345,6 +350,9 @@ private class LookupPopupOverlayController(
         }
     }
 }
+
+internal fun lookupPopupOverlayVisibility(hasPopups: Boolean): Int =
+    if (hasPopups) View.VISIBLE else View.GONE
 
 private data class OverlayUpdate(
     val popups: List<LookupPopupItem>,

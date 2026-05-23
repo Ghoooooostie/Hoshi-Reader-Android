@@ -4,6 +4,7 @@ import moe.antimony.hoshi.features.reader.ReaderSelectionData
 import moe.antimony.hoshi.features.reader.ReaderSelectionRect
 import moe.antimony.hoshi.features.audio.AudioSettings
 import android.view.MotionEvent
+import android.view.View
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -291,6 +292,12 @@ class LookupPopupTest {
         assertTrue(tracker.shouldDispatch(MotionEvent.ACTION_UP, hitPopup = false))
         tracker.onDispatchResult(MotionEvent.ACTION_UP, handled = true)
         assertFalse(tracker.shouldDispatch(MotionEvent.ACTION_MOVE, hitPopup = false))
+    }
+
+    @Test
+    fun overlayLeavesInputPathWhenThereAreNoPopups() {
+        assertEquals(View.GONE, lookupPopupOverlayVisibility(hasPopups = false))
+        assertEquals(View.VISIBLE, lookupPopupOverlayVisibility(hasPopups = true))
     }
 
 }
