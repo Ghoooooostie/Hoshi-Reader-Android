@@ -110,8 +110,10 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.findViewTreeLifecycleOwner
 import java.util.WeakHashMap
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import moe.antimony.hoshi.LocalHoshiAppContainer
 import moe.antimony.hoshi.R
 import moe.antimony.hoshi.epub.EpubBook
@@ -124,7 +126,6 @@ import moe.antimony.hoshi.features.dictionary.LookupPopupOptions
 import moe.antimony.hoshi.features.dictionary.LookupPopupState
 import moe.antimony.hoshi.features.dictionary.clearPopupSelectionHighlights
 import moe.antimony.hoshi.features.dictionary.createLookupPopupItem
-import moe.antimony.hoshi.features.dictionary.currentDictionaryStyles
 import moe.antimony.hoshi.features.dictionary.withLookupPopupVisualOptions
 import moe.antimony.hoshi.features.sasayaki.BookSasayakiPlaybackRepository
 import moe.antimony.hoshi.features.sasayaki.SasayakiAudioRepository
@@ -148,6 +149,7 @@ private fun popupAnchorRect(rects: List<ReaderSelectionRect>): ReaderSelectionRe
 private fun warmRootLookupPopupItem(
     settings: ReaderSettings,
     dictionarySettings: DictionarySettings,
+    dictionaryStyles: Map<String, String>,
     darkMode: Boolean,
     audioSettings: AudioSettings,
 ): LookupPopupItem = LookupPopupItem(
@@ -160,7 +162,7 @@ private fun warmRootLookupPopupItem(
             normalizedOffset = null,
         ),
         results = emptyList(),
-        dictionaryStyles = currentDictionaryStyles(),
+        dictionaryStyles = dictionaryStyles,
         dictionarySettings = dictionarySettings,
         isVertical = settings.verticalWriting,
         isFullWidth = settings.popupFullWidth,
@@ -201,6 +203,7 @@ fun ReaderWebView(
     val appContainer = LocalHoshiAppContainer.current
     val scope = rememberCoroutineScope()
     val fontManager = appContainer.readerFontManager
+    val dictionaryRepository = appContainer.dictionaryRepository
     val dictionarySettingsRepository = appContainer.dictionarySettingsRepository
     val audioSettingsRepository = appContainer.audioSettingsRepository
     val sasayakiSettingsRepository = appContainer.sasayakiSettingsRepository
@@ -249,9 +252,18 @@ fun ReaderWebView(
     }
     var dictionarySettings by remember { mutableStateOf(DictionarySettings()) }
     var audioSettings by remember { mutableStateOf(AudioSettings()) }
+    var dictionaryStyles by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     LaunchedEffect(dictionarySettingsRepository) {
         dictionarySettingsRepository.settings.collect { settings ->
             dictionarySettings = settings
+        }
+    }
+    LaunchedEffect(dictionaryRepository) {
+        dictionaryStyles = withContext(Dispatchers.IO) {
+            runCatching {
+                dictionaryRepository.ensureLookupQueryReady()
+                dictionaryRepository.dictionaryStyles()
+            }.getOrDefault(emptyMap())
         }
     }
     LaunchedEffect(audioSettingsRepository) {
@@ -286,10 +298,11 @@ fun ReaderWebView(
             popupScale = effectiveSettings.popupScale,
         )
     }
-    val warmRootSeedPopup = remember(effectiveSettings, dictionarySettings, popupDarkMode, audioSettings) {
+    val warmRootSeedPopup = remember(effectiveSettings, dictionarySettings, dictionaryStyles, popupDarkMode, audioSettings) {
         warmRootLookupPopupItem(
             settings = effectiveSettings,
             dictionarySettings = dictionarySettings,
+            dictionaryStyles = dictionaryStyles,
             darkMode = popupDarkMode,
             audioSettings = audioSettings,
         )
@@ -474,6 +487,8 @@ fun ReaderWebView(
     fun lookupRootPopup(selection: ReaderSelectionData): Pair<LookupPopupItem, Int>? =
         createLookupPopupItem(
             selection = selection,
+            dictionaryStyles = dictionaryStyles,
+            lookup = dictionaryRepository::lookup,
             options = LookupPopupOptions(
                 isVertical = effectiveSettings.verticalWriting,
                 isFullWidth = effectiveSettings.popupFullWidth,
@@ -499,6 +514,8 @@ fun ReaderWebView(
     fun lookupChildPopup(selection: ReaderSelectionData): Pair<LookupPopupItem, Int>? =
         createLookupPopupItem(
             selection = selection,
+            dictionaryStyles = dictionaryStyles,
+            lookup = dictionaryRepository::lookup,
             options = LookupPopupOptions(
                 isVertical = false,
                 isFullWidth = false,
