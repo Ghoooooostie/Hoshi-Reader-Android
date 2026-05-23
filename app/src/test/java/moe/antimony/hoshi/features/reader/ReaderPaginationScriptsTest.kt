@@ -90,23 +90,26 @@ class ReaderPaginationScriptsTest {
     }
 
     @Test
-    fun blurImagesScriptRunsForPagedAndContinuousReadersLikeIos() {
+    fun imageTapScriptRunsForPagedAndContinuousReadersLikeIos() {
         val scripts = listOf(
             ReaderPaginationScripts.shellScript(settings = ReaderSettings(blurImages = true)),
             ReaderPaginationScripts.shellScript(settings = ReaderSettings(continuousMode = true, blurImages = true)),
         )
 
         scripts.forEach { script ->
-            assertTrue(script.contains("function blurImage(element)"))
-            assertTrue(script.contains("element.classList.add('blurred');"))
+            assertTrue(script.contains("function setupReaderImage(element, src, wrap, blurElement)"))
+            assertTrue(script.contains("blurElement.classList.add('blurred');"))
+            assertTrue(script.contains("target.className = 'blur-wrapper';"))
             assertTrue(script.contains("event.preventDefault();"))
             assertTrue(script.contains("event.stopPropagation();"))
-            assertTrue(script.contains("element.classList.remove('blurred');"))
+            assertTrue(script.contains("blurElement.classList.remove('blurred');"))
+            assertTrue(script.contains("HoshiReaderImage.postMessage(new URL(src, document.baseURI).href);"))
             assertTrue(script.contains("if (true) {"))
-            assertTrue(script.contains("if (svg.querySelector('image'))"))
-            assertTrue(script.contains("blurImage(svg);"))
+            assertTrue(script.contains("var svgImage = svg.querySelector('image');"))
+            assertTrue(script.contains("svgImage.href && svgImage.href.baseVal"))
+            assertTrue(script.contains("setupReaderImage(svgImage, svgImageSrc, false, svg);"))
             assertTrue(script.contains("img.classList.add('block-img');"))
-            assertTrue(script.contains("blurImage(img);"))
+            assertTrue(script.contains("setupReaderImage(img, img.currentSrc || img.src, true);"))
         }
     }
 

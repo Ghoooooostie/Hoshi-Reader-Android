@@ -304,8 +304,12 @@ internal object ReaderSelectionScripts {
             return this.getSentenceContext(startNode, startOffset).sentence;
           },
           selectText: function(x, y, maxLength) {
-            if (document.elementFromPoint(x, y)?.closest('a')) {
-              return null;
+            var hitElement = document.elementFromPoint(x, y);
+            if (hitElement?.closest('a')) {
+              return 'link';
+            }
+            if (hitElement?.closest('img, svg, .blur-wrapper')) {
+              return 'image';
             }
             var hit = this.getCharacterAtPoint(x, y);
             if (!hit) {

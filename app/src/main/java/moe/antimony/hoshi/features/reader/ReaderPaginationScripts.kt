@@ -667,10 +667,15 @@ internal object ReaderPaginationScripts {
           document.documentElement.style.setProperty('--hoshi-image-max-height', Math.max(1, pageHeight - ${settings.bottomOverlapPx}) + 'px');
           window.hoshiReader.pageHeight = pageHeight;
           window.hoshiReader.pageWidth = pageWidth;
-          ${readerImageBlurScript(settings)}
+          ${readerImageTapScript(settings)}
           Array.from(document.querySelectorAll('svg')).forEach(function(svg) {
             if (svg.querySelector('image') && svg.getAttribute('preserveAspectRatio') === 'none') {
               svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+            }
+            var svgImage = svg.querySelector('image');
+            if (svgImage) {
+              var svgImageSrc = svgImage.href && svgImage.href.baseVal ? svgImage.href.baseVal : (svgImage.getAttribute('href') || svgImage.getAttribute('xlink:href'));
+              setupReaderImage(svgImage, svgImageSrc, false, svg);
             }
           });
           var imagePromises = Array.from(document.querySelectorAll('img')).map(function(img) {
@@ -679,9 +684,7 @@ internal object ReaderPaginationScripts {
               var mark = function() {
                 if (!isGaiji && (img.naturalWidth > 256 || img.naturalHeight > 256)) {
                   img.classList.add('block-img');
-                  if (${settings.blurImages}) {
-                    blurImage(img);
-                  }
+                  setupReaderImage(img, img.currentSrc || img.src, true);
                 }
                 resolve();
               };
@@ -1142,10 +1145,15 @@ internal object ReaderPaginationScripts {
           document.documentElement.style.setProperty('--hoshi-continuous-height', window.innerHeight + 'px');
           document.documentElement.style.setProperty('--hoshi-image-max-width', Math.max(1, Math.floor(window.innerWidth * ${generatedLayout.imageWidthViewportRatio})) + 'px');
           document.documentElement.style.setProperty('--hoshi-image-max-height', Math.max(1, window.innerHeight - ${settings.bottomOverlapPx}) + 'px');
-          ${readerImageBlurScript(settings)}
+          ${readerImageTapScript(settings)}
           Array.from(document.querySelectorAll('svg')).forEach(function(svg) {
             if (svg.querySelector('image') && svg.getAttribute('preserveAspectRatio') === 'none') {
               svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+            }
+            var svgImage = svg.querySelector('image');
+            if (svgImage) {
+              var svgImageSrc = svgImage.href && svgImage.href.baseVal ? svgImage.href.baseVal : (svgImage.getAttribute('href') || svgImage.getAttribute('xlink:href'));
+              setupReaderImage(svgImage, svgImageSrc, false, svg);
             }
           });
           var imagePromises = Array.from(document.querySelectorAll('img')).map(function(img) {
@@ -1154,9 +1162,7 @@ internal object ReaderPaginationScripts {
               var mark = function() {
                 if (!isGaiji && (img.naturalWidth > 256 || img.naturalHeight > 256)) {
                   img.classList.add('block-img');
-                  if (${settings.blurImages}) {
-                    blurImage(img);
-                  }
+                  setupReaderImage(img, img.currentSrc || img.src, true);
                 }
                 resolve();
               };
@@ -1188,19 +1194,28 @@ internal object ReaderPaginationScripts {
     }
 }
 
-private fun readerImageBlurScript(settings: ReaderSettings): String = """
-    function blurImage(element) {
-      element.classList.add('blurred');
+private fun readerImageTapScript(settings: ReaderSettings): String = """
+    function setupReaderImage(element, src, wrap, blurElement) {
+      if (!element || !src) return;
+      blurElement = blurElement || element;
+      if (${settings.blurImages}) {
+        blurElement.classList.add('blurred');
+        if (wrap && !blurElement.parentElement?.classList.contains('blur-wrapper')) {
+          var target = document.createElement('span');
+          target.className = 'blur-wrapper';
+          blurElement.parentNode.insertBefore(target, blurElement);
+          target.appendChild(blurElement);
+        }
+      }
       element.addEventListener('click', function(event) {
         event.preventDefault();
         event.stopPropagation();
-        element.classList.remove('blurred');
-      }, { once: true });
-    }
-    if (${settings.blurImages}) {
-      Array.from(document.querySelectorAll('svg')).forEach(function(svg) {
-        if (svg.querySelector('image')) {
-          blurImage(svg);
+        if (blurElement.classList.contains('blurred')) {
+          blurElement.classList.remove('blurred');
+          return;
+        }
+        if (window.HoshiReaderImage && window.HoshiReaderImage.postMessage) {
+          HoshiReaderImage.postMessage(new URL(src, document.baseURI).href);
         }
       });
     }

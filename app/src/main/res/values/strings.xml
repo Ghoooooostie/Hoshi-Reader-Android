@@ -9,6 +9,7 @@
     <string name="action_back">Back</string>
     <string name="action_forward">Forward</string>
     <string name="action_close">Close</string>
+    <string name="action_share">Share</string>
     <string name="action_import" comment="Generic import action label.">Import</string>
     <string name="action_export">Export</string>
     <string name="action_update">Update</string>
@@ -20,6 +21,7 @@
     <string name="action_configure">Configure</string>
     <string name="action_decrease">Decrease</string>
     <string name="action_increase">Increase</string>
+    <string name="action_copy">Copy</string>
     <string name="action_clear">Clear</string>
     <string name="action_save">Save</string>
     <string name="action_edit">Edit</string>
@@ -164,6 +166,10 @@
     <string name="reader_jump_back">Return to previous jump position</string>
     <string name="reader_jump_forward">Return to later jump position</string>
     <string name="reader_menu">Reader Menu</string>
+    <string name="reader_image_clip_label">Hoshi reader image</string>
+    <string name="reader_image_copied">Image copied.</string>
+    <string name="reader_image_saved">Image saved.</string>
+    <string name="reader_image_save_failed">Could not save image.</string>
     <string name="reader_chapters">Chapters</string>
     <string name="reader_highlights">Highlights</string>
     <string name="reader_statistics" comment="Reader menu label, intentionally matching advanced statistics.">Statistics</string>

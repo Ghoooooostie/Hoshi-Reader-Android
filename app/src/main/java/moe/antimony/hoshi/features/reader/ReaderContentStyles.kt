@@ -222,6 +222,12 @@ internal object ReaderContentStyles {
             filter: blur(24px) !important;
             clip-path: inset(0);
         }
+        .blur-wrapper {
+            display: table;
+            margin: auto;
+            line-height: 0;
+            overflow: hidden;
+        }
         svg {
             max-width: var(--hoshi-image-max-width, ${settings.imageMaxWidthFallbackCss}) !important;
             max-height: var(--hoshi-image-max-height, ${settings.imageMaxHeightFallbackCss}) !important;

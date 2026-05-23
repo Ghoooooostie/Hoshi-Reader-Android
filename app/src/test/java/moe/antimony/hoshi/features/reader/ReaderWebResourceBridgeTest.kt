@@ -88,6 +88,30 @@ class ReaderWebResourceBridgeTest {
         assertNull(bridge.resourceForUrl("https://hoshi.local/fonts/Missing.ttf"))
     }
 
+    @Test
+    fun resolvesOnlyLocalEpubImageResourcesForFullscreenViewer() {
+        val bridge = ReaderWebResourceBridge(
+            book = EpubBook(
+                title = "Book",
+                chapters = emptyList(),
+                resources = mapOf(
+                    "OPS/images/cover.jpg" to EpubResource("image/jpeg", byteArrayOf(1, 2, 3)),
+                    "OPS/chapter.xhtml" to EpubResource("application/xhtml+xml", "<p>Text</p>".toByteArray()),
+                ),
+            ),
+            fontFileForRequest = { null },
+        )
+
+        val image = bridge.imageResourceForUrl("https://hoshi.local/epub/OPS/images/cover.jpg")
+
+        assertEquals("image/jpeg", image?.mediaType)
+        assertEquals(null, image?.encoding)
+        assertEquals(listOf(1.toByte(), 2.toByte(), 3.toByte()), image?.data?.toList())
+        assertNull(bridge.imageResourceForUrl("https://hoshi.local/epub/OPS/chapter.xhtml"))
+        assertNull(bridge.imageResourceForUrl("https://example.com/epub/OPS/images/cover.jpg"))
+        assertNull(bridge.imageResourceForUrl("not a url"))
+    }
+
     private fun bookWithResource(
         path: String,
         mediaType: String,

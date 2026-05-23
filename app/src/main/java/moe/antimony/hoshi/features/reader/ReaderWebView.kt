@@ -8,15 +8,24 @@ import moe.antimony.hoshi.epub.ReaderHighlight
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.ContentValues
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
+import android.graphics.BitmapFactory
 import android.graphics.Color as AndroidColor
 import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.InsetDrawable
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
 import android.os.SystemClock
+import android.provider.MediaStore
 import android.webkit.JavascriptInterface
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceRequest
@@ -36,10 +45,14 @@ import android.view.Gravity
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,10 +81,14 @@ import androidx.compose.material.icons.automirrored.rounded.ShowChart
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.FastRewind
 import androidx.compose.material.icons.rounded.BorderColor
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -92,17 +109,24 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
+import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
@@ -110,6 +134,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.findViewTreeLifecycleOwner
 import java.util.WeakHashMap
 import java.util.UUID
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -134,13 +159,17 @@ import moe.antimony.hoshi.features.sasayaki.SasayakiPlayer
 import moe.antimony.hoshi.features.sasayaki.SasayakiSettings
 import moe.antimony.hoshi.features.sasayaki.SasayakiSheet
 import moe.antimony.hoshi.webview.applyHoshiWebViewSecurityDefaults
-import java.io.File
 import kotlin.math.abs
 
 private data class PendingRootSelectionHighlight(
     val popupId: String,
     val rects: List<ReaderSelectionRect>? = null,
     val contentReady: Boolean = false,
+)
+
+private data class ReaderFullscreenImage(
+    val sourceUrl: String,
+    val resource: ReaderWebResource,
 )
 
 private fun popupAnchorRect(rects: List<ReaderSelectionRect>): ReaderSelectionRect? =
@@ -203,6 +232,9 @@ fun ReaderWebView(
     val appContainer = LocalHoshiAppContainer.current
     val scope = rememberCoroutineScope()
     val fontManager = appContainer.readerFontManager
+    val readerImageResourceBridge = remember(book, fontManager) {
+        ReaderWebResourceBridge(book, fontManager)
+    }
     val dictionaryRepository = appContainer.dictionaryRepository
     val dictionarySettingsRepository = appContainer.dictionarySettingsRepository
     val audioSettingsRepository = appContainer.audioSettingsRepository
@@ -283,6 +315,7 @@ fun ReaderWebView(
     var visibleLookupPopupIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var rootSelectionHighlightRects by remember { mutableStateOf<List<ReaderSelectionRect>>(emptyList()) }
     var warmRootLookupPopup by remember { mutableStateOf<LookupPopupItem?>(null) }
+    var fullscreenImage by remember { mutableStateOf<ReaderFullscreenImage?>(null) }
     val popupDarkMode = effectiveSettings.usesDarkInterface(systemDarkTheme)
     val themedLookupPopups = remember(
         lookupPopups,
@@ -592,6 +625,11 @@ fun ReaderWebView(
         } else {
             setLookupPopups(emptyList())
         }
+    }
+    fun openFullscreenImage(sourceUrl: String) {
+        val resource = readerImageResourceBridge.imageResourceForUrl(sourceUrl) ?: return
+        closeLookupPopupsAndSelection()
+        fullscreenImage = ReaderFullscreenImage(sourceUrl, resource)
     }
     fun updateRootPopupSelectionBounds(popupId: String, rects: List<ReaderSelectionRect>) {
         popupAnchorRect(rects)?.let { anchor ->
@@ -1037,6 +1075,7 @@ fun ReaderWebView(
                         sasayakiBackgroundColor = sasayakiSettings.backgroundColor(effectiveSettings.usesDarkInterface(systemDarkTheme)),
                         onTextSelected = handleTextSelected,
                         onClearLookupPopup = ::closeLookupPopupsAndSelection,
+                        onImageTapped = ::openFullscreenImage,
                         onHighlightCreated = ::addHighlight,
                         fontManager = fontManager,
                         systemDark = systemDarkTheme,
@@ -1203,9 +1242,286 @@ fun ReaderWebView(
                 onDismiss = stateHolder::dismissStatistics,
             )
         }
+        fullscreenImage?.let { image ->
+            ReaderFullscreenImageOverlay(
+                image = image,
+                resourceBridge = readerImageResourceBridge,
+                backgroundColor = Color(effectiveSettings.backgroundColor(systemDarkTheme)),
+                onDismiss = { fullscreenImage = null },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         webView?.let { _ -> Unit }
     }
 }
+
+@Composable
+private fun ReaderFullscreenImageOverlay(
+    image: ReaderFullscreenImage,
+    resourceBridge: ReaderWebResourceBridge,
+    backgroundColor: Color,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    BackHandler(onBack = onDismiss)
+    Box(
+        modifier = modifier
+            .background(backgroundColor)
+            .navigationBarsPadding(),
+    ) {
+        if (image.resource.mediaType.equals("image/svg+xml", ignoreCase = true)) {
+            ReaderFullscreenSvgImage(
+                image = image,
+                resourceBridge = resourceBridge,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            ReaderFullscreenRasterImage(
+                image = image,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .zIndex(1f)
+                .padding(top = 20.dp, end = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ReaderFullscreenImageButton(
+                icon = Icons.Rounded.ContentCopy,
+                contentDescription = stringResource(R.string.action_copy),
+                onClick = { copyReaderImage(context, image) },
+            )
+            ReaderFullscreenImageButton(
+                icon = Icons.Rounded.Download,
+                contentDescription = stringResource(R.string.action_save),
+                onClick = { saveReaderImage(context, image) },
+            )
+            ReaderFullscreenImageButton(
+                icon = Icons.Rounded.Share,
+                contentDescription = stringResource(R.string.action_share),
+                onClick = { shareReaderImage(context, image) },
+            )
+            ReaderFullscreenImageButton(
+                icon = Icons.Rounded.Close,
+                contentDescription = stringResource(R.string.action_close),
+                onClick = onDismiss,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReaderFullscreenRasterImage(
+    image: ReaderFullscreenImage,
+    modifier: Modifier = Modifier,
+) {
+    val bitmap = remember(image.resource.data) {
+        BitmapFactory.decodeByteArray(image.resource.data, 0, image.resource.data.size)
+    }
+    var scale by remember(image.sourceUrl) { mutableStateOf(1f) }
+    var offset by remember(image.sourceUrl) { mutableStateOf(Offset.Zero) }
+    Box(
+        modifier = modifier
+            .pointerInput(image.sourceUrl) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        if (scale > 1f) {
+                            scale = 1f
+                            offset = Offset.Zero
+                        } else {
+                            scale = 3f
+                            offset = Offset.Zero
+                        }
+                    },
+                )
+            }
+            .pointerInput(image.sourceUrl) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    val nextScale = (scale * zoom).coerceIn(1f, 5f)
+                    scale = nextScale
+                    offset = if (nextScale == 1f) Offset.Zero else offset + pan
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        bitmap?.let { decoded ->
+            Image(
+                bitmap = decoded.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        translationX = offset.x
+                        translationY = offset.y
+                    },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReaderFullscreenSvgImage(
+    image: ReaderFullscreenImage,
+    resourceBridge: ReaderWebResourceBridge,
+    modifier: Modifier = Modifier,
+) {
+    AndroidView(
+        modifier = modifier,
+        factory = { context ->
+            WebView(context).apply {
+                applyHoshiWebViewSecurityDefaults()
+                settings.builtInZoomControls = true
+                settings.displayZoomControls = false
+                settings.setSupportZoom(true)
+                setBackgroundColor(AndroidColor.TRANSPARENT)
+                webViewClient = object : WebViewClient() {
+                    override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
+                        request.url?.toString()?.let(resourceBridge::resourceForUrl)?.toWebResourceResponse()
+                }
+            }
+        },
+        update = { webView ->
+            val escapedSource = image.sourceUrl.htmlAttributeEscaped()
+            val html = """
+                <!doctype html>
+                <html>
+                <head>
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                  <style>
+                    html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; }
+                    body { display: flex; align-items: center; justify-content: center; }
+                    img { max-width: 100vw; max-height: 100vh; width: auto; height: auto; object-fit: contain; }
+                  </style>
+                </head>
+                <body><img src="$escapedSource" /></body>
+                </html>
+            """.trimIndent()
+            webView.loadDataWithBaseURL("https://hoshi.local/", html, "text/html", "UTF-8", null)
+        },
+    )
+}
+
+@Composable
+private fun ReaderFullscreenImageButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        IconButton(onClick = onClick) {
+            Icon(icon, contentDescription = contentDescription)
+        }
+    }
+}
+
+private fun shareReaderImage(context: Context, image: ReaderFullscreenImage) {
+    val file = readerImageShareFile(context, image)
+    file.writeBytes(image.resource.data)
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    val intent = Intent(Intent.ACTION_SEND)
+        .setType(image.resource.mediaType)
+        .putExtra(Intent.EXTRA_STREAM, uri)
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    intent.clipData = ClipData.newUri(context.contentResolver, file.name, uri)
+    runCatching {
+        context.startActivity(Intent.createChooser(intent, context.getString(R.string.action_share)))
+    }.recoverCatching { error ->
+        if (error is ActivityNotFoundException || error is SecurityException) Unit else throw error
+    }
+}
+
+private fun copyReaderImage(context: Context, image: ReaderFullscreenImage) {
+    val file = readerImageShareFile(context, image)
+    file.writeBytes(image.resource.data)
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    val clipboard = context.getSystemService(ClipboardManager::class.java)
+    val clip = ClipData.newUri(
+        context.contentResolver,
+        context.getString(R.string.reader_image_clip_label),
+        uri,
+    )
+    clipboard.setPrimaryClip(clip)
+    if (shouldShowReaderImageCopyToast()) {
+        Toast.makeText(context, R.string.reader_image_copied, Toast.LENGTH_SHORT).show()
+    }
+}
+
+private fun saveReaderImage(context: Context, image: ReaderFullscreenImage) {
+    val name = "hoshi_reader_${UUID.randomUUID()}.${readerImageExtension(image.sourceUrl, image.resource.mediaType)}"
+    val values = ContentValues().apply {
+        put(MediaStore.Images.Media.DISPLAY_NAME, name)
+        put(MediaStore.Images.Media.MIME_TYPE, image.resource.mediaType)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/Hoshi Reader")
+            put(MediaStore.Images.Media.IS_PENDING, 1)
+        }
+    }
+    val resolver = context.contentResolver
+    val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+    } else {
+        MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+    }
+    var uri: Uri? = null
+    runCatching {
+        uri = resolver.insert(collection, values) ?: error("MediaStore insert failed")
+        resolver.openOutputStream(requireNotNull(uri))?.use { output ->
+            output.write(image.resource.data)
+        } ?: error("MediaStore output stream unavailable")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            values.clear()
+            values.put(MediaStore.Images.Media.IS_PENDING, 0)
+            resolver.update(requireNotNull(uri), values, null, null)
+        }
+    }.onSuccess {
+        Toast.makeText(context, R.string.reader_image_saved, Toast.LENGTH_SHORT).show()
+    }.onFailure {
+        uri?.let { failedUri -> resolver.delete(failedUri, null, null) }
+        Toast.makeText(context, R.string.reader_image_save_failed, Toast.LENGTH_SHORT).show()
+    }
+}
+
+private fun readerImageShareFile(context: Context, image: ReaderFullscreenImage): File {
+    val dir = File(context.cacheDir, "reader-images").also { it.mkdirs() }
+    val extension = readerImageExtension(image.sourceUrl, image.resource.mediaType)
+    return File(dir, "hoshi_reader_${UUID.randomUUID()}.$extension")
+}
+
+internal fun shouldShowReaderImageCopyToast(sdkInt: Int = Build.VERSION.SDK_INT): Boolean =
+    sdkInt < Build.VERSION_CODES.TIRAMISU
+
+private fun readerImageExtension(sourceUrl: String, mediaType: String): String {
+    val pathExtension = runCatching {
+        Uri.parse(sourceUrl).lastPathSegment
+            ?.substringAfterLast('.', missingDelimiterValue = "")
+            ?.takeIf { it.isNotBlank() }
+    }.getOrNull()
+    return pathExtension ?: when (mediaType.substringBefore(';').lowercase()) {
+        "image/jpeg" -> "jpg"
+        "image/png" -> "png"
+        "image/gif" -> "gif"
+        "image/webp" -> "webp"
+        "image/svg+xml" -> "svg"
+        else -> "bin"
+    }
+}
+
+private fun String.htmlAttributeEscaped(): String =
+    replace("&", "&amp;")
+        .replace("\"", "&quot;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
 
 @Composable
 private fun ReaderTopInfo(
@@ -1783,6 +2099,7 @@ private fun ChapterWebView(
     sasayakiBackgroundColor: Long,
     onTextSelected: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit,
     onClearLookupPopup: () -> Unit,
+    onImageTapped: (String) -> Unit,
     onHighlightCreated: (HighlightColor, String, ReaderHighlightCreationResult) -> Unit,
     fontManager: ReaderFontManager,
     systemDark: Boolean,
@@ -1794,6 +2111,7 @@ private fun ChapterWebView(
     val currentOnContinuousScrollDisplayProgress = rememberUpdatedState(onContinuousScrollDisplayProgress)
     val currentOnContinuousScrollProgress = rememberUpdatedState(onContinuousScrollProgress)
     val currentOnClearLookupPopup = rememberUpdatedState(onClearLookupPopup)
+    val currentOnImageTapped = rememberUpdatedState(onImageTapped)
     val currentOnHighlightCreated = rememberUpdatedState(onHighlightCreated)
     val currentOnNextChapter = rememberUpdatedState(onNextChapter)
     val currentOnPreviousChapter = rememberUpdatedState(onPreviousChapter)
@@ -1880,6 +2198,12 @@ private fun ChapterWebView(
                     },
                     "HoshiReaderRestore",
                 )
+                addJavascriptInterface(
+                    ReaderImageTapBridge(this) { sourceUrl ->
+                        currentOnImageTapped.value(sourceUrl)
+                    },
+                    "HoshiReaderImage",
+                )
                 webViewClient = EpubWebViewClient(book, fontManager, onInternalLink) { view ->
                     view.evaluateJavascript(readerSetupScript, null)
                 }
@@ -1897,8 +2221,10 @@ private fun ChapterWebView(
                         maxLength = MAX_SELECTION_LENGTH,
                     ).source,
                 ) { result ->
-                    if (ReaderSelectionResult.fromWebViewResult(result).selectedNothing) {
-                        currentOnClearLookupPopup.value()
+                    val selectionResult = ReaderSelectionResult.fromWebViewResult(result)
+                    when {
+                        selectionResult.isImageTap || selectionResult.isLinkTap -> Unit
+                        selectionResult.selectedNothing -> currentOnClearLookupPopup.value()
                     }
                 }
             }
@@ -2519,6 +2845,18 @@ private class ReaderRestoreBridge(
         webView.post {
             onRestoreCompleted(webView)
             webView.showAfterReaderRestore()
+        }
+    }
+}
+
+private class ReaderImageTapBridge(
+    private val webView: WebView,
+    private val onImageTapped: (String) -> Unit,
+) {
+    @JavascriptInterface
+    fun postMessage(sourceUrl: String) {
+        webView.post {
+            onImageTapped(sourceUrl)
         }
     }
 }

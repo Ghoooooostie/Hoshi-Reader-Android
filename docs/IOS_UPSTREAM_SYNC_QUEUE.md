@@ -47,7 +47,7 @@ Validation:
 
 ### 2. Reader image tap, SVG media targeting, and fullscreen zoom
 
-Status: pending Android sync.
+Status: completed on Android in `codex/reader-image-fullscreen-sync`.
 
 Commits:
 
@@ -65,15 +65,13 @@ iOS behavior to mirror:
 - A later tap opens a fullscreen image viewer with zoom, double-tap zoom, close, and share controls.
 - SVG containers forward image handling through the inner `<image>` href so the fullscreen viewer opens the actual media URL.
 
-Android current gap:
+Android result:
 
-- Android already implements blur-on-first-tap for large images/SVGs, but it does not yet expose an image-tapped bridge or fullscreen zoomable image surface.
-- Existing Android blur code attaches directly to `svg`; iOS now targets inner `image` elements and wraps blurred bitmap images with `.blur-wrapper`.
-
-Suggested slice:
-
-- Extend reader JS to return `link`/`image` separately from lookup selection, add a WebView bridge for image taps, and build a fullscreen image viewer using Android-native image loading/zoom gestures.
-- Keep SVG image URL resolution, blur removal, tap-to-open, and reader chrome tap handling in one slice because they share the same event path.
+- Reader JS now uses one image setup path for large bitmap images and SVG containers. Bitmap images are wrapped with `.blur-wrapper` when Blur Images is enabled, while SVG click handling is attached to the inner `<image>` and forwards its resolved media URL.
+- Reader selection distinguishes text, links, and image taps so native Android tap handling no longer opens lookup or clears popups for image/link taps.
+- Tapped reader images open a fullscreen overlay. Raster images use native Compose zoom/pan/double-tap handling; SVG media renders in a contained zoomable WebView backed by the same EPUB resource bridge.
+- The fullscreen viewer exposes close, copy, save, and Android share controls. Copy/share use temporary FileProvider-backed cache files, while save writes through MediaStore.
+- Covered by focused JVM tests for reader image JS, selection result parsing, localized share strings, and local EPUB image resource targeting.
 
 Validation:
 

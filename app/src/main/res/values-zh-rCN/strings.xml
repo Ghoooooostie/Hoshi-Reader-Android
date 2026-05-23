@@ -9,6 +9,7 @@
     <string name="action_back">返回</string>
     <string name="action_forward">前进</string>
     <string name="action_close">关闭</string>
+    <string name="action_share">分享</string>
     <string name="action_import" comment="Generic import action label.">导入</string>
     <string name="action_export">导出</string>
     <string name="action_update">更新</string>
@@ -20,6 +21,7 @@
     <string name="action_configure">配置</string>
     <string name="action_decrease">减少</string>
     <string name="action_increase">增加</string>
+    <string name="action_copy">复制</string>
     <string name="action_clear">清除</string>
     <string name="action_save">保存</string>
     <string name="action_edit">编辑</string>
@@ -164,6 +166,10 @@
     <string name="reader_jump_back">返回上一个跳转位置</string>
     <string name="reader_jump_forward">返回后一个跳转位置</string>
     <string name="reader_menu">阅读器菜单</string>
+    <string name="reader_image_clip_label">Hoshi 阅读器图片</string>
+    <string name="reader_image_copied">已复制图片。</string>
+    <string name="reader_image_saved">已保存图片。</string>
+    <string name="reader_image_save_failed">无法保存图片。</string>
     <string name="reader_chapters">章节</string>
     <string name="reader_highlights">标注</string>
     <string name="reader_statistics" comment="Reader menu label, intentionally matching advanced statistics.">统计</string>
