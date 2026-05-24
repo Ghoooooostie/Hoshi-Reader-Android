@@ -50,6 +50,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -67,10 +68,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -109,9 +111,13 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.draw.innerShadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
@@ -122,6 +128,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -129,6 +136,7 @@ import androidx.compose.ui.zIndex
 import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.findViewTreeLifecycleOwner
@@ -160,6 +168,7 @@ import moe.antimony.hoshi.features.sasayaki.SasayakiSettings
 import moe.antimony.hoshi.features.sasayaki.SasayakiSheet
 import moe.antimony.hoshi.webview.applyHoshiWebViewSecurityDefaults
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private data class PendingRootSelectionHighlight(
     val popupId: String,
@@ -705,6 +714,7 @@ fun ReaderWebView(
         return false
     }
     fun saveDisplayedProgress(progress: Double) {
+        stateHolder.enterFocusModeForReaderInteraction()
         startStatisticsForProgressChangeIfNeeded()
         val savedPosition = stateHolder.recordDisplayedProgress(progress)
         stateHolder.clearForwardHistoryAfterManualMovement()
@@ -712,6 +722,7 @@ fun ReaderWebView(
         saveReaderPosition(savedPosition)
     }
     fun displayPagedTurnProgress(progress: Double) {
+        stateHolder.enterFocusModeForReaderInteraction()
         startStatisticsForProgressChangeIfNeeded()
         stateHolder.recordDisplayedProgress(progress)
         stateHolder.clearForwardHistoryAfterManualMovement()
@@ -731,8 +742,8 @@ fun ReaderWebView(
         saveReaderPosition(savedPosition)
     }
     fun navigateReaderPage(direction: ReaderNavigationDirection): Boolean {
-        if (!stateHolder.canAcceptReaderNavigationInput()) return false
         val currentWebView = webView ?: return false
+        if (!stateHolder.beginReaderNavigationInput()) return false
         closeLookupPopupsAndSelection()
         val onLimit = when (direction) {
             ReaderNavigationDirection.Forward -> ::goToNextChapter
@@ -753,6 +764,7 @@ fun ReaderWebView(
         }
     }
     val handleTextSelected: (ReaderSelectionData, (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit = { selection, selectionRects ->
+        stateHolder.enterFocusModeForReaderInteraction()
         pendingRootSelectionHighlight = null
         visibleLookupPopupIds = emptySet()
         rootSelectionHighlightRects = emptyList()
@@ -772,6 +784,11 @@ fun ReaderWebView(
         } else {
             pendingRootSelectionHighlight = null
             onTextSelected(selection)?.let { selectionRects(it) { rootSelectionHighlightRects = it } }
+        }
+    }
+    fun handleReaderTapOutside() {
+        if (!stateHolder.toggleFocusModeFromReaderTap(hasVisiblePopups = stateHolder.lookupPopups.isNotEmpty())) {
+            closeLookupPopupsAndSelection()
         }
     }
     val chromeState = remember(
@@ -937,41 +954,61 @@ fun ReaderWebView(
         }
     }
 
-    BackHandler(onBack = ::closeReader)
-    val useLightSystemBars = when (effectiveSettings.theme) {
-        ReaderTheme.Dark -> false
-        ReaderTheme.System -> !systemDarkTheme
-        ReaderTheme.Light, ReaderTheme.Sepia -> true
+    BackHandler {
+        if (stateHolder.handleBackNavigation()) {
+            closeReader()
+        }
     }
-    DisposableEffect(context, view, useLightSystemBars, systemDarkTheme) {
+    val useDarkSystemBarIcons = effectiveSettings.usesDarkSystemBarIcons(systemDarkTheme)
+    DisposableEffect(context, view, useDarkSystemBarIcons) {
         val activity = context.findActivity()
         val controller = activity?.window?.let { window ->
             WindowCompat.getInsetsController(window, view)
         }
-        controller?.isAppearanceLightStatusBars = useLightSystemBars
-        controller?.isAppearanceLightNavigationBars = useLightSystemBars
+        controller?.isAppearanceLightStatusBars = useDarkSystemBarIcons
+        controller?.isAppearanceLightNavigationBars = useDarkSystemBarIcons
         onDispose {
-            controller?.isAppearanceLightStatusBars = !systemDarkTheme
-            controller?.isAppearanceLightNavigationBars = !systemDarkTheme
+            controller?.isAppearanceLightStatusBars = useDarkSystemBarIcons
+            controller?.isAppearanceLightNavigationBars = useDarkSystemBarIcons
         }
     }
-    DisposableEffect(context, view, focusMode) {
+    DisposableEffect(context, view) {
         val activity = context.findActivity()
         val controller = activity?.window?.let { window ->
             WindowCompat.getInsetsController(window, view)
         }
-        if (focusMode) {
-            controller?.hide(WindowInsetsCompat.Type.statusBars())
+        val previousBehavior = controller?.systemBarsBehavior
+        controller?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        onDispose {
+            if (previousBehavior != null) {
+                controller.systemBarsBehavior = previousBehavior
+            }
+            controller?.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+    LaunchedEffect(context, view, focusMode) {
+        val activity = context.findActivity()
+        val controller = activity?.window?.let { window ->
+            WindowCompat.getInsetsController(window, view)
+        } ?: return@LaunchedEffect
+        val visibility = readerSystemBarVisibility(focusMode)
+        if (visibility.showStatusBar) {
+            controller.show(WindowInsetsCompat.Type.statusBars())
         } else {
-            controller?.show(WindowInsetsCompat.Type.statusBars())
+            controller.hide(WindowInsetsCompat.Type.statusBars())
         }
-        onDispose {
-            controller?.show(WindowInsetsCompat.Type.statusBars())
+        if (visibility.showNavigationBar) {
+            controller.show(WindowInsetsCompat.Type.navigationBars())
+        } else {
+            controller.hide(WindowInsetsCompat.Type.navigationBars())
         }
     }
 
     val bottomChromeMetrics = readerBottomChromeMetrics()
+    val currentStatusBarPadding = rememberCurrentStatusBarPadding()
     val stableStatusBarPadding = rememberStableStatusBarPadding()
+    val currentStatusBarPaddingDp = currentStatusBarPadding.value.roundToInt().coerceAtLeast(0)
+    val stableStatusBarPaddingDp = stableStatusBarPadding.value.roundToInt().coerceAtLeast(0)
     val sasayakiBottomSkipButtons = readerSasayakiBottomSkipButtons(
         settings = sasayakiSettings,
         hasAudio = sasayakiPlayer?.hasAudio == true,
@@ -994,6 +1031,18 @@ fun ReaderWebView(
     val reserveSasayakiTopToggle = remember(bookRoot, sasayakiSettings) {
         readerShouldReserveSasayakiTopToggle(bookRoot, sasayakiSettings)
     }
+    val contentChromeInsets = readerContentChromeInsets(
+        state = chromeState,
+        settings = effectiveSettings,
+        showSasayakiToggle = reserveSasayakiTopToggle || showSasayakiTopToggle,
+        showStatisticsToggle = effectiveSettings.enableStatistics && effectiveSettings.showStatisticsToggle,
+        focusMode = focusMode,
+        topSystemInsetDp = stableStatusBarPadding.value.roundToInt().coerceAtLeast(0),
+    )
+    val topInfoPadding = readerTopInfoOverlayPaddingDp(
+        topSystemInsetDp = currentStatusBarPaddingDp,
+        focusMode = focusMode,
+    ).dp
     val onSasayakiTopToggle = sasayakiPlayer
         ?.takeIf { showSasayakiTopToggle && it.hasAudio }
         ?.let { player ->
@@ -1012,6 +1061,21 @@ fun ReaderWebView(
         showStatisticsToggle = effectiveSettings.enableStatistics && effectiveSettings.showStatisticsToggle,
         focusMode = focusMode,
     )
+    val chromeVisibility = readerChromeVisibility(
+        focusMode = focusMode,
+        hasStatisticsToggle = effectiveSettings.enableStatistics && effectiveSettings.showStatisticsToggle,
+        hasSasayakiToggle = onSasayakiTopToggle != null,
+        hasBackJump = stateHolder.backTargetPosition != null,
+        hasForwardJump = stateHolder.forwardTargetPosition != null,
+    )
+    val topInfoVisibility = chromeVisibility.copy(
+        showTitleAndProgress = chromeVisibility.showTitleAndProgress &&
+            readerShouldShowTitleAndProgress(
+                focusMode = focusMode,
+                currentStatusBarInsetDp = currentStatusBarPaddingDp,
+                stableStatusBarInsetDp = stableStatusBarPaddingDp,
+            ),
+    )
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -1020,11 +1084,9 @@ fun ReaderWebView(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = stableStatusBarPadding)
-                .navigationBarsPadding()
                 .padding(
-                    top = chromeLayout.topWebViewPaddingDp.dp,
-                    bottom = bottomChromeMetrics.webViewBottomPaddingDp.dp,
+                    top = contentChromeInsets.topDp.dp,
+                    bottom = contentChromeInsets.bottomDp.dp,
                 ),
         ) {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -1075,6 +1137,8 @@ fun ReaderWebView(
                         sasayakiBackgroundColor = sasayakiSettings.backgroundColor(effectiveSettings.usesDarkInterface(systemDarkTheme)),
                         onTextSelected = handleTextSelected,
                         onClearLookupPopup = ::closeLookupPopupsAndSelection,
+                        onReaderTapOutside = ::handleReaderTapOutside,
+                        onReaderInteraction = stateHolder::enterFocusModeForReaderInteraction,
                         onImageTapped = ::openFullscreenImage,
                         onHighlightCreated = ::addHighlight,
                         fontManager = fontManager,
@@ -1142,21 +1206,29 @@ fun ReaderWebView(
             },
             onSasayakiToggle = onSasayakiTopToggle,
             sasayakiPlaying = sasayakiPlayer?.isPlaying == true || sasayakiWasPausedByLookup,
-            focusMode = focusMode,
+            visibility = topInfoVisibility,
             metrics = bottomChromeMetrics,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = stableStatusBarPadding)
+                .padding(top = topInfoPadding)
                 .padding(horizontal = 15.dp),
         )
         ReaderFocusModeToggleArea(
             metrics = bottomChromeMetrics,
             sasayakiSkipButtons = sasayakiBottomSkipButtons,
             focusMode = focusMode,
-            onToggleFocusMode = stateHolder::toggleFocusMode,
+            onToggleFocusMode = ::handleReaderTapOutside,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
-        if (!focusMode) ReaderBottomChrome(
+        ReaderBottomSafeProgress(
+            state = chromeState,
+            settings = effectiveSettings,
+            colors = readerChromeColors(effectiveSettings, systemDarkTheme),
+            metrics = bottomChromeMetrics,
+            focusMode = focusMode,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+        if (chromeVisibility.showBottomChrome) ReaderBottomChrome(
             state = chromeState,
             settings = effectiveSettings,
             layout = chromeLayout,
@@ -1534,23 +1606,26 @@ private fun ReaderTopInfo(
     onJumpForward: (() -> Unit)?,
     onSasayakiToggle: (() -> Unit)?,
     sasayakiPlaying: Boolean,
-    focusMode: Boolean,
+    visibility: ReaderChromeVisibility,
     metrics: ReaderBottomChromeMetrics,
     modifier: Modifier = Modifier,
 ) {
     val progress = state.progressText(settings)
-    val showBackJump = !focusMode && state.backTargetCharacter != null && onJumpBack != null
-    val showForwardJump = !focusMode && state.forwardTargetCharacter != null && onJumpForward != null
-    if ((focusMode || !settings.showTitle) &&
-        onStatisticsToggle == null &&
+    val showProgressInTopInfo = readerShowsProgressInTopBubble(settings)
+    val showBackJump = visibility.showBackJump && state.backTargetCharacter != null && onJumpBack != null
+    val showForwardJump = visibility.showForwardJump && state.forwardTargetCharacter != null && onJumpForward != null
+    val showStatisticsToggle = visibility.showStatisticsToggle && onStatisticsToggle != null
+    val showSasayakiToggle = visibility.showSasayakiToggle && onSasayakiToggle != null
+    if ((!visibility.showTitleAndProgress || !settings.showTitle) &&
+        !showStatisticsToggle &&
         !showBackJump &&
         !showForwardJump &&
-        onSasayakiToggle == null &&
-        (focusMode || progress.isBlank() || !settings.showProgressTop)
+        !showSasayakiToggle &&
+        (!visibility.showTitleAndProgress || progress.isBlank() || !showProgressInTopInfo)
     ) return
     Box(modifier = modifier.fillMaxWidth()) {
-        val showStartControls = onStatisticsToggle != null || showBackJump
-        val showEndControls = onSasayakiToggle != null || showForwardJump
+        val showStartControls = showStatisticsToggle || showBackJump
+        val showEndControls = showSasayakiToggle || showForwardJump
         var startControlWidth by remember { mutableStateOf(0) }
         var endControlWidth by remember { mutableStateOf(0) }
         val density = LocalDensity.current
@@ -1570,44 +1645,82 @@ private fun ReaderTopInfo(
             titlePadding.endDp.dp,
             dynamicTitlePadding,
         )
-        Column(
-            modifier = Modifier.align(Alignment.TopCenter),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(0.dp),
-        ) {
-            if (!focusMode && settings.showTitle) {
-                Text(
-                    text = state.title,
-                    color = Color(colors.infoText),
-                    style = MaterialTheme.typography.labelLarge,
-                    maxLines = 1,
-                    modifier = Modifier.padding(
-                        start = resolvedTitlePadding,
-                        end = resolvedTitlePadding,
+        val showCenterInfo = visibility.showTitleAndProgress &&
+            (settings.showTitle || (showProgressInTopInfo && progress.isNotBlank()))
+        if (showCenterInfo) {
+            val bubbleMetrics = readerInfoBubbleMetrics()
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .readerChromeShadow(
+                        elevationDp = colors.bubbleShadowElevationDp,
+                        shadowColor = Color(colors.bubbleShadowColor),
+                        shape = RoundedCornerShape(bubbleMetrics.cornerRadiusDp.dp),
+                    )
+                    .readerChromeOutline(
+                        outlineColor = Color(colors.bubbleOutline),
+                        shape = RoundedCornerShape(bubbleMetrics.cornerRadiusDp.dp),
+                    )
+                    .readerChromeInnerShadow(
+                        shadowColor = Color(colors.bubbleInnerShadowColor),
+                        shape = RoundedCornerShape(bubbleMetrics.cornerRadiusDp.dp),
                     ),
-                )
-            }
-            if (!focusMode && settings.showProgressTop && progress.isNotBlank()) {
-                Text(
-                    text = progress,
-                    color = Color(colors.infoText),
-                    style = MaterialTheme.typography.labelMedium,
-                )
+                shape = RoundedCornerShape(bubbleMetrics.cornerRadiusDp.dp),
+                color = Color(colors.menuContainer),
+                border = BorderStroke(readerBubbleBorderWidthDp(colors).dp, Color(colors.menuBorder)),
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp,
+            ) {
+                Column(
+                    modifier = Modifier.padding(
+                        horizontal = bubbleMetrics.horizontalPaddingDp.dp,
+                        vertical = bubbleMetrics.verticalPaddingDp.dp,
+                    ),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                ) {
+                    if (settings.showTitle) {
+                        Text(
+                            text = state.title,
+                            color = Color(colors.infoText),
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            modifier = Modifier.padding(
+                                start = resolvedTitlePadding,
+                                end = resolvedTitlePadding,
+                            ),
+                        )
+                    }
+                    if (showProgressInTopInfo && progress.isNotBlank()) {
+                        Text(
+                            text = progress,
+                            color = Color(colors.infoText),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                }
             }
         }
         if (showStartControls) {
             Row(
                 modifier = Modifier
                     .align(Alignment.TopStart)
+                    .offset(
+                        x = metrics.topButtonHorizontalInsetDp.dp,
+                        y = metrics.topButtonOffsetYDp.dp,
+                    )
                     .onSizeChanged { startControlWidth = it.width },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                if (onStatisticsToggle != null) {
+                if (showStatisticsToggle) {
                     ReaderRoundButton(
                         colors = colors,
                         sizeDp = metrics.topStatisticsButtonSizeDp,
-                        onClick = onStatisticsToggle,
+                        containerColor = Color(readerTopButtonContainerColor()),
+                        border = null,
+                        shadowElevationDp = 0,
+                        onClick = requireNotNull(onStatisticsToggle),
                     ) {
                         Icon(
                             imageVector = readerStatisticsTopToggleIcon(statisticsTracking),
@@ -1638,6 +1751,10 @@ private fun ReaderTopInfo(
             Row(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
+                    .offset(
+                        x = (-metrics.topButtonHorizontalInsetDp).dp,
+                        y = metrics.topButtonOffsetYDp.dp,
+                    )
                     .onSizeChanged { endControlWidth = it.width },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -1653,11 +1770,14 @@ private fun ReaderTopInfo(
                         onClick = requireNotNull(onJumpForward),
                     )
                 }
-                if (onSasayakiToggle != null) {
+                if (showSasayakiToggle) {
                     ReaderRoundButton(
                         colors = colors,
                         sizeDp = metrics.topSasayakiButtonSizeDp,
-                        onClick = onSasayakiToggle,
+                        containerColor = Color(readerTopButtonContainerColor()),
+                        border = null,
+                        shadowElevationDp = 0,
+                        onClick = requireNotNull(onSasayakiToggle),
                     ) {
                         Icon(
                             imageVector = readerSasayakiTopToggleIcon(sasayakiPlaying),
@@ -1737,10 +1857,10 @@ private fun ReaderFocusModeToggleArea(
         sasayakiSkipButtons = sasayakiSkipButtons,
         focusMode = focusMode,
     )
+    if (!toggleArea.visible) return
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
             .padding(horizontal = toggleArea.horizontalPaddingDp.dp)
             .height((metrics.buttonSizeDp + metrics.bottomPaddingDp + 8).dp)
             .clickable(onClick = onToggleFocusMode),
@@ -1748,12 +1868,17 @@ private fun ReaderFocusModeToggleArea(
 }
 
 @Composable
-private fun rememberStableStatusBarPadding(): Dp {
+private fun rememberCurrentStatusBarPadding(): Dp {
     val density = LocalDensity.current
-    val currentTop = with(density) { WindowInsets.statusBars.getTop(this).toDp() }
+    return with(density) { WindowInsets.statusBars.getTop(this).toDp() }
+}
+
+@Composable
+private fun rememberStableStatusBarPadding(): Dp {
+    val currentTop = rememberCurrentStatusBarPadding()
     var stableTop by remember { mutableStateOf(0.dp) }
     LaunchedEffect(currentTop) {
-        if (currentTop > 0.dp) {
+        if (currentTop > stableTop) {
             stableTop = currentTop
         }
     }
@@ -1781,6 +1906,8 @@ private fun BoxScope.ReaderBottomChrome(
     metrics: ReaderBottomChromeMetrics,
     modifier: Modifier = Modifier,
 ) {
+    val controlsHeightDp = metrics.buttonSizeDp
+    val bottomChromeHeightDp = 8 + controlsHeightDp + metrics.bottomPaddingDp + metrics.bottomSafeAreaDp
     if (menuExpanded) {
         Box(
             modifier = Modifier
@@ -1798,91 +1925,150 @@ private fun BoxScope.ReaderBottomChrome(
             onSasayaki = onSasayaki,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .padding(end = metrics.horizontalPaddingDp.dp, bottom = metrics.menuBottomPaddingDp.dp),
+                .padding(end = metrics.horizontalPaddingDp.dp, bottom = metrics.menuBottomOffsetDp.dp),
         )
     }
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
+            .height(bottomChromeHeightDp.dp)
             .padding(
                 start = metrics.horizontalPaddingDp.dp,
                 end = metrics.horizontalPaddingDp.dp,
-                top = 8.dp,
-                bottom = metrics.bottomPaddingDp.dp,
             ),
     ) {
-        if (layout.bottomCenterLineCount > 0) {
-            Column(
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 8.dp)
+                .height(controlsHeightDp.dp)
+                .fillMaxWidth(),
+        ) {
+            if (layout.bottomCenterLineCount > 0) {
+                val bubbleMetrics = readerInfoBubbleMetrics()
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .heightIn(max = layout.bottomCenterMaxHeightDp.dp)
+                        .readerChromeShadow(
+                            elevationDp = colors.bubbleShadowElevationDp,
+                            shadowColor = Color(colors.bubbleShadowColor),
+                            shape = RoundedCornerShape(bubbleMetrics.cornerRadiusDp.dp),
+                        )
+                        .readerChromeOutline(
+                            outlineColor = Color(colors.bubbleOutline),
+                            shape = RoundedCornerShape(bubbleMetrics.cornerRadiusDp.dp),
+                        )
+                        .readerChromeInnerShadow(
+                            shadowColor = Color(colors.bubbleInnerShadowColor),
+                            shape = RoundedCornerShape(bubbleMetrics.cornerRadiusDp.dp),
+                        ),
+                    shape = RoundedCornerShape(bubbleMetrics.cornerRadiusDp.dp),
+                    color = Color(colors.menuContainer),
+                    border = BorderStroke(readerBubbleBorderWidthDp(colors).dp, Color(colors.menuBorder)),
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp,
+                ) {
+                    Column(
+                        modifier = Modifier.padding(
+                            horizontal = bubbleMetrics.horizontalPaddingDp.dp,
+                            vertical = bubbleMetrics.verticalPaddingDp.dp,
+                        ),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        if (layout.showStatisticsInBottomBar) {
+                            Text(
+                                text = state.statisticsText(settings),
+                                color = Color(colors.infoText),
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                            )
+                        }
+                        if (layout.showProgressInBottomBar) {
+                            Text(
+                                text = state.progressText(settings),
+                                color = Color(colors.infoText),
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+            }
+            Row(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .heightIn(max = layout.bottomCenterMaxHeightDp.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (layout.showStatisticsInBottomBar) {
-                    Text(
-                        text = state.statisticsText(settings),
-                        color = Color(colors.infoText),
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                    )
-                }
-                if (layout.showProgressInBottomBar) {
-                    Text(
-                        text = state.progressText(settings),
-                        color = Color(colors.infoText),
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                    )
-                }
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ReaderGlassButton(colors = colors, metrics = metrics, onClick = onClose) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = stringResource(R.string.action_back),
-                    modifier = Modifier.size(metrics.primaryIconSizeDp.dp),
-                    tint = Color(colors.buttonContent),
-                )
-            }
-            if (sasayakiSkipButtons.visible) {
-                Spacer(Modifier.width(sasayakiSkipButtons.adjacentSpacingDp.dp))
-                ReaderGlassButton(colors = colors, metrics = metrics, onClick = onSasayakiSkipBackward) {
+                ReaderGlassButton(colors = colors, metrics = metrics, onClick = onClose) {
                     Icon(
-                        imageVector = Icons.Rounded.FastRewind,
-                        contentDescription = stringResource(R.string.sasayaki_rewind),
-                        modifier = Modifier.size(sasayakiSkipButtons.iconSizeDp.dp),
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = stringResource(R.string.action_back),
+                        modifier = Modifier.size(metrics.primaryIconSizeDp.dp),
+                        tint = Color(colors.buttonContent),
+                    )
+                }
+                if (sasayakiSkipButtons.visible) {
+                    Spacer(Modifier.width(sasayakiSkipButtons.adjacentSpacingDp.dp))
+                    ReaderGlassButton(colors = colors, metrics = metrics, onClick = onSasayakiSkipBackward) {
+                        Icon(
+                            imageVector = Icons.Rounded.FastRewind,
+                            contentDescription = stringResource(R.string.sasayaki_rewind),
+                            modifier = Modifier.size(sasayakiSkipButtons.iconSizeDp.dp),
+                            tint = Color(colors.buttonContent),
+                        )
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+                if (sasayakiSkipButtons.visible) {
+                    ReaderGlassButton(colors = colors, metrics = metrics, onClick = onSasayakiSkipForward) {
+                        Icon(
+                            imageVector = Icons.Rounded.FastForward,
+                            contentDescription = stringResource(R.string.sasayaki_fast_forward),
+                            modifier = Modifier.size(sasayakiSkipButtons.iconSizeDp.dp),
+                            tint = Color(colors.buttonContent),
+                        )
+                    }
+                    Spacer(Modifier.width(sasayakiSkipButtons.adjacentSpacingDp.dp))
+                }
+                ReaderGlassButton(colors = colors, metrics = metrics, onClick = onMenu) {
+                    Icon(
+                        imageVector = Icons.Rounded.Tune,
+                        contentDescription = stringResource(R.string.reader_menu),
+                        modifier = Modifier.size(metrics.secondaryIconSizeDp.dp),
                         tint = Color(colors.buttonContent),
                     )
                 }
             }
-            Spacer(Modifier.weight(1f))
-            if (sasayakiSkipButtons.visible) {
-                ReaderGlassButton(colors = colors, metrics = metrics, onClick = onSasayakiSkipForward) {
-                    Icon(
-                        imageVector = Icons.Rounded.FastForward,
-                        contentDescription = stringResource(R.string.sasayaki_fast_forward),
-                        modifier = Modifier.size(sasayakiSkipButtons.iconSizeDp.dp),
-                        tint = Color(colors.buttonContent),
-                    )
-                }
-                Spacer(Modifier.width(sasayakiSkipButtons.adjacentSpacingDp.dp))
-            }
-            ReaderGlassButton(colors = colors, metrics = metrics, onClick = onMenu) {
-                Icon(
-                    imageVector = Icons.Rounded.Tune,
-                    contentDescription = stringResource(R.string.reader_menu),
-                    modifier = Modifier.size(metrics.secondaryIconSizeDp.dp),
-                    tint = Color(colors.buttonContent),
-                )
-            }
         }
+    }
+}
+
+@Composable
+private fun ReaderBottomSafeProgress(
+    state: ReaderChromeState,
+    settings: ReaderSettings,
+    colors: ReaderChromeColors,
+    metrics: ReaderBottomChromeMetrics,
+    focusMode: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val progress = readerBottomSafeProgressText(state, settings, focusMode)
+    if (progress.isBlank()) return
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(metrics.bottomSafeAreaDp.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = progress,
+            color = Color(colors.infoText),
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+        )
     }
 }
 
@@ -1899,10 +2085,23 @@ private fun ReaderMenuCard(
 ) {
     Surface(
         modifier = modifier
-            .width(metrics.menuWidthDp.dp),
+            .width(metrics.menuWidthDp.dp)
+            .readerChromeShadow(
+                elevationDp = colors.bubbleShadowElevationDp,
+                shadowColor = Color(colors.bubbleShadowColor),
+                shape = RoundedCornerShape(28.dp),
+            )
+            .readerChromeOutline(
+                outlineColor = Color(colors.bubbleOutline),
+                shape = RoundedCornerShape(28.dp),
+            )
+            .readerChromeInnerShadow(
+                shadowColor = Color(colors.bubbleInnerShadowColor),
+                shape = RoundedCornerShape(28.dp),
+            ),
         shape = RoundedCornerShape(28.dp),
         color = Color(colors.menuContainer),
-        border = BorderStroke(1.dp, Color(colors.menuBorder)),
+        border = BorderStroke(readerBubbleBorderWidthDp(colors).dp, Color(colors.menuBorder)),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
     ) {
@@ -2052,12 +2251,30 @@ private fun ReaderRoundButton(
     sizeDp: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    containerColor: Color = Color(colors.buttonContainer),
+    border: BorderStroke? = BorderStroke(readerButtonBorderWidthDp(colors).dp, Color(colors.buttonBorder)),
+    shadowElevationDp: Int = colors.buttonShadowElevationDp,
     content: @Composable RowScope.() -> Unit,
 ) {
     Surface(
-        modifier = modifier.size(sizeDp.dp),
+        modifier = modifier
+            .size(sizeDp.dp)
+            .readerChromeShadow(
+                elevationDp = shadowElevationDp,
+                shadowColor = Color(colors.buttonShadowColor),
+                shape = CircleShape,
+            )
+            .readerChromeOutline(
+                outlineColor = Color(colors.buttonOutline),
+                shape = CircleShape,
+            )
+            .readerChromeInnerShadow(
+                shadowColor = Color(colors.buttonInnerShadowColor),
+                shape = CircleShape,
+            ),
         shape = CircleShape,
-        color = Color(colors.buttonContainer),
+        color = containerColor,
+        border = border,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
     ) {
@@ -2071,6 +2288,57 @@ private fun ReaderRoundButton(
         )
     }
 }
+
+private fun Modifier.readerChromeShadow(
+    elevationDp: Int,
+    shadowColor: Color,
+    shape: Shape,
+): Modifier =
+    if (elevationDp <= 0) {
+        this
+    } else {
+        dropShadow(
+            shape = shape,
+            shadow = Shadow(
+                radius = (elevationDp * 5).dp,
+                spread = 0.dp,
+                color = shadowColor,
+                offset = DpOffset.Zero,
+            ),
+        )
+    }
+
+private fun Modifier.readerChromeOutline(
+    outlineColor: Color,
+    shape: Shape,
+): Modifier =
+    if (outlineColor.alpha <= 0f) {
+        this
+    } else {
+        border(
+            width = 0.5.dp,
+            color = outlineColor,
+            shape = shape,
+        )
+    }
+
+private fun Modifier.readerChromeInnerShadow(
+    shadowColor: Color,
+    shape: Shape,
+): Modifier =
+    if (shadowColor.alpha <= 0f) {
+        this
+    } else {
+        innerShadow(
+            shape = shape,
+            shadow = Shadow(
+                radius = 3.dp,
+                spread = 0.dp,
+                color = shadowColor,
+                offset = DpOffset.Zero,
+            ),
+        )
+    }
 
 @SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
 @Composable
@@ -2099,6 +2367,8 @@ private fun ChapterWebView(
     sasayakiBackgroundColor: Long,
     onTextSelected: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit,
     onClearLookupPopup: () -> Unit,
+    onReaderTapOutside: () -> Unit,
+    onReaderInteraction: () -> Unit,
     onImageTapped: (String) -> Unit,
     onHighlightCreated: (HighlightColor, String, ReaderHighlightCreationResult) -> Unit,
     fontManager: ReaderFontManager,
@@ -2111,6 +2381,8 @@ private fun ChapterWebView(
     val currentOnContinuousScrollDisplayProgress = rememberUpdatedState(onContinuousScrollDisplayProgress)
     val currentOnContinuousScrollProgress = rememberUpdatedState(onContinuousScrollProgress)
     val currentOnClearLookupPopup = rememberUpdatedState(onClearLookupPopup)
+    val currentOnReaderTapOutside = rememberUpdatedState(onReaderTapOutside)
+    val currentOnReaderInteraction = rememberUpdatedState(onReaderInteraction)
     val currentOnImageTapped = rememberUpdatedState(onImageTapped)
     val currentOnHighlightCreated = rememberUpdatedState(onHighlightCreated)
     val currentOnNextChapter = rememberUpdatedState(onNextChapter)
@@ -2146,8 +2418,15 @@ private fun ChapterWebView(
         readerSettings.systemLightSepia,
         readerSettings.sepiaInvertInDark,
         systemDark,
+        sasayakiTextColor,
+        sasayakiBackgroundColor,
     ) {
-        readerAppearanceScript(readerSettings, systemDark)
+        readerAppearanceScript(
+            settings = readerSettings,
+            systemDark = systemDark,
+            sasayakiTextColor = sasayakiTextColor,
+            sasayakiBackgroundColor = sasayakiBackgroundColor,
+        )
     }
     val readerSetupScript = remember(
         chapter,
@@ -2170,6 +2449,19 @@ private fun ChapterWebView(
             sasayakiTextColor = sasayakiTextColor,
             sasayakiBackgroundColor = sasayakiBackgroundColor,
             highlightsJson = chapterHighlightsJson,
+        )
+    }
+    val readerSetupReloadKey = remember(
+        chapterPosition.progress,
+        chapterFragment,
+        scanNonJapaneseText,
+        fontFaceUrl,
+    ) {
+        ReaderWebViewSetupReloadKey(
+            initialProgress = chapterPosition.progress,
+            initialFragment = chapterFragment,
+            scanNonJapaneseText = scanNonJapaneseText,
+            fontFaceUrl = fontFaceUrl,
         )
     }
     AndroidView(
@@ -2224,7 +2516,7 @@ private fun ChapterWebView(
                     val selectionResult = ReaderSelectionResult.fromWebViewResult(result)
                     when {
                         selectionResult.isImageTap || selectionResult.isLinkTap -> Unit
-                        selectionResult.selectedNothing -> currentOnClearLookupPopup.value()
+                        selectionResult.selectedNothing -> currentOnReaderTapOutside.value()
                     }
                 }
             }
@@ -2236,13 +2528,16 @@ private fun ChapterWebView(
                             currentIsWebViewRestoring.value || webView.isNativeSelectionActionModeActive()
                         },
                         onTap = ::selectAt,
+                        onScrollGesture = currentOnReaderInteraction.value,
                         onNextChapter = {
+                            currentOnReaderInteraction.value()
                             currentOnClearLookupPopup.value()
                             val changed = currentOnNextChapter.value()
                             if (changed) webView.hideForReaderRestore()
                             changed
                         },
                         onPreviousChapter = {
+                            currentOnReaderInteraction.value()
                             currentOnClearLookupPopup.value()
                             val changed = currentOnPreviousChapter.value()
                             if (changed) webView.hideForReaderRestore()
@@ -2301,6 +2596,7 @@ private fun ChapterWebView(
                     }
 
                     override fun onLeftSwipe() {
+                        currentOnReaderInteraction.value()
                         currentOnClearLookupPopup.value()
                         val direction = readerNavigationDirectionForSwipe(
                             isVerticalWriting = readerSettings.verticalWriting,
@@ -2316,6 +2612,7 @@ private fun ChapterWebView(
                     }
 
                     override fun onRightSwipe() {
+                        currentOnReaderInteraction.value()
                         currentOnClearLookupPopup.value()
                         val direction = readerNavigationDirectionForSwipe(
                             isVerticalWriting = readerSettings.verticalWriting,
@@ -2336,7 +2633,7 @@ private fun ChapterWebView(
             val loadKey = readerWebViewLoadKey(
                 baseUrl = baseUrl,
                 readerContentReloadKey = readerContentReloadKey,
-                readerSetupScript = readerSetupScript,
+                readerSetupReloadKey = readerSetupReloadKey,
                 webViewViewportSize = webViewViewportSize,
             )
             if (webView.tag != loadKey) {
@@ -2355,13 +2652,20 @@ private fun ChapterWebView(
 internal fun readerWebViewReadyToLoad(webViewViewportSize: IntSize): Boolean =
     webViewViewportSize != IntSize.Zero
 
+internal data class ReaderWebViewSetupReloadKey(
+    val initialProgress: Double,
+    val initialFragment: String?,
+    val scanNonJapaneseText: Boolean,
+    val fontFaceUrl: String?,
+)
+
 internal fun readerWebViewLoadKey(
     baseUrl: String,
     readerContentReloadKey: ReaderContentReloadKey,
-    readerSetupScript: String,
+    readerSetupReloadKey: ReaderWebViewSetupReloadKey,
     webViewViewportSize: IntSize,
 ): String =
-    "$baseUrl#${readerContentReloadKey.hashCode()}#${readerSetupScript.hashCode()}#$webViewViewportSize"
+    "$baseUrl#${readerContentReloadKey.hashCode()}#${readerSetupReloadKey.hashCode()}#$webViewViewportSize"
 
 internal fun readerHtmlWithEarlyViewport(html: String): String {
     val withoutViewport = readerViewportMetaRegex.replace(html, "")
@@ -2666,13 +2970,19 @@ private fun readerSetupScript(
 private fun readerAppearanceScript(
     settings: ReaderSettings,
     systemDark: Boolean,
+    sasayakiTextColor: Long,
+    sasayakiBackgroundColor: Long,
 ): String {
     val backgroundColor = settings.backgroundColor(systemDark).toReaderCssColor().javaScriptStringLiteral()
     val textColor = settings.textColorCss(systemDark).javaScriptStringLiteral()
+    val sasayakiText = sasayakiTextColor.toReaderCssColor().javaScriptStringLiteral()
+    val sasayakiBackground = sasayakiBackgroundColor.toReaderCssColor(includeAlpha = true).javaScriptStringLiteral()
     return """
         (function() {
           document.documentElement.style.setProperty('--hoshi-background-color', $backgroundColor);
           document.documentElement.style.setProperty('--hoshi-text-color', $textColor);
+          document.documentElement.style.setProperty('--hoshi-sasayaki-text-color', $sasayakiText);
+          document.documentElement.style.setProperty('--hoshi-sasayaki-background-color', $sasayakiBackground);
         })();
     """.trimIndent()
 }
@@ -2771,6 +3081,7 @@ private class ContinuousScrollTouchListener(
     private val settings: ReaderSettings,
     private val shouldIgnoreReaderGesture: () -> Boolean,
     private val onTap: (Float, Float) -> Unit,
+    private val onScrollGesture: () -> Unit,
     private val onNextChapter: () -> Boolean,
     private val onPreviousChapter: () -> Boolean,
 ) : View.OnTouchListener {
@@ -2778,6 +3089,7 @@ private class ContinuousScrollTouchListener(
     private var downY = 0f
     private var downTime = 0L
     private var currentGestureIgnored = false
+    private val focusTracker = ReaderContinuousScrollFocusTracker()
 
     override fun onTouch(view: View, event: MotionEvent): Boolean {
         val webView = view as? WebView ?: return false
@@ -2791,23 +3103,36 @@ private class ContinuousScrollTouchListener(
                 downY = event.y
                 downTime = event.eventTime
                 currentGestureIgnored = false
+                focusTracker.onDown()
             }
             MotionEvent.ACTION_CANCEL -> {
                 currentGestureIgnored = false
+                focusTracker.onCancel()
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (focusTracker.onMove(event.x - downX, event.y - downY)) {
+                    onScrollGesture()
+                }
             }
             MotionEvent.ACTION_UP -> {
                 if (currentGestureIgnored) {
                     currentGestureIgnored = false
+                    focusTracker.onCancel()
                     return false
                 }
                 val dx = event.x - downX
                 val dy = event.y - downY
                 val elapsedMs = event.eventTime - downTime
-                if (elapsedMs <= MAX_TAP_DURATION_MS && abs(dx) < TAP_SLOP && abs(dy) < TAP_SLOP) {
+                if (
+                    elapsedMs <= CONTINUOUS_READER_MAX_TAP_DURATION_MS &&
+                    abs(dx) < CONTINUOUS_READER_TAP_SLOP &&
+                    abs(dy) < CONTINUOUS_READER_TAP_SLOP
+                ) {
                     onTap(event.x, event.y)
                     return false
                 }
                 handleBoundarySwipe(webView, dx, dy)
+                focusTracker.onCancel()
             }
         }
         return false
@@ -2830,9 +3155,27 @@ private class ContinuousScrollTouchListener(
         }
     }
 
-    private companion object {
-        const val TAP_SLOP = 12f
-        const val MAX_TAP_DURATION_MS = 500L
+}
+
+private const val CONTINUOUS_READER_TAP_SLOP = 12f
+private const val CONTINUOUS_READER_MAX_TAP_DURATION_MS = 500L
+
+internal class ReaderContinuousScrollFocusTracker {
+    private var scrollGestureStarted = false
+
+    fun onDown() {
+        scrollGestureStarted = false
+    }
+
+    fun onCancel() {
+        scrollGestureStarted = false
+    }
+
+    fun onMove(dx: Float, dy: Float): Boolean {
+        if (scrollGestureStarted) return false
+        if (abs(dx) < CONTINUOUS_READER_TAP_SLOP && abs(dy) < CONTINUOUS_READER_TAP_SLOP) return false
+        scrollGestureStarted = true
+        return true
     }
 }
 

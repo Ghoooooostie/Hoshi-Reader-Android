@@ -37,6 +37,7 @@ This file is the short operational handoff for future agents.
 - Completed `docs/IOS_UPSTREAM_SYNC_QUEUE.md` slice 1: continuous reader padding now belongs to the visible viewport, vertical paginated columns resolve from page height, and chapter HTML receives an early XHTML-safe viewport while retaining the fast `loadUrl` chapter path.
 - Completed `docs/IOS_UPSTREAM_SYNC_QUEUE.md` slice 2: large reader images and SVG image media now use iOS-style tap handling, Blur Images first-tap reveal, fullscreen zoom, and copy/save/share controls.
 - Completed `docs/IOS_UPSTREAM_SYNC_QUEUE.md` slice 3: Advanced reader Layout now includes iOS-style paragraph spacing with persistence, WebView reload-key participation, and vertical/horizontal CSS margin mapping.
+- Completed `docs/IOS_UPSTREAM_SYNC_QUEUE.md` slice 4: reader chrome now uses Android immersive system bars with transient edge-swipe reveal, iOS-aligned focus-mode entry on selection/page/scroll, floating center info bubbles, top text safety spacing, screen-edge focus quick controls, a small bottom gesture-safe progress band, and bottom chrome overlays without reserving button space in reader content.
 - Device-validate the shared native Android popup overlay rewrite across reader lookup, Dictionary tab, and Process Text, covering warmed reader root lookup reuse, duplicate state, audio error/autoplay, popup scale levels, redirect history, redirected child popup placement, edge-crossing popup gestures, Sasayaki popup controls, collapsed dictionary toggles on slow E-ink devices, E-ink line highlights, lower-screen recursive popup placement, and slow horizontal drags/long presses on controls.
 - Device-validate vertical lookup selection on ruby text, confirming E-ink underlines, regular highlights, and popup placement share one furigana-aware selection area.
 - Device-validate continuous-mode lookup popup placement with nonzero reader padding in both vertical and horizontal writing.
@@ -111,13 +112,13 @@ For bookshelf-to-reader regressions, use real-device continuous screenshots or s
 
 For reader/dictionary/audio user flows, perform targeted emulator or device validation using the test data listed in `AGENTS.md`; include external AnkiconnectAndroid Local Audio URL add behavior and built-in Local Audio enable behavior when touching audio sources, and use the `pixivで読む` definition link case for dictionary external-link regressions.
 
-For reader/dictionary theme regressions, verify open Dictionary tab results, the Dictionary search cursor, reader lookup taps and open reader lookup popups, and System theme's Use Sepia as Light Theme toggle update immediately when switching between Light, Dark, System, and E-ink appearance modes.
+For reader/dictionary theme regressions, verify open Dictionary tab results, the Dictionary search cursor, reader lookup taps and open reader lookup popups, system status/navigation icon contrast in Light, Sepia Light, Dark, and Sepia Dark under Android system dark mode, reader theme-family switches update colors without WebView reload, and System theme's Use Sepia as Light Theme toggle update immediately when switching between Light, Dark, System, and E-ink appearance modes.
 
 For reader process-restore regressions, verify returning directly to an open book after app process eviction still rebuilds dictionary lookup and opens reader lookup popups without first visiting the bookshelf.
 
 For Dictionary tab input regressions, verify opening the tab focuses the search field, shows the soft keyboard, and hints Japanese input when a Japanese-capable keyboard is installed.
 
-For reader appearance chrome regressions, verify Show Title off, Progress Position Bottom, compact bottom buttons, Sasayaki top-right toggle spacing, top title centering with asymmetric top buttons, bottom reader-menu spacing and light-mode menu outline visibility, focus mode status-bar hiding without text reflow, and all progress indicators hidden against the paginated reader text area.
+For reader appearance chrome regressions, verify Show Title off, Progress Position Bottom, compact bottom buttons, Sasayaki top-right toggle spacing, top title centering with asymmetric top buttons, bottom reader-menu spacing and light-mode menu outline visibility, focus mode status-bar hiding without text reflow, Android Back revealing chrome before closing the reader, and all progress indicators hidden against the paginated reader text area.
 
 For reader appearance controls, verify Layout Mode shows both Paginated and Continuous labels without truncation in the settings page and reader sheet.
 
@@ -135,7 +136,7 @@ For reader keep-screen-on regressions, verify Behavior -> Keep Screen On default
 
 For reader text layout regressions, verify Appearance -> Layout changes such as Vertical Padding reload the current chapter at the displayed position and visibly affect text spacing.
 
-For continuous reader layout regressions, verify vertical-writing Horizontal Padding and horizontal-writing Vertical Padding inset the current visible viewport rather than only the chapter ends.
+For continuous reader layout regressions, verify vertical-writing Horizontal Padding and horizontal-writing Vertical Padding inset the current visible viewport rather than only the chapter ends, and continuous reader chrome only re-enters focus mode from a new drag gesture after tapping to reveal controls.
 
 For reader popup settings regressions, verify changing every Popup section control while a continuous reader is open does not rebuild the WebView and does not stop scroll progress updates.
 

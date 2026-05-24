@@ -89,6 +89,29 @@ internal class ReaderWebViewStateHolder(
         }
     }
 
+    fun enterFocusModeForReaderInteraction() {
+        focusMode = true
+        showReaderMenu = false
+    }
+
+    fun exitFocusMode() {
+        focusMode = false
+    }
+
+    fun handleBackNavigation(): Boolean {
+        if (focusMode) {
+            exitFocusMode()
+            return false
+        }
+        return true
+    }
+
+    fun toggleFocusModeFromReaderTap(hasVisiblePopups: Boolean): Boolean {
+        if (hasVisiblePopups) return false
+        toggleFocusMode()
+        return true
+    }
+
     fun openChaptersFromMenu() {
         showReaderMenu = false
         showChapters = true
@@ -183,6 +206,12 @@ internal class ReaderWebViewStateHolder(
 
     fun canAcceptReaderNavigationInput(): Boolean =
         !isWebViewRestoring
+
+    fun beginReaderNavigationInput(): Boolean {
+        if (!canAcceptReaderNavigationInput()) return false
+        enterFocusModeForReaderInteraction()
+        return true
+    }
 
     fun prepareReloadAtDisplayedPosition() {
         readerPosition = readerPosition.prepareReloadAtDisplayedPosition()

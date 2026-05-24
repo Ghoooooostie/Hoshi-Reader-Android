@@ -9,9 +9,11 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 - Add fullscreen reader image viewing with zoom, copy, save, and share controls for large images and SVG illustrations, while keeping Blur Images taps from opening lookup until the image is revealed.
 - Add an Advanced reader Layout setting for paragraph spacing, matching iOS vertical and horizontal text spacing behavior.
+- Add iOS-aligned immersive reader chrome and focus mode, with floating controls over fullscreen text, transient system bars, focus quick controls, Android Back revealing chrome before closing the reader, and theme/scroll interactions that avoid unnecessary reader reloads.
 
 ### Fixed
 
+- Keep status bar icons readable when Android is in system dark mode but the reader uses Light, Sepia Light, or Sepia Dark themes. #73
 - Improve reader pagination and continuous layout so vertical text uses page-height columns, and continuous padding restores and displays against the padded viewport.
 
 ## [v1.0.2] - 2026-05-24

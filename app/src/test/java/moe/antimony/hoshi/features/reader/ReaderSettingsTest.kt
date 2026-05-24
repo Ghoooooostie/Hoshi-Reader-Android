@@ -333,6 +333,21 @@ class ReaderSettingsTest {
     }
 
     @Test
+    fun systemBarIconAppearanceFollowsResolvedReaderInterfaceTheme() {
+        assertTrue(ReaderSettings(theme = ReaderTheme.Light).usesDarkSystemBarIcons(systemDark = true))
+        assertTrue(ReaderSettings(theme = ReaderTheme.Sepia).usesDarkSystemBarIcons(systemDark = true))
+        assertFalse(
+            ReaderSettings(
+                theme = ReaderTheme.Sepia,
+                sepiaInvertInDark = true,
+            ).usesDarkSystemBarIcons(systemDark = true),
+        )
+        assertFalse(ReaderSettings(theme = ReaderTheme.Dark).usesDarkSystemBarIcons(systemDark = false))
+        assertFalse(ReaderSettings(theme = ReaderTheme.System).usesDarkSystemBarIcons(systemDark = true))
+        assertTrue(ReaderSettings(theme = ReaderTheme.System).usesDarkSystemBarIcons(systemDark = false))
+    }
+
+    @Test
     fun systemReaderThemeResolvesContentColorsFromSystemDarkMode() {
         val settings = ReaderSettings(theme = ReaderTheme.System)
 
@@ -382,7 +397,7 @@ class ReaderSettingsTest {
     fun sepiaCanInvertReaderColorsInSystemDarkModeLikeIos() {
         val settings = ReaderSettings(theme = ReaderTheme.Sepia, sepiaInvertInDark = true)
 
-        assertEquals(0xFF18150C, settings.backgroundColor(systemDark = true))
+        assertEquals(0xFF17150F, settings.backgroundColor(systemDark = true))
         assertEquals("#F2E2C9", settings.textColorCss(systemDark = true))
         assertEquals(0xFFF2E2C9, settings.backgroundColor(systemDark = false))
         assertEquals("#332A1B", settings.textColorCss(systemDark = false))
@@ -397,6 +412,21 @@ class ReaderSettingsTest {
         assertTrue(css.contains("ruby > rt, ruby > rp"))
         assertTrue(css.contains("-webkit-user-select: none;"))
         assertTrue(css.contains("user-select: none;"))
+    }
+
+    @Test
+    fun paginatedReaderCssAllowsFillingPageBottomAcrossParagraphs() {
+        val paginatedCss = ReaderContentStyles.styleTag(
+            ReaderSettings(continuousMode = false),
+        )
+        val continuousCss = ReaderContentStyles.styleTag(
+            ReaderSettings(continuousMode = true),
+        )
+
+        assertTrue(paginatedCss.contains("orphans: 1 !important;"))
+        assertTrue(paginatedCss.contains("widows: 1 !important;"))
+        assertFalse(continuousCss.contains("orphans: 1 !important;"))
+        assertFalse(continuousCss.contains("widows: 1 !important;"))
     }
 
     @Test
