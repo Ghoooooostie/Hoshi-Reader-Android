@@ -61,6 +61,29 @@ class LookupPopupHtmlTest {
     }
 
     @Test
+    fun iframePopupShellUsesDomButtonsAndAbsoluteAssets() {
+        val html = LookupPopupHtml.renderIframeDocument(
+            assets = null,
+            settings = DictionarySettings(scanLength = 24),
+            darkMode = true,
+            eInkMode = true,
+            popupScale = 1.15,
+        )
+
+        assertTrue(html.contains("""<link rel="stylesheet" href="https://hoshi.local/popup/popup.css">"""))
+        assertTrue(html.contains("""<script src="https://hoshi.local/popup/selection.js"></script>"""))
+        assertTrue(html.contains("""<script src="https://hoshi.local/popup/popup.js"></script>"""))
+        assertTrue(html.contains("window.nativePopupButtons = false;"))
+        assertTrue(html.contains("window.scanLength = 24;"))
+        assertTrue(html.contains("html { zoom: 1.15; }"))
+        assertTrue(html.contains("""data-hoshi-color-scheme="dark""""))
+        assertTrue(html.contains("""data-hoshi-eink-mode="true""""))
+        assertTrue(html.contains("""window.lookupEntries = [];"""))
+        assertTrue(html.contains("""window.entryCount = 0;"""))
+        assertFalse(html.contains("""<section class="entry">"""))
+    }
+
+    @Test
     fun popupHtmlInjectsFontFacesAndInitialScaleLikeIosPopupWebView() {
         val html = LookupPopupHtml.render(
             listOf(lookupResult(expression = "食べる", reading = "たべる", glossary = "to eat")),

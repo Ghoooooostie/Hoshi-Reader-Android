@@ -16,6 +16,7 @@ internal data class LookupPopupAssets(
     val popupJs: String,
     val popupCss: String,
     val selectionJs: String = "",
+    val readerPopupHostJs: String = "",
 ) {
     companion object {
         @Volatile
@@ -34,6 +35,9 @@ internal data class LookupPopupAssets(
                 .bufferedReader()
                 .use { it.readText() },
             selectionJs = context.assets.open("hoshi-popup/selection.js")
+                .bufferedReader()
+                .use { it.readText() },
+            readerPopupHostJs = context.assets.open("hoshi-popup/reader-popup-host.js")
                 .bufferedReader()
                 .use { it.readText() },
         )
@@ -312,6 +316,228 @@ internal object LookupPopupHtml {
                         webkit.messageHandlers.shellReady.postMessage(null);
                         window.hoshiPopupObserveContentReady();
                         window.renderPopup();
+                    })();
+                </script>
+            </body>
+            </html>
+        """.trimIndent()
+    }
+
+    fun renderIframeDocument(
+        assets: LookupPopupAssets? = null,
+        dictionaryStyles: Map<String, String> = emptyMap(),
+        settings: DictionarySettings = DictionarySettings(),
+        swipeToDismiss: Boolean = false,
+        swipeThreshold: Int = 40,
+        reducedMotionScrolling: Boolean = false,
+        reducedMotionScrollPercent: Int = 100,
+        reducedMotionSwipeThreshold: Int = 40,
+        darkMode: Boolean = false,
+        eInkMode: Boolean = false,
+        audioSettings: AudioSettings = AudioSettings(),
+        ankiSettings: AnkiPopupSettings = AnkiPopupSettings(),
+        fontFaceCss: String = "",
+        popupScale: Double = 1.0,
+    ): String {
+        val normalizedSettings = settings.normalized()
+        val collapsedDictionaries = dictionaryNamesJson(normalizedSettings.collapsedDictionaries)
+        val effectiveSwipeThreshold = if (swipeToDismiss) swipeThreshold.coerceAtLeast(0) else 0
+        val effectiveReducedMotionScrollScale = reducedMotionScrollPercent.coerceIn(40, 100) / 100.0
+        val effectiveReducedMotionSwipeThreshold = reducedMotionSwipeThreshold.coerceAtLeast(0)
+        val colorScheme = if (darkMode) "dark" else "light"
+        val styles = dictionaryStylesJson(dictionaryStyles)
+        val popupCss = assets?.let { """<style>${it.popupCss}</style>""" }
+            ?: """<link rel="stylesheet" href="$PopupAssetBaseUrl/popup.css">"""
+        val popupTypographyCss = """
+            <style>
+                ${fontFaceCss.trim()}
+                html { zoom: ${popupCssNumber(popupScale.coerceIn(0.8, 1.5))}; }
+            </style>
+        """.trimIndent()
+        val eInkCss = if (eInkMode) """<style>$eInkPopupCss</style>""" else ""
+        val selectionJs = assets?.let { """<script>${it.selectionJs}</script>""" }
+            ?: """<script src="$PopupAssetBaseUrl/selection.js"></script>"""
+        val popupJs = assets?.let { """<script>${it.popupJs}</script>""" }
+            ?: """<script src="$PopupAssetBaseUrl/popup.js"></script>"""
+        return """
+            <!DOCTYPE html>
+            <html data-hoshi-color-scheme="$colorScheme" data-hoshi-eink-mode="$eInkMode">
+            <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                $popupCss
+                <style>$androidColorSchemeCss</style>
+                $popupTypographyCss
+                $eInkCss
+                <script>
+                    window.nativePopupButtons = false;
+                    window.HoshiAndroidPopup = window.HoshiAndroidPopup || (function() {
+                        var nextMessageId = 1;
+                        var pendingMessages = {};
+                        function postMessage(name, body, id) {
+                            try {
+                                window.parent.postMessage({
+                                    source: 'hoshi-popup-iframe',
+                                    popupId: window.popupId || null,
+                                    name: name,
+                                    id: id || null,
+                                    body: body === undefined ? null : body
+                                }, 'https://hoshi.local');
+                            } catch (e) {
+                                console.warn('Hoshi reader popup bridge failed', e);
+                            }
+                        }
+                        return {
+                            postMessage: postMessage,
+                            requestMessage: function(name, body) {
+                                return new Promise(function(resolve) {
+                                    var id = String(nextMessageId++);
+                                    pendingMessages[id] = resolve;
+                                    postMessage(name, body, id);
+                                });
+                            },
+                            resolveMessage: function(id, result) {
+                                var resolve = pendingMessages[id];
+                                if (!resolve) return;
+                                delete pendingMessages[id];
+                                resolve(result);
+                            }
+                        };
+                    })();
+                    window.webkit = {
+                        messageHandlers: {
+                            openLink: { postMessage: function(url) { window.HoshiAndroidPopup.postMessage('openLink', url); } },
+                            textSelected: { postMessage: function(selection) { window.HoshiAndroidPopup.postMessage('textSelected', selection); } },
+                            tapOutside: { postMessage: function() { window.HoshiAndroidPopup.postMessage('tapOutside'); } },
+                            swipeDismiss: { postMessage: function() { window.HoshiAndroidPopup.postMessage('swipeDismiss'); } },
+                            playWordAudio: { postMessage: function(content) { window.HoshiAndroidPopup.postMessage('playWordAudio', content); } },
+                            buttonFrames: { postMessage: function() {} },
+                            visualStateButtonFrames: { postMessage: function() {} },
+                            shellReady: { postMessage: function() { window.HoshiAndroidPopup.postMessage('shellReady'); } },
+                            contentReady: { postMessage: function(frames) { window.HoshiAndroidPopup.postMessage('contentReady', frames); } },
+                            popupScrolled: { postMessage: function() { window.HoshiAndroidPopup.postMessage('popupScrolled'); } },
+                            mineEntry: { postMessage: function(content) { return window.HoshiAndroidPopup.requestMessage('mineEntry', content); } },
+                            duplicateCheck: { postMessage: function(expression) { return window.HoshiAndroidPopup.requestMessage('duplicateCheck', expression); } },
+                            getEntry: { postMessage: function(index) { return window.HoshiAndroidPopup.requestMessage('getEntry', index); } },
+                            lookupRedirect: { postMessage: function(query) { return window.HoshiAndroidPopup.requestMessage('lookupRedirect', query); } }
+                        }
+                    };
+                    window.scanNonJapaneseText = ${normalizedSettings.scanNonJapaneseText};
+                    window.scanLength = ${normalizedSettings.scanLength};
+                    window.collapseMode = "${normalizedSettings.collapseMode.rawValue}";
+                    window.expandFirstDictionary = ${normalizedSettings.expandFirstDictionary};
+                    window.collapsedDictionaries = $collapsedDictionaries;
+                    window.compactGlossaries = ${normalizedSettings.compactGlossaries};
+                    window.showExpressionTags = ${normalizedSettings.showExpressionTags};
+                    window.harmonicFrequency = ${normalizedSettings.harmonicFrequency};
+                    window.deduplicatePitchAccents = ${normalizedSettings.deduplicatePitchAccents};
+                    window.compactPitchAccents = ${normalizedSettings.compactPitchAccents};
+                    window.audioSources = ${audioSourcesJson(audioSettings)};
+                    window.audioRequestEndpoint = "https://hoshi.local/audio";
+                    window.dictionaryMediaRequestEndpoint = "https://hoshi.local/image";
+                    window.disablePopupImageViewportMaxHeight = true;
+                    window.audioEnableAutoplay = ${audioSettings.enableAutoplay};
+                    window.audioPlaybackMode = "${audioSettings.playbackMode.rawValue}";
+                    window.needsAudio = ${ankiSettings.needsAudio};
+                    window.allowDupes = ${ankiSettings.allowDupes};
+                    window.useAnkiConnect = ${ankiSettings.useAnkiConnect};
+                    window.embedMedia = ${ankiSettings.embedMedia};
+                    window.compactGlossariesAnki = ${ankiSettings.compactGlossaries};
+                    window.customCSS = ${JsonPrimitive(normalizedSettings.customCSS)};
+                    window.swipeThreshold = $effectiveSwipeThreshold;
+                    window.reducedMotionScrolling = $reducedMotionScrolling;
+                    window.reducedMotionScrollScale = $effectiveReducedMotionScrollScale;
+                    window.reducedMotionSwipeThreshold = $effectiveReducedMotionSwipeThreshold;
+                    window.dictionaryStyles = $styles;
+                    window.lookupEntries = [];
+                    window.entryCount = 0;
+                    window.popupId = null;
+                </script>
+                $selectionJs
+                $popupJs
+            </head>
+            <body>
+                <div id="entries-container"></div>
+                <div class="overlay">
+                    <div class="overlay-close" onclick="closeOverlay()">×</div>
+                    <div class="overlay-content"></div>
+                </div>
+                <script>
+                    (function() {
+                        var container = document.getElementById('entries-container');
+                        var posted = false;
+                        var observer = null;
+                        function postReady() {
+                            if (posted) return;
+                            posted = true;
+                            requestAnimationFrame(function() {
+                                webkit.messageHandlers.contentReady.postMessage(collectButtonFrames());
+                            });
+                        }
+                        function hasRenderableContent() {
+                            if (!container || !window.entryCount) {
+                                return true;
+                            }
+                            return !!container.querySelector('.entry .glossary-content');
+                        }
+                        window.hoshiPopupObserveContentReady = function() {
+                            posted = false;
+                            if (observer) {
+                                observer.disconnect();
+                                observer = null;
+                            }
+                            if (hasRenderableContent()) {
+                                postReady();
+                                return;
+                            }
+                            observer = new MutationObserver(function() {
+                                if (hasRenderableContent()) {
+                                    postReady();
+                                    observer.disconnect();
+                                    observer = null;
+                                }
+                            });
+                            observer.observe(container, { childList: true, subtree: true });
+                            if (hasRenderableContent()) {
+                                postReady();
+                            }
+                        };
+                        window.addEventListener('message', function(event) {
+                            if (event.origin !== 'https://hoshi.local') return;
+                            var message = event.data || {};
+                            if (message.type === 'reply') {
+                                window.HoshiAndroidPopup.resolveMessage(message.id, message.body);
+                                return;
+                            }
+                            if (message.type === 'highlightSelection') {
+                                window.hoshiSelection?.highlightSelection(message.count || 0);
+                                return;
+                            }
+                            if (message.type === 'clearSelection') {
+                                window.hoshiSelection?.clearSelection();
+                                return;
+                            }
+                            if (message.type === 'renderPopup') {
+                                window.popupId = message.popupId || null;
+                                closeOverlay();
+                                window.lookupEntries = [];
+                                window.entryCount = message.entriesCount || 0;
+                                window.hoshiPopupObserveContentReady?.();
+                                if (window.replacePopupResults) {
+                                    window.replacePopupResults(window.entryCount);
+                                } else {
+                                    window.renderPopup();
+                                }
+                                return;
+                            }
+                            if (message.type === 'navigateBack') {
+                                window.navigateBack?.();
+                                return;
+                            }
+                            if (message.type === 'navigateForward') {
+                                window.navigateForward?.();
+                            }
+                        });
+                        webkit.messageHandlers.shellReady.postMessage(null);
                     })();
                 </script>
             </body>

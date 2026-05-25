@@ -1,6 +1,6 @@
 # Hoshi Android Agent TODO
 
-Last updated: 2026-05-24
+Last updated: 2026-05-26
 
 This file is the short operational handoff for future agents.
 
@@ -39,16 +39,17 @@ This file is the short operational handoff for future agents.
 - Completed `docs/IOS_UPSTREAM_SYNC_QUEUE.md` slice 3: Advanced reader Layout now includes iOS-style paragraph spacing with persistence, WebView reload-key participation, and vertical/horizontal CSS margin mapping.
 - Completed `docs/IOS_UPSTREAM_SYNC_QUEUE.md` slice 4: reader chrome now uses Android immersive system bars with transient edge-swipe reveal, iOS-aligned focus-mode entry on selection/page/scroll, floating center info bubbles, top text safety spacing, screen-edge focus quick controls, a small bottom gesture-safe progress band, and bottom chrome overlays without reserving button space in reader content.
 - Completed `docs/IOS_UPSTREAM_SYNC_QUEUE.md` slice 5: recursive lookup popup selection now uses the configured scan length; zoom-coordinate handling was aligned with iOS but the pre-fix drift was not reproduced on Android WebView.
-- Device-validate the shared native Android popup overlay rewrite across reader lookup, Dictionary tab, and Process Text, covering warmed reader root lookup reuse, duplicate state, audio error/autoplay, popup scale levels, redirect history, redirected child popup placement, edge-crossing popup gestures, Sasayaki popup controls, collapsed dictionary toggles on slow E-ink devices, E-ink line highlights, lower-screen recursive popup placement, and slow horizontal drags/long presses on controls.
+- Device-validate the reader lookup iframe popup path across paged and continuous mode, vertical and horizontal writing, recursive child lookup, parent-scroll child dismissal, duplicate state, audio error/autoplay, popup scale levels, redirect history, Sasayaki popup controls, E-ink selection marks, swipe dismiss, outside tap/stylus dismiss, dictionary media images, and absence of invisible touch blockers after dismissal.
+- Blocked: reader lookup iframe manual validation needs an unlocked emulator/device with existing book and dictionary data; the connected device available during implementation was locked at launch.
+- Smoke-test Dictionary tab and Process Text lookup popups after reader iframe work, confirming their cold native overlay path still supports recursive lookup, audio/Anki buttons, redirects, selection marks, and touch passthrough.
 - Device-validate vertical lookup selection on ruby text, confirming E-ink underlines, regular highlights, and popup placement share one furigana-aware selection area.
 - Device-validate continuous-mode lookup popup placement with nonzero reader padding in both vertical and horizontal writing.
 - Device-validate paginated page turns with top and bottom progress counters enabled on E-ink, confirming the counter no longer refreshes before the page flip.
 - Device-validate E-ink reader lookup underlines in horizontal and vertical text, confirming the line sits close to selected text without obscuring glyphs.
 - Device-validate reader popup Reduced Motion Scrolling on an E-ink target, including vertical swipe threshold, 40%-100% scroll amount, mouse wheel/page-wheel input, and coexistence with horizontal swipe-to-dismiss.
-- Device-validate the warm reader root lookup popup shell on additional devices, confirming repeated root lookups reuse the popup without breaking child popups, redirects, action-bar history, or dismiss/touch passthrough after popup scroll.
-- Device-validate popup-to-popup lookup selections, confirming child popup display syncs with native overlay parent selection marks, E-ink mode uses underlines, and scrolling a parent popup dismisses child popups.
+- Device-validate popup-to-popup lookup selections, confirming child popup display syncs with iframe/native parent selection marks, E-ink mode uses underlines, and scrolling a parent popup dismisses child popups.
 - Device-validate reader lookup with a real tablet stylus, confirming hover plus tap opens lookup, tapping outside closes the lookup popup, and finger taps and popup interactions still work.
-- Device-validate reader lookup popup open and dismiss on a slow E-ink target, confirming popup content pre-renders before becoming touchable, autoplay does not outrun first visible content, no blank white shell flashes, the native overlay selected-word highlight appears and disappears with the popup, and highlighted text stays readable.
+- Device-validate reader lookup popup open and dismiss on a slow E-ink target, confirming popup content appears before interaction, autoplay does not outrun first visible content, iframe selection marks appear and disappear with the popup, and highlighted text stays readable.
 - Finish remaining iOS `PopupWebView` Anki mining behavior beyond selected popup text export.
 - Validate paginated and continuous reader modes together for cover image pages, multi-image illustration pages, long text paging, chapter-list jumps into mid-book chapters, forward/backward progress monotonicity, per-page progress updates and restore landing inside large text nodes, forward and backward chapter boundaries, reverse cross-chapter landing at the previous chapter end, lookup popup open, and bookmark restore.
 - Device-validate iOS-style reader jump return controls after chapter, character, highlight, and internal-link jumps, confirming back/forward targets remain stable through paginated and continuous manual movement.

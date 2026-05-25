@@ -22,6 +22,10 @@ let lastSelection = '';
 let currentDictionaryMedia = null;
 let selectedDictionaries = {};
 
+if (typeof window.nativePopupButtons !== 'boolean') {
+    window.nativePopupButtons = true;
+}
+
 function getPopupSelectionText() {
     return window.hoshiSelection?.selection?.text || window.getSelection()?.toString() || '';
 }
@@ -1308,12 +1312,30 @@ window.addEventListener('resize', scheduleButtonFrameSync);
 document.addEventListener('toggle', scheduleButtonFrameSyncAtVisualState, true);
 
 function createButtonSlot(kind, entryIndex, enabled = true) {
-    return el('span', {
+    const slot = el(window.nativePopupButtons ? 'span' : 'button', {
         className: 'button-slot',
         'data-kind': kind,
         'data-entry-index': entryIndex,
         'data-enabled': String(enabled)
     });
+    if (window.nativePopupButtons) {
+        return slot;
+    }
+    slot.type = 'button';
+    slot.setAttribute('aria-label', kind === 'audio' ? 'Play audio' : 'Add to Anki');
+    slot.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (slot.dataset.enabled === 'false') { return; }
+        if (kind === 'audio') {
+            playEntryAudio(entryIndex);
+        } else if (kind === 'mine') {
+            mineEntryAtIndex(entryIndex);
+        }
+    });
+    slot.appendChild(el('span', { className: 'button-slot-icon' }));
+    applyButtonSlotVisualState(slot);
+    return slot;
 }
 
 function getButtonSlot(kind, entryIndex) {
@@ -1324,7 +1346,20 @@ function updateButtonSlot(slot, changes) {
     if (!slot || !slot.isConnected) { return; }
     if ('state' in changes) { slot.dataset.state = changes.state; }
     if ('enabled' in changes) { slot.dataset.enabled = String(changes.enabled); }
+    applyButtonSlotVisualState(slot);
     scheduleButtonFrameSync();
+}
+
+function applyButtonSlotVisualState(slot) {
+    if (window.nativePopupButtons || !slot) { return; }
+    const kind = slot.dataset.kind;
+    const state = slot.dataset.state || 'default';
+    const enabled = slot.dataset.enabled !== 'false';
+    const iconName = kind === 'audio'
+        ? (state === 'error' ? 'volume_off' : 'volume_up')
+        : (state === 'duplicate' ? 'check_box' : 'add_box');
+    slot.disabled = !enabled;
+    slot.style.setProperty('--button-icon-url', `url("https://hoshi.local/popup/icons/${iconName}.svg")`);
 }
 
 async function playEntryAudio(entryIndex) {

@@ -2,6 +2,8 @@ package moe.antimony.hoshi.features.dictionary
 
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
 import moe.antimony.hoshi.features.reader.ReaderSelectionRect
+import moe.antimony.hoshi.features.reader.ReaderLookupPopupFramePayload
+import moe.antimony.hoshi.features.reader.ReaderLookupPopupViewport
 import moe.antimony.hoshi.features.audio.AudioSettings
 import android.view.MotionEvent
 import android.view.View
@@ -131,6 +133,50 @@ class LookupPopupTest {
         assertEquals(27.0, shifted[0].state.selection.rect.y, 0.0)
         assertEquals(11.0, shifted[1].state.selection.rect.x, 0.0)
         assertEquals(21.0, shifted[1].state.selection.rect.y, 0.0)
+    }
+
+    @Test
+    fun readerIframeFramePayloadUsesIosAlignedLayoutAndRootPaddingOffset() {
+        val popup = LookupPopupItem(
+            id = "root",
+            state = LookupPopupState(
+                selection = ReaderSelectionData(
+                    text = "root",
+                    sentence = "root",
+                    rect = ReaderSelectionRect(x = 100.0, y = 100.0, width = 20.0, height = 30.0),
+                    normalizedOffset = null,
+                ),
+                results = emptyList(),
+                isVertical = false,
+                width = 320,
+                height = 250,
+                popupActionBar = true,
+            ),
+        )
+
+        val payload = ReaderLookupPopupFramePayload.fromPopup(
+            popup = popup,
+            popupIndex = 0,
+            viewport = ReaderLookupPopupViewport(
+                width = 500.0,
+                height = 800.0,
+                rootSelectionOffsetX = 20.0,
+                rootSelectionOffsetY = 30.0,
+            ),
+            entriesCount = 3,
+            backCount = 1,
+            forwardCount = 2,
+        )
+
+        assertEquals("root", payload.id)
+        assertEquals(120.0, payload.frame.left, 0.0)
+        assertEquals(164.0, payload.frame.top, 0.0)
+        assertEquals(320.0, payload.frame.width, 0.0)
+        assertEquals(250.0, payload.frame.height, 0.0)
+        assertEquals(201.0, payload.selectionOffsetY, 0.0)
+        assertTrue(payload.popupActionBar)
+        assertEquals(3, payload.entriesCount)
+        assertEquals("https://hoshi.local/popup/iframe.html?popupId=root", payload.iframeUrl)
     }
 
     @Test
