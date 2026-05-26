@@ -6,6 +6,7 @@
     const frames = new Map();
     const frameSources = new WeakMap();
     let idleRootRecord = null;
+    let rootHighlight = null;
 
     function ensureLayer() {
         let layer = document.getElementById(LAYER_ID);
@@ -24,6 +25,16 @@
         ].join(';');
         document.documentElement.appendChild(layer);
         return layer;
+    }
+
+    function ensureHighlightLayer() {
+        const layer = ensureLayer();
+        let highlightLayer = layer.querySelector('.hoshi-reader-selection-highlight-layer');
+        if (highlightLayer) return highlightLayer;
+        highlightLayer = document.createElement('div');
+        highlightLayer.className = 'hoshi-reader-selection-highlight-layer';
+        layer.insertBefore(highlightLayer, layer.firstChild);
+        return highlightLayer;
     }
 
     function postNative(message) {
@@ -118,6 +129,12 @@
     function setContentReady(record, ready) {
         record.contentReady = ready;
         record.shell.dataset.contentReady = String(ready);
+        syncRootReveal();
+    }
+
+    function setRevealReady(record, ready) {
+        record.revealReady = ready;
+        record.shell.dataset.revealReady = String(ready);
     }
 
     function resetIframe(record) {
@@ -131,7 +148,8 @@
         const iframe = document.createElement('iframe');
         iframe.className = 'hoshi-reader-popup-iframe';
         iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-        const record = { shell, iframe, payload, contentReady: false, loaded: false, root: false };
+        shell.dataset.revealReady = 'false';
+        const record = { shell, iframe, payload, contentReady: false, revealReady: false, loaded: false, root: false };
         iframe.addEventListener('load', () => {
             record.loaded = true;
             if (record.payload) {
@@ -155,6 +173,7 @@
         resetIframe(idleRootRecord);
         idleRootRecord.payload = null;
         idleRootRecord.root = false;
+        setRevealReady(idleRootRecord, false);
         if (idleRootRecord.iframe.src !== iframeUrl) {
             idleRootRecord.loaded = false;
             idleRootRecord.iframe.src = iframeUrl;
@@ -183,6 +202,7 @@
         record.payload = payload;
         if (needsRender) {
             setContentReady(record, false);
+            setRevealReady(record, false);
             resetIframe(record);
             if (record.iframe.contentWindow) {
                 frameSources.set(record.iframe.contentWindow, payload.id);
@@ -203,6 +223,7 @@
         renderControls(record.shell, payload, record.iframe);
         record.iframe.style.top = `${frameContentTop(payload)}px`;
         record.iframe.style.height = `calc(100% - ${frameContentTop(payload)}px)`;
+        syncRootReveal();
         if (record.iframe.src !== payload.iframeUrl) {
             record.loaded = false;
             record.iframe.src = payload.iframeUrl;
@@ -218,6 +239,7 @@
         record.clearSelectionSignal = undefined;
         record.root = false;
         record.shell.dataset.popupId = '';
+        setRevealReady(record, false);
         record.shell.querySelectorAll('.hoshi-reader-popup-bar').forEach(node => node.remove());
         record.iframe.style.top = '0px';
         record.iframe.style.height = '100%';
@@ -241,11 +263,79 @@
         }
     }
 
+    function activeRootRecord() {
+        const first = frames.values().next();
+        if (first.done) return null;
+        const record = first.value;
+        return record?.root ? record : null;
+    }
+
+    function rootHighlightBlocksReveal(record) {
+        if (!record?.root || !record.payload) return false;
+        return !!rootHighlight && rootHighlight.popupId === record.payload.id && rootHighlight.pending === true;
+    }
+
+    function renderRootHighlight(visible) {
+        if (!visible || !rootHighlight || rootHighlight.pending || !Array.isArray(rootHighlight.rects)) {
+            document.getElementById(LAYER_ID)
+                ?.querySelector('.hoshi-reader-selection-highlight-layer')
+                ?.replaceChildren();
+            return;
+        }
+        const layer = ensureHighlightLayer();
+        layer.replaceChildren();
+        const color = rootHighlight.eInkMode
+            ? (rootHighlight.darkMode ? '#fff' : '#000')
+            : (rootHighlight.darkMode ? 'rgba(255, 255, 255, 0.32)' : 'rgba(160, 160, 160, 0.32)');
+        const lineSize = 1.5;
+        for (const rect of rootHighlight.rects) {
+            if (!rect || rect.width <= 0 || rect.height <= 0) continue;
+            const item = document.createElement('div');
+            item.className = 'hoshi-reader-selection-highlight-rect';
+            item.style.background = color;
+            if (rootHighlight.eInkMode) {
+                if (rootHighlight.verticalWriting) {
+                    const left = Math.max(rect.x, rect.x + rect.width - 2 - lineSize);
+                    item.style.left = `${left}px`;
+                    item.style.top = `${rect.y}px`;
+                    item.style.width = `${lineSize}px`;
+                    item.style.height = `${rect.height}px`;
+                } else {
+                    item.style.left = `${rect.x}px`;
+                    item.style.top = `${rect.y + rect.height - 2}px`;
+                    item.style.width = `${rect.width}px`;
+                    item.style.height = `${lineSize}px`;
+                }
+            } else {
+                item.style.left = `${rect.x}px`;
+                item.style.top = `${rect.y}px`;
+                item.style.width = `${rect.width}px`;
+                item.style.height = `${rect.height}px`;
+            }
+            layer.appendChild(item);
+        }
+    }
+
+    function syncRootReveal() {
+        const rootRecord = activeRootRecord();
+        for (const record of frames.values()) {
+            setRevealReady(record, !rootHighlightBlocksReveal(record));
+        }
+        const highlightVisible = !!rootHighlight &&
+            !rootHighlight.pending &&
+            Array.isArray(rootHighlight.rects) &&
+            rootHighlight.rects.length > 0 &&
+            (!rootRecord || (rootRecord.contentReady && rootRecord.revealReady));
+        renderRootHighlight(highlightVisible);
+    }
+
     function renderStack(payload) {
         const items = Array.isArray(payload) ? payload : (payload?.popups || []);
+        rootHighlight = Array.isArray(payload) ? null : (payload?.rootHighlight || null);
         const activeIds = new Set(items.map(item => item.id));
         items.forEach((item, index) => renderPayload(item, index));
         removeMissing(activeIds);
+        syncRootReveal();
     }
 
     function resolveMessage(popupId, id, body) {
@@ -307,10 +397,21 @@
             opacity: 0;
             pointer-events: none;
         }
-        #${LAYER_ID} .hoshi-reader-popup-shell[data-content-ready="true"] {
+        #${LAYER_ID} .hoshi-reader-popup-shell[data-content-ready="true"][data-reveal-ready="true"] {
             visibility: visible;
             opacity: 1;
             pointer-events: auto;
+        }
+        #${LAYER_ID} .hoshi-reader-selection-highlight-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            contain: layout style paint;
+        }
+        #${LAYER_ID} .hoshi-reader-selection-highlight-rect {
+            position: absolute;
+            box-sizing: border-box;
+            pointer-events: none;
         }
         #${LAYER_ID} .hoshi-reader-popup-shell[data-dark-mode="true"] {
             background: #000;

@@ -99,6 +99,26 @@ internal object ReaderContentStyles {
         } else {
             ""
         }
+        val selectionHighlightCss = if (settings.eInkMode) {
+            val lineColor = if (settings.usesDarkInterface(systemDark)) "#fff" else "#000"
+            """
+        ::highlight(hoshi-selection) {
+            background-color: transparent !important;
+            color: inherit;
+            text-decoration-line: underline;
+            text-decoration-color: $lineColor;
+            text-decoration-thickness: 1.5px;
+            text-underline-offset: 2px;
+        }
+            """.trimIndent()
+        } else {
+            """
+        ::highlight(hoshi-selection) {
+            background-color: rgba(160, 160, 160, 0.4) !important;
+            color: inherit;
+        }
+            """.trimIndent()
+        }
         val gridCss = if (!settings.justifyText) {
             """
             text-align: start !important;
@@ -267,10 +287,7 @@ internal object ReaderContentStyles {
             -webkit-user-select: none;
             user-select: none;
         }
-        ::highlight(hoshi-selection) {
-            background-color: rgba(160, 160, 160, 0.4) !important;
-            color: inherit;
-        }
+        $selectionHighlightCss
         .hoshi-sasayaki-cue.hoshi-sasayaki-active {
             color: var(--hoshi-sasayaki-text-color) !important;
             background-color: var(--hoshi-sasayaki-background-color) !important;

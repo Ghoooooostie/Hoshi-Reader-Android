@@ -6,12 +6,20 @@ import de.manhhao.hoshi.TermResult
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
 import moe.antimony.hoshi.features.reader.ReaderSelectionRect
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupFramePayload
+import moe.antimony.hoshi.features.reader.ReaderLookupPopupRootHighlightPayload
+import moe.antimony.hoshi.features.reader.ReaderLookupPopupStackPayload
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupViewport
 import moe.antimony.hoshi.features.reader.readerLookupPopupIframeUrl
 import moe.antimony.hoshi.features.reader.readerLookupPopupTouchBlocksReaderGesture
 import moe.antimony.hoshi.features.audio.AudioSettings
 import android.view.MotionEvent
 import android.view.View
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.double
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -214,6 +222,60 @@ class LookupPopupTest {
 
         assertTrue(payload.initialEntryJson?.contains(""""expression":"食べる"""") == true)
         assertFalse(payload.initialEntryJson?.contains(""""expression":"読む"""") == true)
+    }
+
+    @Test
+    fun readerIframeStackPayloadCarriesPendingRootHighlightGate() {
+        val payload = ReaderLookupPopupStackPayload(
+            popups = emptyList(),
+            rootHighlight = ReaderLookupPopupRootHighlightPayload.fromReaderRects(
+                popupId = "root",
+                rects = null,
+                darkMode = false,
+                eInkMode = true,
+                verticalWriting = true,
+            ),
+        )
+
+        val rootHighlight = Json.parseToJsonElement(payload.toJson())
+            .jsonObject
+            .getValue("rootHighlight")
+            .jsonObject
+
+        assertEquals("root", rootHighlight.getValue("popupId").jsonPrimitive.content)
+        assertTrue(rootHighlight.getValue("pending").jsonPrimitive.boolean)
+        assertTrue(rootHighlight.getValue("eInkMode").jsonPrimitive.boolean)
+        assertTrue(rootHighlight.getValue("verticalWriting").jsonPrimitive.boolean)
+        assertEquals(0, rootHighlight.getValue("rects").jsonArray.size)
+    }
+
+    @Test
+    fun readerIframeStackPayloadCarriesReadyRootHighlightRects() {
+        val payload = ReaderLookupPopupStackPayload(
+            popups = emptyList(),
+            rootHighlight = ReaderLookupPopupRootHighlightPayload.fromReaderRects(
+                popupId = "root",
+                rects = listOf(
+                    ReaderSelectionRect(x = 12.0, y = 24.0, width = 30.0, height = 16.0),
+                ),
+                darkMode = true,
+                eInkMode = false,
+                verticalWriting = false,
+            ),
+        )
+
+        val rootHighlight = Json.parseToJsonElement(payload.toJson())
+            .jsonObject
+            .getValue("rootHighlight")
+            .jsonObject
+        val rect = rootHighlight.getValue("rects").jsonArray.first().jsonObject
+
+        assertFalse(rootHighlight.getValue("pending").jsonPrimitive.boolean)
+        assertTrue(rootHighlight.getValue("darkMode").jsonPrimitive.boolean)
+        assertEquals(12.0, rect.getValue("x").jsonPrimitive.double, 0.0)
+        assertEquals(24.0, rect.getValue("y").jsonPrimitive.double, 0.0)
+        assertEquals(30.0, rect.getValue("width").jsonPrimitive.double, 0.0)
+        assertEquals(16.0, rect.getValue("height").jsonPrimitive.double, 0.0)
     }
 
     @Test

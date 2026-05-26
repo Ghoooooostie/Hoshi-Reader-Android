@@ -43,6 +43,52 @@ internal data class ReaderLookupPopupFrameRect(
 )
 
 @Serializable
+internal data class ReaderLookupPopupHighlightRect(
+    val x: Double,
+    val y: Double,
+    val width: Double,
+    val height: Double,
+) {
+    companion object {
+        fun fromReaderRect(rect: ReaderSelectionRect): ReaderLookupPopupHighlightRect =
+            ReaderLookupPopupHighlightRect(
+                x = rect.x,
+                y = rect.y,
+                width = rect.width,
+                height = rect.height,
+            )
+    }
+}
+
+@Serializable
+internal data class ReaderLookupPopupRootHighlightPayload(
+    val popupId: String? = null,
+    val rects: List<ReaderLookupPopupHighlightRect> = emptyList(),
+    val pending: Boolean = false,
+    val darkMode: Boolean = false,
+    val eInkMode: Boolean = false,
+    val verticalWriting: Boolean = false,
+) {
+    companion object {
+        fun fromReaderRects(
+            popupId: String?,
+            rects: List<ReaderSelectionRect>?,
+            darkMode: Boolean,
+            eInkMode: Boolean,
+            verticalWriting: Boolean,
+        ): ReaderLookupPopupRootHighlightPayload =
+            ReaderLookupPopupRootHighlightPayload(
+                popupId = popupId,
+                rects = rects.orEmpty().map(ReaderLookupPopupHighlightRect::fromReaderRect),
+                pending = rects == null,
+                darkMode = darkMode,
+                eInkMode = eInkMode,
+                verticalWriting = verticalWriting,
+            )
+    }
+}
+
+@Serializable
 internal data class ReaderLookupPopupFramePayload(
     val id: String,
     val frame: ReaderLookupPopupFrameRect,
@@ -135,6 +181,7 @@ internal data class ReaderLookupPopupFramePayload(
 @Serializable
 internal data class ReaderLookupPopupStackPayload(
     val popups: List<ReaderLookupPopupFramePayload>,
+    val rootHighlight: ReaderLookupPopupRootHighlightPayload? = null,
 ) {
     fun toJson(): String = readerPopupJson.encodeToString(this)
 }

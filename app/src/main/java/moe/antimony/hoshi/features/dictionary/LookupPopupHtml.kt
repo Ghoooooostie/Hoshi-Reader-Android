@@ -719,6 +719,15 @@ internal object LookupPopupHtml {
             text-shadow: none !important;
         }
 
+        html[data-hoshi-eink-mode="true"] ::highlight(hoshi-selection) {
+            background-color: transparent !important;
+            color: inherit;
+            text-decoration-line: underline;
+            text-decoration-color: #000;
+            text-decoration-thickness: 1.5px;
+            text-underline-offset: 2px;
+        }
+
         html[data-hoshi-eink-mode="true"] .deinflection-tag,
         html[data-hoshi-eink-mode="true"] .expr-tag,
         html[data-hoshi-eink-mode="true"] .glossary-tag,
@@ -795,6 +804,10 @@ internal object LookupPopupHtml {
             background-color: #000 !important;
             color: #fff !important;
             border: 1px solid #fff !important;
+        }
+
+        html[data-hoshi-color-scheme="dark"][data-hoshi-eink-mode="true"] ::highlight(hoshi-selection) {
+            text-decoration-color: #fff;
         }
 
         html[data-hoshi-color-scheme="dark"][data-hoshi-eink-mode="true"] .frequency-dict-label {
