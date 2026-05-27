@@ -68,7 +68,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -115,6 +115,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.draw.innerShadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
@@ -1195,6 +1196,7 @@ fun ReaderWebView(
     val bottomChromeMetrics = readerBottomChromeMetrics()
     val currentStatusBarPadding = rememberCurrentStatusBarPadding()
     val stableStatusBarPadding = rememberStableStatusBarPadding()
+    val stableNavigationBarPadding = rememberStableNavigationBarPadding()
     val currentStatusBarPaddingDp = currentStatusBarPadding.value.roundToInt().coerceAtLeast(0)
     val stableStatusBarPaddingDp = stableStatusBarPadding.value.roundToInt().coerceAtLeast(0)
     val sasayakiBottomSkipButtons = readerSasayakiBottomSkipButtons(
@@ -1544,6 +1546,8 @@ fun ReaderWebView(
                 image = image,
                 resourceBridge = readerImageResourceBridge,
                 backgroundColor = Color(effectiveSettings.backgroundColor(systemDarkTheme)),
+                topSafeAreaPadding = stableStatusBarPadding,
+                bottomSafeAreaPadding = stableNavigationBarPadding,
                 onDismiss = { fullscreenImage = null },
                 modifier = Modifier.fillMaxSize(),
             )
@@ -1557,15 +1561,23 @@ private fun ReaderFullscreenImageOverlay(
     image: ReaderFullscreenImage,
     resourceBridge: ReaderWebResourceBridge,
     backgroundColor: Color,
+    topSafeAreaPadding: Dp,
+    bottomSafeAreaPadding: Dp,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val density = LocalDensity.current
+    val panAllowance = with(density) {
+        ReaderFullscreenImagePanAllowance(
+            topPx = (topSafeAreaPadding + 76.dp).toPx(),
+            bottomPx = bottomSafeAreaPadding.toPx(),
+        )
+    }
     BackHandler(onBack = onDismiss)
     Box(
         modifier = modifier
-            .background(backgroundColor)
-            .navigationBarsPadding(),
+            .background(backgroundColor),
     ) {
         if (image.resource.mediaType.equals("image/svg+xml", ignoreCase = true)) {
             ReaderFullscreenSvgImage(
@@ -1576,6 +1588,7 @@ private fun ReaderFullscreenImageOverlay(
         } else {
             ReaderFullscreenRasterImage(
                 image = image,
+                panAllowance = panAllowance,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -1583,7 +1596,10 @@ private fun ReaderFullscreenImageOverlay(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .zIndex(1f)
-                .padding(top = 20.dp, end = 12.dp),
+                .padding(
+                    top = topSafeAreaPadding + 20.dp,
+                    end = 12.dp,
+                ),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1614,33 +1630,53 @@ private fun ReaderFullscreenImageOverlay(
 @Composable
 private fun ReaderFullscreenRasterImage(
     image: ReaderFullscreenImage,
+    panAllowance: ReaderFullscreenImagePanAllowance,
     modifier: Modifier = Modifier,
 ) {
     val bitmap = remember(image.resource.data) {
         BitmapFactory.decodeByteArray(image.resource.data, 0, image.resource.data.size)
     }
-    var scale by remember(image.sourceUrl) { mutableStateOf(1f) }
-    var offset by remember(image.sourceUrl) { mutableStateOf(Offset.Zero) }
+    val intrinsicSize = remember(bitmap) {
+        bitmap?.let { decoded -> Size(width = decoded.width.toFloat(), height = decoded.height.toFloat()) } ?: Size.Zero
+    }
+    var viewport by remember(image.sourceUrl) { mutableStateOf(Size.Zero) }
+    val fittedImage = readerFullscreenFittedImageSize(intrinsicSize, viewport)
+    var transform by remember(image.sourceUrl) { mutableStateOf(ReaderFullscreenImageTransform()) }
+    LaunchedEffect(viewport, fittedImage, panAllowance) {
+        transform = transform.constrainedTo(viewport, fittedImage, panAllowance)
+    }
     Box(
         modifier = modifier
-            .pointerInput(image.sourceUrl) {
+            .onSizeChanged { size ->
+                viewport = Size(width = size.width.toFloat(), height = size.height.toFloat())
+            }
+            .pointerInput(image.sourceUrl, viewport, fittedImage, panAllowance) {
                 detectTapGestures(
-                    onDoubleTap = {
-                        if (scale > 1f) {
-                            scale = 1f
-                            offset = Offset.Zero
+                    onDoubleTap = { centroid ->
+                        if (transform.scale > ReaderFullscreenImageTransform.MIN_SCALE) {
+                            transform = ReaderFullscreenImageTransform()
                         } else {
-                            scale = 3f
-                            offset = Offset.Zero
+                            transform = transform.doubleTapZoomTo(
+                                targetScale = 3f,
+                                centroid = centroid,
+                                viewport = viewport,
+                                fittedImage = fittedImage,
+                                panAllowance = panAllowance,
+                            )
                         }
                     },
                 )
             }
-            .pointerInput(image.sourceUrl) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    val nextScale = (scale * zoom).coerceIn(1f, 5f)
-                    scale = nextScale
-                    offset = if (nextScale == 1f) Offset.Zero else offset + pan
+            .pointerInput(image.sourceUrl, viewport, fittedImage, panAllowance) {
+                detectTransformGestures { centroid, pan, zoom, _ ->
+                    transform = transform.transformBy(
+                        centroid = centroid,
+                        pan = pan,
+                        zoomChange = zoom,
+                        viewport = viewport,
+                        fittedImage = fittedImage,
+                        panAllowance = panAllowance,
+                    )
                 }
             },
         contentAlignment = Alignment.Center,
@@ -1653,10 +1689,10 @@ private fun ReaderFullscreenRasterImage(
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        translationX = offset.x
-                        translationY = offset.y
+                        scaleX = transform.scale
+                        scaleY = transform.scale
+                        translationX = transform.offset.x
+                        translationY = transform.offset.y
                     },
             )
         }
@@ -2174,6 +2210,19 @@ private fun rememberStableStatusBarPadding(): Dp {
         }
     }
     return if (currentTop > 0.dp) currentTop else stableTop
+}
+
+@Composable
+private fun rememberStableNavigationBarPadding(): Dp {
+    val density = LocalDensity.current
+    val currentBottom = with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }
+    var stableBottom by remember { mutableStateOf(0.dp) }
+    LaunchedEffect(currentBottom) {
+        if (currentBottom > stableBottom) {
+            stableBottom = currentBottom
+        }
+    }
+    return if (currentBottom > 0.dp) currentBottom else stableBottom
 }
 
 @Composable

@@ -14,6 +14,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 ### Fixed
 
 - Prevent Anki mining from adding book covers or audio media when their corresponding field placeholders are not used.
+- Keep fullscreen reader image zoom aligned with the tapped or pinched area, prevent panning beyond the image bounds, and keep image edges visible outside the safe-area-aware top controls.
 
 ## [v1.1.0] - 2026-05-24
 
