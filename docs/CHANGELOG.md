@@ -8,6 +8,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 ### Added
 
 - Add a Reader Appearance switch to hide the reader's bottom back button while keeping Android system back gestures available.
+- Add an Anki setting to sync AnkiDroid automatically after a card is added. #86
 
 ### Changed
 

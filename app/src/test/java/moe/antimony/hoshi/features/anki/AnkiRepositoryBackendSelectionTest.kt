@@ -108,6 +108,115 @@ class AnkiRepositoryBackendSelectionTest {
     }
 
     @Test
+    fun mineEntryForceSyncsAnkiDroidAfterSuccessfulAddWhenEnabled() = runBlocking {
+        val deck = AnkiDeck(10L, "Mining")
+        val noteType = AnkiNoteType(20L, "Lapis", listOf("Expression"))
+        val ankiDroid = RecordingBackend(decks = listOf(deck), noteTypes = listOf(noteType))
+        val repository = repository(
+            backend = ankiDroid,
+            settingsRepository = InMemoryAnkiSettingsRepository(
+                AnkiSettings(
+                    backendKind = AnkiBackendKind.AnkiDroid,
+                    ankiDroidForceSync = true,
+                    selectedDeckId = deck.id,
+                    selectedDeckName = deck.name,
+                    selectedNoteTypeId = noteType.id,
+                    selectedNoteTypeName = noteType.name,
+                    availableDecks = listOf(deck),
+                    availableNoteTypes = listOf(noteType),
+                    fieldMappings = mapOf("Expression" to "{expression}"),
+                ),
+            ),
+        )
+
+        assertTrue(
+            repository.mineEntry(
+                rawPayload = """{"expression":"食べる"}""",
+                context = AnkiMiningContext(sentence = "パンを食べる。"),
+                decks = emptyList(),
+                noteTypes = emptyList(),
+            ),
+        )
+
+        assertTrue(ankiDroid.addNoteCalled)
+        assertEquals(1, ankiDroid.syncCalls)
+    }
+
+    @Test
+    fun mineEntryDoesNotForceSyncAnkiDroidWhenDisabled() = runBlocking {
+        val deck = AnkiDeck(10L, "Mining")
+        val noteType = AnkiNoteType(20L, "Lapis", listOf("Expression"))
+        val ankiDroid = RecordingBackend(decks = listOf(deck), noteTypes = listOf(noteType))
+        val repository = repository(
+            backend = ankiDroid,
+            settingsRepository = InMemoryAnkiSettingsRepository(
+                AnkiSettings(
+                    backendKind = AnkiBackendKind.AnkiDroid,
+                    ankiDroidForceSync = false,
+                    selectedDeckId = deck.id,
+                    selectedDeckName = deck.name,
+                    selectedNoteTypeId = noteType.id,
+                    selectedNoteTypeName = noteType.name,
+                    availableDecks = listOf(deck),
+                    availableNoteTypes = listOf(noteType),
+                    fieldMappings = mapOf("Expression" to "{expression}"),
+                ),
+            ),
+        )
+
+        assertTrue(
+            repository.mineEntry(
+                rawPayload = """{"expression":"食べる"}""",
+                context = AnkiMiningContext(sentence = "パンを食べる。"),
+                decks = emptyList(),
+                noteTypes = emptyList(),
+            ),
+        )
+
+        assertTrue(ankiDroid.addNoteCalled)
+        assertEquals(0, ankiDroid.syncCalls)
+    }
+
+    @Test
+    fun mineEntryDoesNotForceSyncAnkiDroidAfterFailedAdd() = runBlocking {
+        val deck = AnkiDeck(10L, "Mining")
+        val noteType = AnkiNoteType(20L, "Lapis", listOf("Expression"))
+        val ankiDroid = RecordingBackend(
+            decks = listOf(deck),
+            noteTypes = listOf(noteType),
+            addNoteResult = false,
+        )
+        val repository = repository(
+            backend = ankiDroid,
+            settingsRepository = InMemoryAnkiSettingsRepository(
+                AnkiSettings(
+                    backendKind = AnkiBackendKind.AnkiDroid,
+                    ankiDroidForceSync = true,
+                    selectedDeckId = deck.id,
+                    selectedDeckName = deck.name,
+                    selectedNoteTypeId = noteType.id,
+                    selectedNoteTypeName = noteType.name,
+                    availableDecks = listOf(deck),
+                    availableNoteTypes = listOf(noteType),
+                    fieldMappings = mapOf("Expression" to "{expression}"),
+                ),
+            ),
+        )
+
+        assertFalse(
+            repository.mineEntry(
+                rawPayload = """{"expression":"食べる"}""",
+                context = AnkiMiningContext(sentence = "パンを食べる。"),
+                decks = emptyList(),
+                noteTypes = emptyList(),
+            ),
+        )
+
+        assertTrue(ankiDroid.addNoteCalled)
+        assertEquals(0, ankiDroid.syncCalls)
+    }
+
+    @Test
     fun duplicateCheckUsesActiveAnkiConnectBackend() = runBlocking {
         val deck = AnkiDeck(10L, "Mining")
         val noteType = AnkiNoteType(20L, "Lapis", listOf("Expression"))
@@ -302,6 +411,7 @@ class AnkiRepositoryBackendSelectionTest {
         private val decks: List<AnkiDeck> = listOf(AnkiDeck(1L, "Default")),
         private val noteTypes: List<AnkiNoteType> = listOf(AnkiNoteType(2L, "Basic", listOf("Front"))),
         private val duplicate: Boolean = false,
+        private val addNoteResult: Boolean = true,
     ) : AnkiBackend {
         var fetchDecksCalls = 0
             private set
@@ -349,7 +459,7 @@ class AnkiRepositoryBackendSelectionTest {
         ): Boolean {
             addNoteCalled = true
             lastFields = fieldsByName
-            return true
+            return addNoteResult
         }
 
         override fun addMediaFromUri(uriString: String, preferredName: String, mimeType: String): String? = null

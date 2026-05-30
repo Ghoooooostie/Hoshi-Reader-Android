@@ -184,8 +184,11 @@ class AnkiRepository(
             duplicateScope = settings.duplicateScope,
             checkDuplicatesAcrossAllModels = settings.checkDuplicatesAcrossAllModels,
         )
-        if (added && settings.backendKind == AnkiBackendKind.AnkiConnect && settings.ankiConnectForceSync) {
-            activeBackend.sync()
+        if (added) {
+            when (settings.backendKind) {
+                AnkiBackendKind.AnkiConnect -> if (settings.ankiConnectForceSync) activeBackend.sync()
+                AnkiBackendKind.AnkiDroid -> if (settings.ankiDroidForceSync) activeBackend.sync()
+            }
         }
         added
     }

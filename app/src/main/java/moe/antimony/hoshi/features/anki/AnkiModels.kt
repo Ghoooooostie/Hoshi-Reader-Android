@@ -49,6 +49,7 @@ data class AnkiSettings(
     val duplicateScope: AnkiDuplicateScope = AnkiDuplicateScope.Collection,
     val compactGlossaries: Boolean = false,
     val embedMedia: Boolean = true,
+    val ankiDroidForceSync: Boolean = false,
     val ankiConnectUrl: String = "",
     val ankiConnectForceSync: Boolean = false,
 )

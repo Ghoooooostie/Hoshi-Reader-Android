@@ -79,6 +79,7 @@ This file is the short operational handoff for future agents.
 ### Anki
 
 - Device-validate Android AnkiConnect against both an HTTPS internet host and a private HTTP host: connect, fetch, duplicate check, referenced-only media storage (including no unused cover/audio uploads), add-note, and optional force-sync behavior.
+- Blocked: device-validate AnkiDroid add-card sync on an Android target with AnkiDroid installed, confirming the new Anki setting starts `com.ichi2.anki.DO_SYNC` only after a successful add and respects AnkiDroid's 5-minute sync limit.
 - Keep backend coverage for duplicate checks, AnkiDroid fetch failures, and AnkiConnect request shaping.
 - Keep popup mining decoupled from direct HTTP calls; route backend differences through the Anki backend boundary.
 

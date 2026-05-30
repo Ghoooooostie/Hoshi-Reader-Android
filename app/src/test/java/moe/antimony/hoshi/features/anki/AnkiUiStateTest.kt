@@ -43,6 +43,7 @@ class AnkiUiStateTest {
         assertFalse(settings.checkDuplicatesAcrossAllModels)
         assertEquals("", settings.ankiConnectUrl)
         assertFalse(settings.ankiConnectForceSync)
+        assertFalse(settings.ankiDroidForceSync)
     }
 
     @Test

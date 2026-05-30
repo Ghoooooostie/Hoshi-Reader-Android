@@ -234,6 +234,12 @@ class AnkiViewModel(
         }
     }
 
+    fun updateAnkiDroidForceSync(value: Boolean) {
+        viewModelScope.launch {
+            repository.updateSettings { it.copy(ankiDroidForceSync = value) }
+        }
+    }
+
     fun updateCompactGlossaries(value: Boolean) {
         viewModelScope.launch {
             repository.updateSettings { it.copy(compactGlossaries = value) }
