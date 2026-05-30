@@ -18,6 +18,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 ### Fixed
 
 - Match the reader's bottom-right menu order to iOS, with Sasayaki and Statistics appearing above Highlights, Chapters, and Appearance when available.
+- Keep reader lookup popup action buttons readable in dark mode while preserving a distinct disabled state.
 - Show unselected bookshelf multi-select books with an empty circle instead of a check mark, keeping selected and unselected states distinguishable in E-ink mode.
 - Play word audio from imported local audio databases that store entries as Opus/Ogg files, and export those clips to Anki with the correct audio type. #48
 

@@ -106,7 +106,7 @@ button.button-slot:active {
 }
 
 button.button-slot:disabled {
-    opacity: 0.55;
+    opacity: 0.38;
     cursor: default;
 }
 
@@ -479,5 +479,9 @@ a {
     
     .overlay {
         background: #222;
+    }
+
+    button.button-slot:not(:disabled) {
+        color: rgba(235, 235, 245, 0.92);
     }
 }
