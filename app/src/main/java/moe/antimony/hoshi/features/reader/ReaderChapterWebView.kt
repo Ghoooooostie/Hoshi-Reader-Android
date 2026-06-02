@@ -71,6 +71,7 @@ internal fun ChapterWebView(
     scanNonJapaneseText: Boolean,
     readerSettings: ReaderSettings,
     chapterHighlightsJson: String?,
+    chapterSasayakiCuesJson: String?,
     sasayakiTextColor: Long,
     sasayakiBackgroundColor: Long,
     onTextSelected: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit,
@@ -152,6 +153,7 @@ internal fun ChapterWebView(
         scanNonJapaneseText,
         sasayakiTextColor,
         sasayakiBackgroundColor,
+        chapterSasayakiCuesJson,
     ) {
         readerSetupScript(
             initialProgress = chapterPosition.progress,
@@ -162,6 +164,7 @@ internal fun ChapterWebView(
             scanNonJapaneseText = scanNonJapaneseText,
             sasayakiTextColor = sasayakiTextColor,
             sasayakiBackgroundColor = sasayakiBackgroundColor,
+            sasayakiCuesJson = chapterSasayakiCuesJson,
             highlightsJson = chapterHighlightsJson,
         )
     }
@@ -677,6 +680,7 @@ private fun readerSetupScript(
     scanNonJapaneseText: Boolean,
     sasayakiTextColor: Long,
     sasayakiBackgroundColor: Long,
+    sasayakiCuesJson: String?,
     highlightsJson: String?,
 ): String {
     val css = ReaderContentStyles.css(
@@ -691,6 +695,7 @@ private fun readerSetupScript(
         initialProgress = initialProgress,
         initialFragment = initialFragment,
         settings = settings,
+        sasayakiCuesJson = sasayakiCuesJson,
         highlightsJson = highlightsJson,
     ).scriptTagBody()
     return """

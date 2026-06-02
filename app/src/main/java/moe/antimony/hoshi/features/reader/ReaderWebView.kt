@@ -111,8 +111,11 @@ fun ReaderWebView(
     val bookRepository = appContainer.bookRepository
     var sasayakiSettings by remember { mutableStateOf(SasayakiSettings()) }
     var sasayakiMatchData by remember(bookRoot) { mutableStateOf<SasayakiMatchData?>(null) }
+    var isSasayakiMatchLoaded by remember(bookRoot) { mutableStateOf(bookRoot == null) }
     LaunchedEffect(bookRoot, bookRepository) {
+        isSasayakiMatchLoaded = bookRoot == null
         sasayakiMatchData = bookRoot?.let { bookRepository.loadSasayakiMatch(it) }
+        isSasayakiMatchLoaded = true
     }
     var highlights by remember(bookRoot) {
         mutableStateOf<List<ReaderHighlight>?>(if (bookRoot == null) emptyList() else null)
@@ -1208,7 +1211,8 @@ fun ReaderWebView(
                         )
                     }
                 }
-                highlights?.let { loadedHighlights ->
+                if (highlights != null && isSasayakiMatchLoaded) {
+                    val loadChapter = currentLoadChapter()
                     ChapterWebView(
                         book = book,
                         chapterPosition = readerPosition.loadPosition,
@@ -1245,9 +1249,13 @@ fun ReaderWebView(
                         scanNonJapaneseText = dictionarySettings.scanNonJapaneseText,
                         readerSettings = effectiveSettings,
                         chapterHighlightsJson = ReaderHighlights.chapterHighlightsJson(
-                            highlights = loadedHighlights,
+                            highlights = highlights.orEmpty(),
                             bookInfo = book.bookInfo,
-                            chapter = currentLoadChapter(),
+                            chapter = loadChapter,
+                        ),
+                        chapterSasayakiCuesJson = ReaderSasayakiCues.chapterCuesJson(
+                            matchData = sasayakiMatchData,
+                            chapterIndex = readerPosition.loadPosition.index,
                         ),
                         sasayakiTextColor = sasayakiSettings.textColor(effectiveSettings.usesDarkInterface(systemDarkTheme)),
                         sasayakiBackgroundColor = sasayakiSettings.backgroundColor(effectiveSettings.usesDarkInterface(systemDarkTheme)),

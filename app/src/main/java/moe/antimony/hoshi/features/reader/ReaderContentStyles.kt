@@ -288,6 +288,10 @@ internal object ReaderContentStyles {
             user-select: none;
         }
         $selectionHighlightCss
+        ::highlight(hoshi-sasayaki) {
+            color: var(--hoshi-sasayaki-text-color) !important;
+            background-color: var(--hoshi-sasayaki-background-color) !important;
+        }
         .hoshi-sasayaki-cue.hoshi-sasayaki-active {
             color: var(--hoshi-sasayaki-text-color) !important;
             background-color: var(--hoshi-sasayaki-background-color) !important;
