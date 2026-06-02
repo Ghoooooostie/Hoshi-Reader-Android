@@ -292,6 +292,10 @@ internal object ReaderContentStyles {
             color: var(--hoshi-sasayaki-text-color) !important;
             background-color: var(--hoshi-sasayaki-background-color) !important;
         }
+        ruby.hoshi-sasayaki-ruby-active {
+            color: var(--hoshi-sasayaki-text-color) !important;
+            background-color: var(--hoshi-sasayaki-background-color) !important;
+        }
         .hoshi-sasayaki-cue.hoshi-sasayaki-active {
             color: var(--hoshi-sasayaki-text-color) !important;
             background-color: var(--hoshi-sasayaki-background-color) !important;
