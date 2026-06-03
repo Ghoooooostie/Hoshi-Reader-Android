@@ -178,7 +178,6 @@ class ReaderPaginationScriptsTest {
         val script = ReaderPaginationScripts.shellScript()
 
         assertTrue(script.contains("notifyRestoreComplete: function()"))
-        assertTrue(script.contains("window.HoshiReaderRestore.postMessage('restoreCompleted')"))
         assertTrue(script.contains("var targetCharCount = Math.ceil(totalChars * progress)"))
         assertTrue(script.contains("textOffsetForCharCount: function(node, targetCount)"))
         assertTrue(script.contains("if ((runningSum + nodeLen) > targetCharCount)"))

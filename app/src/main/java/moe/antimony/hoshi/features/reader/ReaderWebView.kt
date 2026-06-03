@@ -65,6 +65,7 @@ import moe.antimony.hoshi.features.dictionary.LookupPopupAssets
 import moe.antimony.hoshi.features.dictionary.LookupPopupHtml
 import moe.antimony.hoshi.features.dictionary.LookupPopupItem
 import moe.antimony.hoshi.features.dictionary.LookupPopupOptions
+import moe.antimony.hoshi.features.dictionary.PopupSelectionEInkStyle
 import moe.antimony.hoshi.features.dictionary.closeChildPopupsForScrolledParent
 import moe.antimony.hoshi.features.dictionary.clearPopupSelectionHighlights
 import moe.antimony.hoshi.features.dictionary.createLookupPopupItem
@@ -111,11 +112,8 @@ fun ReaderWebView(
     val bookRepository = appContainer.bookRepository
     var sasayakiSettings by remember { mutableStateOf(SasayakiSettings()) }
     var sasayakiMatchData by remember(bookRoot) { mutableStateOf<SasayakiMatchData?>(null) }
-    var isSasayakiMatchLoaded by remember(bookRoot) { mutableStateOf(bookRoot == null) }
     LaunchedEffect(bookRoot, bookRepository) {
-        isSasayakiMatchLoaded = bookRoot == null
         sasayakiMatchData = bookRoot?.let { bookRepository.loadSasayakiMatch(it) }
-        isSasayakiMatchLoaded = true
     }
     var highlights by remember(bookRoot) {
         mutableStateOf<List<ReaderHighlight>?>(if (bookRoot == null) emptyList() else null)
@@ -139,6 +137,7 @@ fun ReaderWebView(
         resolveBookCoverFile(bookRoot, book.coverHref)
     }
     var sasayakiPlayer by remember { mutableStateOf<SasayakiPlayer?>(null) }
+    var pendingSasayakiCue by remember(book) { mutableStateOf<PendingSasayakiCue?>(null) }
     val view = LocalView.current
     val systemDarkTheme = isSystemInDarkTheme()
     val clampedInitialIndex = initialChapterIndex.coerceIn(0, book.chapters.lastIndex)
@@ -795,12 +794,10 @@ fun ReaderWebView(
             val (popup, highlightCount) = lookup
             pauseSasayakiForLookupIfNeeded()
             val selectionCount = onTextSelected(selection) ?: highlightCount
-            if (readerIframePopupSupported) {
-                rootSelectionHighlight = ReaderRootSelectionHighlight(
-                    popupId = popup.id,
-                    rects = null,
-                )
-            }
+            rootSelectionHighlight = ReaderRootSelectionHighlight(
+                popupId = popup.id,
+                rects = null,
+            )
             setLookupPopups(listOf(popup))
             if (readerIframePopupSupported) {
                 selectionRects(selectionCount) { rects ->
@@ -829,7 +826,9 @@ fun ReaderWebView(
                 }
             } else {
                 selectionRects(selectionCount) { rects ->
-                    val anchor = rects.firstOrNull() ?: return@selectionRects
+                    if (stateHolder.lookupPopups.none { it.id == popup.id }) return@selectionRects
+                    val displayRects = rects.ifEmpty { listOf(popup.state.selection.rect) }
+                    val anchor = displayRects.firstOrNull() ?: return@selectionRects
                     setLookupPopups(
                         stateHolder.lookupPopups.map { existing ->
                             if (existing.id == popup.id) {
@@ -842,6 +841,10 @@ fun ReaderWebView(
                                 existing
                             }
                         },
+                    )
+                    rootSelectionHighlight = ReaderRootSelectionHighlight(
+                        popupId = popup.id,
+                        rects = displayRects,
                     )
                 }
             }
@@ -886,6 +889,38 @@ fun ReaderWebView(
             },
         )
     }
+    fun dispatchSasayakiCueToReader(cue: SasayakiMatch, reveal: Boolean) {
+        val targetWebView = webView
+        if (targetWebView == null || stateHolder.isWebViewRestoring) {
+            pendingSasayakiCue = PendingSasayakiCue(cue = cue, reveal = reveal)
+            return
+        }
+        pendingSasayakiCue = null
+        targetWebView.evaluateJavascript(
+            ReaderPaginationScripts.highlightSasayakiCueInvocation(cue.toCueRange(), reveal),
+        ) { progressResult ->
+            ReaderPaginationScripts.doubleResult(progressResult)?.let { progress ->
+                startStatisticsForProgressChangeIfNeeded()
+                val savedPosition = stateHolder.recordDisplayedProgress(progress)
+                recordStatisticsAtDisplayedPosition()
+                saveReaderPosition(savedPosition)
+            }
+        }
+    }
+    LaunchedEffect(
+        webView,
+        stateHolder.isWebViewRestoring,
+        readerPosition.displayedPosition.index,
+        pendingSasayakiCue,
+    ) {
+        val pending = pendingSasayakiCue ?: return@LaunchedEffect
+        if (stateHolder.isWebViewRestoring || webView == null) return@LaunchedEffect
+        if (pending.cue.chapterIndex != readerPosition.displayedPosition.index) {
+            pendingSasayakiCue = null
+            return@LaunchedEffect
+        }
+        dispatchSasayakiCueToReader(pending.cue, pending.reveal)
+    }
     LaunchedEffect(bookRoot, sasayakiMatchData, isSasayakiPlaybackLoaded, sasayakiPlaybackData) {
         sasayakiPlayer?.release()
         sasayakiPlayer = if (bookRoot != null && sasayakiMatchData != null && isSasayakiPlaybackLoaded) {
@@ -900,18 +935,10 @@ fun ReaderWebView(
                 persistenceScope = scope,
                 getCurrentChapterIndex = { stateHolder.readerPosition.displayedPosition.index },
                 onCue = { cue, reveal ->
-                    webView?.evaluateJavascript(
-                        ReaderPaginationScripts.highlightSasayakiCueInvocation(cue.toCueRange(), reveal),
-                    ) { progressResult ->
-                        ReaderPaginationScripts.doubleResult(progressResult)?.let { progress ->
-                            startStatisticsForProgressChangeIfNeeded()
-                            val savedPosition = stateHolder.recordDisplayedProgress(progress)
-                            recordStatisticsAtDisplayedPosition()
-                            saveReaderPosition(savedPosition)
-                        }
-                    }
+                    dispatchSasayakiCueToReader(cue, reveal)
                 },
                 onClearCue = {
+                    pendingSasayakiCue = null
                     webView?.evaluateJavascript(ReaderPaginationScripts.clearSasayakiCueInvocation(), null)
                 },
                 onLoadChapter = { chapterIndex ->
@@ -1211,7 +1238,7 @@ fun ReaderWebView(
                         )
                     }
                 }
-                if (highlights != null && isSasayakiMatchLoaded) {
+                if (highlights != null) {
                     val loadChapter = currentLoadChapter()
                     ChapterWebView(
                         book = book,
@@ -1294,6 +1321,11 @@ fun ReaderWebView(
                             dismissRootLookupPopup()
                             true
                         },
+                        rootHighlightRects = rootSelectionHighlight?.rects.orEmpty(),
+                        rootHighlightDarkMode = popupDarkMode,
+                        rootHighlightEInkMode = effectiveSettings.eInkMode,
+                        rootHighlightVerticalWriting = effectiveSettings.verticalWriting,
+                        rootHighlightEInkStyle = PopupSelectionEInkStyle.Box,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -1463,6 +1495,11 @@ private fun resolveBookCoverFile(bookRoot: File?, coverHref: String?): File? {
 
 private fun SasayakiMatch.toCueRange(): SasayakiCueRange =
     SasayakiCueRange(id = id, start = start, length = length)
+
+private data class PendingSasayakiCue(
+    val cue: SasayakiMatch,
+    val reveal: Boolean,
+)
 
 private fun SasayakiPlaybackData?.hasStoredAudioSource(): Boolean =
     this?.audioUri?.isNotBlank() == true || this?.audioFileName?.isNotBlank() == true

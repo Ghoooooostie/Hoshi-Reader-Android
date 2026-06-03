@@ -10,11 +10,15 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 - Add a long-press entry point for revealing dictionary deletion from the Dictionaries screen while keeping the reorder handle dedicated to dragging.
 - Add iOS-style custom reader themes with a separate interface mode plus configurable reader background, text, and info colors.
 
+### Changed
+
+- Split Sasayaki reader highlighting into inline WebView highlights for non-E-ink readers and ruby-aware overlay marks for E-ink readers.
+
 ### Fixed
 
 - Keep EPUB publisher CSS from overriding reader layout with embedded writing mode, line height, height, positive indentation, or nested column-count rules, including image-page vertical writing rules that could crash Android WebView. #78 #90
 - Prevent reader chapter loading crashes from optional restore payload setup and avoid app freezes when mining Anki cards from lookup popups.
-- Prevent Sasayaki playback from reflowing the next highlighted reader sentence by using non-layout-changing range highlights where WebView supports them, while keeping off-screen continuous-mode cues aligned to the start of the page and avoiding Android WebView ruby clipping in highlighted text.
+- Prevent Sasayaki highlights from reflowing reader text, keep emphasized text marks visible, improve Sasayaki and lookup marks around furigana, restore colored highlights after toggling E-ink Mode off, and let books open before Sasayaki match sidecars finish loading.
 
 ## [v1.1.2] - 2026-05-31
 

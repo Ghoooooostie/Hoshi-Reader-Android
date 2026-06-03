@@ -99,26 +99,21 @@ internal object ReaderContentStyles {
         } else {
             ""
         }
-        val selectionHighlightCss = if (settings.eInkMode) {
-            val lineColor = if (settings.usesDarkInterface(systemDark)) "#fff" else "#000"
-            """
-        ::highlight(hoshi-selection) {
-            background-color: transparent !important;
-            color: inherit;
-            text-decoration-line: underline;
-            text-decoration-color: $lineColor;
-            text-decoration-thickness: 1.5px;
-            text-underline-offset: 2px;
-        }
-            """.trimIndent()
-        } else {
-            """
-        ::highlight(hoshi-selection) {
+        val eInkLineColor = if (settings.usesDarkInterface(systemDark)) "#fff" else "#000"
+        val selectionHighlightCss = """
+        html:not([data-hoshi-reader-eink-mode="true"]) ::highlight(hoshi-selection) {
             background-color: rgba(160, 160, 160, 0.4) !important;
             color: inherit;
         }
-            """.trimIndent()
+        html[data-hoshi-reader-eink-mode="true"] ::highlight(hoshi-selection) {
+            background-color: transparent !important;
+            color: inherit;
+            text-decoration-line: underline;
+            text-decoration-color: var(--hoshi-eink-line-color);
+            text-decoration-thickness: 1.5px;
+            text-underline-offset: 2px;
         }
+        """.trimIndent()
         val gridCss = if (!settings.justifyText) {
             """
             text-align: start !important;
@@ -157,6 +152,32 @@ internal object ReaderContentStyles {
         } else {
             ""
         }
+        val sasayakiHighlightCss = """
+        html[data-hoshi-reader-eink-mode="true"] ::highlight(hoshi-sasayaki) {
+            color: inherit !important;
+            background-color: transparent !important;
+        }
+        html[data-hoshi-reader-eink-mode="true"] ruby.hoshi-sasayaki-ruby-active {
+            color: inherit !important;
+            background-color: transparent !important;
+        }
+        html[data-hoshi-reader-eink-mode="true"] .hoshi-sasayaki-cue.hoshi-sasayaki-active {
+            color: inherit !important;
+            background-color: transparent !important;
+        }
+        html:not([data-hoshi-reader-eink-mode="true"]) ::highlight(hoshi-sasayaki) {
+            color: var(--hoshi-sasayaki-text-color) !important;
+            background-color: var(--hoshi-sasayaki-background-color) !important;
+        }
+        html:not([data-hoshi-reader-eink-mode="true"]) ruby.hoshi-sasayaki-ruby-active {
+            color: var(--hoshi-sasayaki-text-color) !important;
+            background-color: var(--hoshi-sasayaki-background-color) !important;
+        }
+        html:not([data-hoshi-reader-eink-mode="true"]) .hoshi-sasayaki-cue.hoshi-sasayaki-active {
+            color: var(--hoshi-sasayaki-text-color) !important;
+            background-color: var(--hoshi-sasayaki-background-color) !important;
+        }
+        """.trimIndent()
         val furiganaCss = if (settings.hideFurigana) {
             """
             rt {
@@ -247,6 +268,9 @@ internal object ReaderContentStyles {
         :root {
             --hoshi-background-color: $backgroundColor;
             --hoshi-text-color: $textColor;
+            --hoshi-eink-line-color: $eInkLineColor;
+            --hoshi-reader-eink-mode: ${if (settings.eInkMode) "1" else "0"};
+            --hoshi-reader-vertical-writing: ${if (settings.verticalWriting) "1" else "0"};
             --hoshi-sasayaki-text-color: ${sasayakiTextColor.toReaderCssColor()};
             --hoshi-sasayaki-background-color: ${sasayakiBackgroundColor.toReaderCssColor(includeAlpha = true)};
         }
@@ -292,18 +316,7 @@ internal object ReaderContentStyles {
             user-select: none;
         }
         $selectionHighlightCss
-        ::highlight(hoshi-sasayaki) {
-            color: var(--hoshi-sasayaki-text-color) !important;
-            background-color: var(--hoshi-sasayaki-background-color) !important;
-        }
-        ruby.hoshi-sasayaki-ruby-active {
-            color: var(--hoshi-sasayaki-text-color) !important;
-            background-color: var(--hoshi-sasayaki-background-color) !important;
-        }
-        .hoshi-sasayaki-cue.hoshi-sasayaki-active {
-            color: var(--hoshi-sasayaki-text-color) !important;
-            background-color: var(--hoshi-sasayaki-background-color) !important;
-        }
+        $sasayakiHighlightCss
         ${HighlightColor.entries.joinToString("\n") { ".hoshi-highlight-${it.rawValue} { background-color: ${it.cssBackground} !important; }" }}
         a {
             color: rgba(66, 108, 245, 1) !important;
