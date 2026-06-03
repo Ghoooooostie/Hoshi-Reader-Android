@@ -149,7 +149,7 @@ For Sasayaki volume-key regressions, verify volume-key seek with loaded audioboo
 
 For reader keep-screen-on regressions, verify Behavior -> Keep Screen On defaults off, persists after leaving settings, keeps the display awake while the reader is foregrounded when enabled, clears after closing the reader when disabled, and still keeps Sasayaki playback awake only while playback and Auto-Scroll are active.
 
-For reader text layout regressions, verify Appearance -> Layout changes such as Vertical Padding reload the current chapter at the displayed position and visibly affect text spacing.
+For reader text layout regressions, verify Appearance -> Layout changes such as Vertical Padding reload the current chapter at the displayed position and visibly affect text spacing; also spot-check vertical ruby text near the bottom of a line so furigana-adjacent text continues in the current column when there is room.
 
 For continuous reader layout regressions, verify vertical-writing Horizontal Padding and horizontal-writing Vertical Padding inset the current visible viewport rather than only the chapter ends, and continuous reader chrome only re-enters focus mode from a new drag gesture after tapping to reveal controls.
 

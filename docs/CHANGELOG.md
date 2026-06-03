@@ -5,6 +5,10 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+### Fixed
+
+- Prevent vertical reader text from prematurely wrapping after furigana, leaving blank space in the current column.
+
 ## [v1.1.3] - 2026-06-04
 
 ### Added
