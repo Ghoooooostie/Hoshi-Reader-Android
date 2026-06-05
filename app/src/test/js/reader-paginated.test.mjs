@@ -228,6 +228,17 @@ test('paginated reader re-stabilizes ruby-adjacent text after unwrap normalizes 
     assert.deepEqual(textRunAfter(ruby).slice(0, 4), ['。', 'そ', 'れ', '追']);
 });
 
+test('paginated reader-specific text normalization keeps ruby-adjacent text stable', () => {
+    const { paragraph, ruby } = rubyParagraph();
+    paragraph.normalize();
+    const reader = loadReader(paragraph);
+
+    assert.equal(typeof reader.normalizeReaderText, 'function');
+    reader.normalizeReaderText(paragraph);
+
+    assert.deepEqual(textRunAfter(ruby).slice(0, 3), ['。', 'そ', 'れ']);
+});
+
 test('continuous reader stabilizes vertical ruby-adjacent text like paginated reader', () => {
     const { paragraph, ruby } = rubyParagraph();
     paragraph.normalize();
@@ -235,6 +246,17 @@ test('continuous reader stabilizes vertical ruby-adjacent text like paginated re
 
     assert.equal(typeof reader.stabilizeRubyAdjacentTextNodes, 'function');
     reader.stabilizeRubyAdjacentTextNodes();
+
+    assert.deepEqual(textRunAfter(ruby).slice(0, 3), ['。', 'そ', 'れ']);
+});
+
+test('continuous reader-specific text normalization keeps ruby-adjacent text stable', () => {
+    const { paragraph, ruby } = rubyParagraph();
+    paragraph.normalize();
+    const reader = loadReader(paragraph, readerContinuousUrl);
+
+    assert.equal(typeof reader.normalizeReaderText, 'function');
+    reader.normalizeReaderText(paragraph);
 
     assert.deepEqual(textRunAfter(ruby).slice(0, 3), ['。', 'そ', 'れ']);
 });

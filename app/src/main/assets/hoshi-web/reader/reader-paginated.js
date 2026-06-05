@@ -522,7 +522,8 @@ window.hoshiReader = {
     this.clearSasayakiOverlay();
   },
   unwrap: function(wrappers) {
-    var didUnwrap = false;
+    var self = this;
+    var parents = [];
     wrappers.forEach(function(wrapper) {
       var parent = wrapper.parentNode;
       if (!parent) return;
@@ -530,10 +531,14 @@ window.hoshiReader = {
         parent.insertBefore(wrapper.firstChild, wrapper);
       }
       parent.removeChild(wrapper);
-      parent.normalize();
-      didUnwrap = true;
+      if (parents.indexOf(parent) < 0) parents.push(parent);
     });
-    if (didUnwrap) this.stabilizeRubyAdjacentTextNodes();
+    parents.forEach(function(parent) { self.normalizeReaderText(parent); });
+  },
+  normalizeReaderText: function(parent) {
+    if (!parent) return;
+    parent.normalize();
+    this.stabilizeRubyAdjacentTextNodes(parent);
   },
   isJapaneseBreakCharacter: function(text) {
     var code = (text || '').codePointAt(0);
@@ -543,11 +548,16 @@ window.hoshiReader = {
       (code >= 0xf900 && code <= 0xfaff) ||
       (code >= 0xff00 && code <= 0xffef);
   },
-  stabilizeRubyAdjacentTextNodes: function() {
+  stabilizeRubyAdjacentTextNodes: function(root) {
     if (!this.isVertical()) return;
     var self = this;
     var splitLimit = 64;
-    document.querySelectorAll('ruby').forEach(function(ruby) {
+    var scope = root && root.querySelectorAll ? root : document;
+    var rubies = Array.from(scope.querySelectorAll('ruby'));
+    if (root && root.tagName && root.tagName.toLowerCase() === 'ruby') {
+      rubies.unshift(root);
+    }
+    rubies.forEach(function(ruby) {
       if (ruby.closest('rt, rp')) return;
       var node = ruby.nextSibling;
       while (node && node.nodeType === Node.TEXT_NODE && !node.nodeValue.trim()) {
