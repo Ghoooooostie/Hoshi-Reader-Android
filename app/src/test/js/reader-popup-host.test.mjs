@@ -10,6 +10,7 @@ class FakeElement {
         this.className = '';
         this.dataset = {};
         this.attributes = new Map();
+        this.eventListeners = new Map();
         this.style = {
             setProperty: (name, value) => {
                 this.style[name] = value;
@@ -38,7 +39,15 @@ class FakeElement {
         this.attributes.set(name, value);
     }
 
-    addEventListener() {}
+    addEventListener(type, listener) {
+        const listeners = this.eventListeners.get(type) ?? [];
+        listeners.push(listener);
+        this.eventListeners.set(type, listeners);
+    }
+
+    dispatchEvent(type) {
+        (this.eventListeners.get(type) ?? []).forEach((listener) => listener());
+    }
 
     getClientRects() {
         return this.clientRects;
@@ -72,13 +81,26 @@ class FakeElement {
         this.children.forEach(visit);
         return matches;
     }
+
+    closest(selector) {
+        const classNames = Array.from(selector.matchAll(/\.([A-Za-z0-9_-]+)/g), (match) => match[1]);
+        let element = this;
+        while (element) {
+            if (classNames.some((className) => element.className.split(' ').includes(className))) {
+                return element;
+            }
+            element = element.parentNode;
+        }
+        return null;
+    }
 }
 
-function popupHost() {
+function popupHost(options = {}) {
     const root = new FakeElement('html');
     const body = new FakeElement('body');
     root.appendChild(body);
     const messageListeners = [];
+    const windowListeners = new Map();
     const document = {
         documentElement: root,
         body,
@@ -97,8 +119,15 @@ function popupHost() {
             },
         }),
         addEventListener(type, listener) {
-            if (type === 'message') messageListeners.push(listener);
+            if (type === 'message') {
+                messageListeners.push(listener);
+                return;
+            }
+            const listeners = windowListeners.get(type) ?? [];
+            listeners.push(listener);
+            windowListeners.set(type, listeners);
         },
+        __hoshiReaderPopupHostDismissTopPopupOnOutsideTap: options.dismissTopPopupOnOutsideTap === true,
     };
     const script = fs.readFileSync(
         new URL('../../main/assets/hoshi-web/popup/reader-popup-host.js', import.meta.url),
@@ -115,6 +144,9 @@ function popupHost() {
                 data,
                 source: {},
             }));
+        },
+        dispatchWindowEvent: (type, event) => {
+            (windowListeners.get(type) ?? []).forEach((listener) => listener(event));
         },
     };
 }
@@ -218,6 +250,259 @@ test('sasayaki controls receive the larger control icon treatment', () => {
     sasayakiBar.children.forEach((control) => {
         assert.match(control.className, /hoshi-reader-popup-sasayaki-control/);
     });
+});
+
+test('public navigation helpers forward messages to the active iframe', () => {
+    const scene = popupHost();
+    const iframeMessages = [];
+    const nativeMessages = [];
+    scene.window.HoshiReaderPopup = {
+        postMessage(message) {
+            nativeMessages.push(JSON.parse(message));
+        },
+    };
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            backCount: 1,
+            forwardCount: 1,
+        }],
+    });
+    const shell = scene.document.getElementById('hoshi-reader-popup-layer').children[0];
+    const iframe = shell.querySelector('.hoshi-reader-popup-iframe');
+    iframe.contentWindow.postMessage = (message) => iframeMessages.push(message);
+
+    scene.host.navigateBack('root');
+    scene.host.navigateForward('root');
+
+    assert.deepEqual(
+        iframeMessages.map((message) => JSON.parse(JSON.stringify(message))),
+        [{ type: 'navigateBack' }, { type: 'navigateForward' }],
+    );
+    assert.deepEqual(nativeMessages, [
+        { name: 'navigateBack', popupId: 'root' },
+        { name: 'navigateForward', popupId: 'root' },
+    ]);
+});
+
+test('outside pointer dismissal is opt-in for process text iframe host', () => {
+    const scene = popupHost();
+    const nativeMessages = [];
+    scene.window.HoshiReaderPopup = {
+        postMessage(message) {
+            nativeMessages.push(JSON.parse(message));
+        },
+    };
+    scene.host.renderStack({
+        popups: [rootPopupPayload()],
+    });
+
+    scene.dispatchWindowEvent('pointerdown', { target: scene.document.body });
+
+    assert.deepEqual(nativeMessages, []);
+});
+
+test('process text iframe host outside pointer dismisses the top popup', () => {
+    const scene = popupHost({ dismissTopPopupOnOutsideTap: true });
+    const nativeMessages = [];
+    scene.window.HoshiReaderPopup = {
+        postMessage(message) {
+            nativeMessages.push(JSON.parse(message));
+        },
+    };
+    scene.host.renderStack({
+        popups: [
+            rootPopupPayload(),
+            {
+                ...rootPopupPayload(),
+                id: 'child',
+                frame: { left: 20, top: 20, width: 200, height: 180 },
+            },
+        ],
+    });
+
+    scene.dispatchWindowEvent('pointerdown', { target: scene.document.body });
+
+    assert.deepEqual(nativeMessages, [
+        { name: 'swipeDismiss', popupId: 'child' },
+    ]);
+});
+
+test('active iframe rerenders when same popup id receives new entry payload', () => {
+    const scene = popupHost();
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            entriesCount: 1,
+            initialEntryJson: '{"expression":"食べる"}',
+        }],
+    });
+    const shell = scene.document.getElementById('hoshi-reader-popup-layer').children[0];
+    const iframe = shell.querySelector('.hoshi-reader-popup-iframe');
+    const iframeMessages = [];
+    iframe.contentWindow.postMessage = (message) => iframeMessages.push(message);
+    iframe.dispatchEvent('load');
+
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            entriesCount: 1,
+            initialEntryJson: '{"expression":"飲む"}',
+        }],
+    });
+
+    assert.deepEqual(
+        iframeMessages
+            .filter((message) => message.type === 'renderPopup')
+            .map((message) => JSON.parse(JSON.stringify(message))),
+        [
+            {
+                type: 'renderPopup',
+                popupId: 'root',
+                entriesCount: 1,
+                initialEntryJson: '{"expression":"食べる"}',
+            },
+            {
+                type: 'renderPopup',
+                popupId: 'root',
+                entriesCount: 1,
+                initialEntryJson: '{"expression":"飲む"}',
+            },
+        ],
+    );
+});
+
+test('active iframe rerenders when content key changes behind same first entry and count', () => {
+    const scene = popupHost();
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            entriesCount: 2,
+            initialEntryJson: '{"expression":"猫"}',
+            contentKey: '猫/犬',
+        }],
+    });
+    const shell = scene.document.getElementById('hoshi-reader-popup-layer').children[0];
+    const iframe = shell.querySelector('.hoshi-reader-popup-iframe');
+    const iframeMessages = [];
+    iframe.contentWindow.postMessage = (message) => iframeMessages.push(message);
+    iframe.dispatchEvent('load');
+
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            entriesCount: 2,
+            initialEntryJson: '{"expression":"猫"}',
+            contentKey: '猫/鳥',
+        }],
+    });
+
+    assert.deepEqual(
+        iframeMessages
+            .filter((message) => message.type === 'renderPopup')
+            .map((message) => JSON.parse(JSON.stringify(message))),
+        [
+            {
+                type: 'renderPopup',
+                popupId: 'root',
+                entriesCount: 2,
+                initialEntryJson: '{"expression":"猫"}',
+            },
+            {
+                type: 'renderPopup',
+                popupId: 'root',
+                entriesCount: 2,
+                initialEntryJson: '{"expression":"猫"}',
+            },
+        ],
+    );
+});
+
+test('history updates do not replace iframe content handled by popup redirect', () => {
+    const scene = popupHost();
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            entriesCount: 1,
+            initialEntryJson: '{"expression":"食べる"}',
+        }],
+    });
+    const shell = scene.document.getElementById('hoshi-reader-popup-layer').children[0];
+    const iframe = shell.querySelector('.hoshi-reader-popup-iframe');
+    const iframeMessages = [];
+    iframe.contentWindow.postMessage = (message) => iframeMessages.push(message);
+    iframe.dispatchEvent('load');
+
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            backCount: 1,
+            entriesCount: 1,
+            initialEntryJson: '{"expression":"飲む"}',
+        }],
+    });
+
+    assert.deepEqual(
+        iframeMessages
+            .filter((message) => message.type === 'renderPopup')
+            .map((message) => JSON.parse(JSON.stringify(message))),
+        [
+            {
+                type: 'renderPopup',
+                popupId: 'root',
+                entriesCount: 1,
+                initialEntryJson: '{"expression":"食べる"}',
+            },
+        ],
+    );
+});
+
+test('reader highlight updates can omit initial entry without replacing iframe content', () => {
+    const scene = popupHost();
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            entriesCount: 1,
+            initialEntryJson: '{"expression":"読む"}',
+        }],
+        rootHighlight: {
+            popupId: 'root',
+            pending: true,
+            rects: [],
+        },
+    });
+    const shell = scene.document.getElementById('hoshi-reader-popup-layer').children[0];
+    const iframe = shell.querySelector('.hoshi-reader-popup-iframe');
+    const iframeMessages = [];
+    iframe.contentWindow.postMessage = (message) => iframeMessages.push(message);
+    iframe.dispatchEvent('load');
+
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            entriesCount: 1,
+            initialEntryJson: null,
+        }],
+        rootHighlight: {
+            popupId: 'root',
+            pending: false,
+            rects: [{ x: 10, y: 20, width: 30, height: 12 }],
+        },
+    });
+
+    assert.deepEqual(
+        iframeMessages
+            .filter((message) => message.type === 'renderPopup')
+            .map((message) => JSON.parse(JSON.stringify(message))),
+        [
+            {
+                type: 'renderPopup',
+                popupId: 'root',
+                entriesCount: 1,
+                initialEntryJson: '{"expression":"読む"}',
+            },
+        ],
+    );
 });
 
 test('non e-ink root lookup highlight keeps the filled selection rectangle', () => {

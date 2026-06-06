@@ -12,8 +12,6 @@ import moe.antimony.hoshi.features.reader.ReaderLookupPopupViewport
 import moe.antimony.hoshi.features.reader.readerLookupPopupIframeUrl
 import moe.antimony.hoshi.features.reader.readerLookupPopupTouchBlocksReaderGesture
 import moe.antimony.hoshi.features.audio.AudioSettings
-import android.view.MotionEvent
-import android.view.View
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.double
@@ -381,6 +379,33 @@ class LookupPopupTest {
     }
 
     @Test
+    fun tappingOutsidePopupContentClosesChildrenAndClearsCurrentSelection() {
+        val popups = listOf("root", "child", "grandchild").map { id ->
+            LookupPopupItem(
+                id = id,
+                state = LookupPopupState(
+                    selection = ReaderSelectionData(
+                        text = id,
+                        sentence = id,
+                        rect = ReaderSelectionRect(x = 0.0, y = 0.0, width = 1.0, height = 1.0),
+                        normalizedOffset = null,
+                    ),
+                    results = emptyList(),
+                ),
+            )
+        }
+
+        val afterRootTapOutside = closeChildPopupsAndClearSelection(popups, 0)
+        val afterChildTapOutside = closeChildPopupsAndClearSelection(popups, 1)
+
+        assertEquals(listOf("root"), afterRootTapOutside.map { it.id })
+        assertEquals(1, afterRootTapOutside.single().clearSelectionSignal)
+        assertEquals(listOf("root", "child"), afterChildTapOutside.map { it.id })
+        assertEquals(0, afterChildTapOutside.single { it.id == "root" }.clearSelectionSignal)
+        assertEquals(1, afterChildTapOutside.single { it.id == "child" }.clearSelectionSignal)
+    }
+
+    @Test
     fun scrollingRootOnlyPopupDoesNotRewritePopupState() {
         val popups = listOf("root").map { id ->
             LookupPopupItem(
@@ -482,79 +507,6 @@ class LookupPopupTest {
             ),
             0.0,
         )
-    }
-
-    @Test
-    fun popupTouchStreamContinuesAfterMovingOutsideInitialHost() {
-        val tracker = PopupTouchStreamTracker()
-
-        assertTrue(tracker.shouldDispatch(MotionEvent.ACTION_DOWN, hitPopup = true))
-        tracker.onDispatchResult(MotionEvent.ACTION_DOWN, handled = true)
-        assertTrue(tracker.shouldDispatch(MotionEvent.ACTION_MOVE, hitPopup = false))
-        assertTrue(tracker.shouldDispatch(MotionEvent.ACTION_UP, hitPopup = false))
-        tracker.onDispatchResult(MotionEvent.ACTION_UP, handled = true)
-        assertFalse(tracker.shouldDispatch(MotionEvent.ACTION_MOVE, hitPopup = false))
-    }
-
-    @Test
-    fun overlayLeavesInputPathWhenThereAreNoPopups() {
-        assertEquals(View.GONE, lookupPopupOverlayVisibility(hasPopups = false))
-        assertEquals(View.VISIBLE, lookupPopupOverlayVisibility(hasPopups = true))
-    }
-
-    @Test
-    fun stylusOutsidePopupDownConsumesStreamAndRequestsDismiss() {
-        val shouldDismiss = shouldDismissForOutsideStylusTouch(
-            actionMasked = MotionEvent.ACTION_DOWN,
-            toolType = MotionEvent.TOOL_TYPE_STYLUS,
-            hitPopup = false,
-        )
-
-        assertTrue(shouldDismiss)
-    }
-
-    @Test
-    fun fingerOutsidePopupStillFallsThroughToReaderPath() {
-        val shouldDismiss = shouldDismissForOutsideStylusTouch(
-            actionMasked = MotionEvent.ACTION_DOWN,
-            toolType = MotionEvent.TOOL_TYPE_FINGER,
-            hitPopup = false,
-        )
-
-        assertFalse(shouldDismiss)
-    }
-
-    @Test
-    fun stylusInsidePopupStillUsesPopupDispatchPath() {
-        val shouldDismiss = shouldDismissForOutsideStylusTouch(
-            actionMasked = MotionEvent.ACTION_DOWN,
-            toolType = MotionEvent.TOOL_TYPE_STYLUS,
-            hitPopup = true,
-        )
-
-        assertFalse(shouldDismiss)
-    }
-
-    @Test
-    fun eraserOutsidePopupDownAlsoRequestsDismiss() {
-        val shouldDismiss = shouldDismissForOutsideStylusTouch(
-            actionMasked = MotionEvent.ACTION_DOWN,
-            toolType = MotionEvent.TOOL_TYPE_ERASER,
-            hitPopup = false,
-        )
-
-        assertTrue(shouldDismiss)
-    }
-
-    @Test
-    fun stylusOutsidePopupMoveDoesNotStartDismissWithoutDown() {
-        val shouldDismiss = shouldDismissForOutsideStylusTouch(
-            actionMasked = MotionEvent.ACTION_MOVE,
-            toolType = MotionEvent.TOOL_TYPE_STYLUS,
-            hitPopup = false,
-        )
-
-        assertFalse(shouldDismiss)
     }
 
     private fun lookupResult(

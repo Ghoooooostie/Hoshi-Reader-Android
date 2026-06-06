@@ -43,14 +43,7 @@ class DictionarySearchViewModelTest {
         viewModel.navigateBack()
 
         viewModel.updateQuery(" 猫 ")
-        viewModel.runLookup(
-            assets = LookupPopupAssets(
-                popupJs = "window.renderPopup = function() {};",
-                popupCss = ".entry {}",
-            ),
-            darkMode = true,
-            eInkMode = true,
-        )
+        viewModel.runLookup()
 
         val state = viewModel.uiState.value
         assertEquals("猫", state.lastQuery)
@@ -61,9 +54,6 @@ class DictionarySearchViewModelTest {
         assertEquals(2, repository.rebuildCount)
         assertEquals(1, state.results.size)
         assertEquals("猫", state.results.single().matched)
-        assertTrue(state.html.contains("window.lookupEntries = ["))
-        assertTrue(state.html.contains("""data-hoshi-color-scheme="dark""""))
-        assertTrue(state.html.contains("""data-hoshi-eink-mode="true""""))
         assertEquals(mapOf("JMdict" to ".entry {}"), state.dictionaryStyles)
         assertEquals(emptyList<LookupPopupItem>(), state.popups)
         assertEquals(0, state.resultClearSelectionSignal)
@@ -81,15 +71,92 @@ class DictionarySearchViewModelTest {
         val viewModel = viewModel(repository)
 
         viewModel.updateQuery("   ")
-        viewModel.runLookup(assets = LookupPopupAssets(popupJs = "", popupCss = ""))
+        viewModel.runLookup()
 
         val state = viewModel.uiState.value
         assertEquals("", state.lastQuery)
-        assertEquals("", state.html)
         assertEquals(emptyList<LookupResult>(), state.results)
         assertFalse(state.hasResults)
         assertTrue(state.hasSearched)
         assertEquals(emptyList<String>(), repository.lookupCalls)
+    }
+
+    @Test
+    fun resetSearchClearsQueryResultsPopupsAndHistoryWithoutRunningLookup() {
+        val repository = FakeDictionarySearchRepository(
+            lookupResults = listOf(lookupResult("猫")),
+            dictionaryStyles = mapOf("JMdict" to ".entry {}"),
+        )
+        val viewModel = viewModel(repository)
+        viewModel.updateQuery("猫")
+        viewModel.runLookup()
+        viewModel.setPopups(listOf(popup("old")))
+        viewModel.recordLookupRedirected(1)
+        viewModel.navigateBack()
+
+        viewModel.resetSearch()
+
+        val state = viewModel.uiState.value
+        assertEquals("", state.query)
+        assertEquals("", state.lastQuery)
+        assertEquals(emptyList<LookupResult>(), state.results)
+        assertFalse(state.hasSearched)
+        assertFalse(state.isSearching)
+        assertNull(state.errorMessage)
+        assertEquals(emptyMap<String, String>(), state.dictionaryStyles)
+        assertEquals(emptyList<LookupPopupItem>(), state.popups)
+        assertEquals(0, state.backCount)
+        assertEquals(0, state.forwardCount)
+        assertEquals(0, state.backSignal)
+        assertEquals(0, state.forwardSignal)
+        assertEquals(listOf("猫:16:16"), repository.lookupCalls)
+    }
+
+    @Test
+    fun rootIframeRedirectReplacesResultsAndUpdatesHistory() {
+        val repository = FakeDictionarySearchRepository(
+            lookupResults = listOf(lookupResult("犬")),
+            dictionarySettings = DictionarySettings(maxResults = 3, scanLength = 9),
+        )
+        val viewModel = viewModel(repository)
+
+        val redirected = viewModel.lookupRootRedirect("犬")
+
+        val state = viewModel.uiState.value
+        assertEquals(1, redirected.size)
+        assertEquals(listOf("犬:3:9"), repository.lookupCalls)
+        assertEquals("犬", state.results.single().matched)
+        assertEquals(1, state.backCount)
+        assertEquals(0, state.forwardCount)
+    }
+
+    @Test
+    fun popupEntryReadsLatestStateAfterRedirectWithoutWaitingForRecomposition() {
+        val repository = FakeDictionarySearchRepository(
+            lookupResults = listOf(lookupResult("猫")),
+        )
+        val viewModel = viewModel(repository)
+        viewModel.updateQuery("猫")
+        viewModel.runLookup()
+
+        repository.lookupResults = listOf(lookupResult("犬"), lookupResult("飲む"))
+        viewModel.lookupRootRedirect("犬")
+
+        assertEquals("犬", viewModel.entryForPopup(DictionarySearchRootPopupId, 0)?.matched)
+        assertEquals("飲む", viewModel.entryForPopup(DictionarySearchRootPopupId, 1)?.matched)
+        assertNull(viewModel.entryForPopup(DictionarySearchRootPopupId, 2))
+
+        viewModel.setPopups(
+            listOf(
+                popup("child").copy(
+                    state = popup("child").state.copy(results = listOf(lookupResult("固形"), lookupResult("食物"))),
+                ),
+            ),
+        )
+
+        assertEquals("固形", viewModel.entryForPopup("child", 0)?.matched)
+        assertEquals("食物", viewModel.entryForPopup("child", 1)?.matched)
+        assertNull(viewModel.entryForPopup("missing", 0))
     }
 
     @Test
@@ -98,10 +165,9 @@ class DictionarySearchViewModelTest {
         val viewModel = viewModel(repository)
 
         viewModel.updateQuery("猫")
-        viewModel.runLookup(assets = LookupPopupAssets(popupJs = "", popupCss = ""))
+        viewModel.runLookup()
 
         val state = viewModel.uiState.value
-        assertEquals("", state.html)
         assertEquals(emptyList<LookupResult>(), state.results)
         assertEquals(emptyMap<String, String>(), state.dictionaryStyles)
         assertEquals(emptyList<LookupPopupItem>(), state.popups)
@@ -230,7 +296,7 @@ private class FakeDictionarySearchRepository(
     val audioSettingsFlow = MutableStateFlow(audioSettings)
     val lookupCalls = mutableListOf<String>()
     var rebuildCount = 0
-    private var lookupResults = lookupResults
+    var lookupResults = lookupResults
 
     override val dictionarySettings: StateFlow<DictionarySettings> = dictionarySettingsFlow
     override val audioSettings: StateFlow<AudioSettings> = audioSettingsFlow

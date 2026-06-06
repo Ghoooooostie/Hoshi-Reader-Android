@@ -97,14 +97,8 @@
         if (payload.actionBarVisible) {
             shell.insertBefore(
                 buildBar('hoshi-reader-popup-bar hoshi-reader-popup-action-bar', [
-                    button('arrow_back', payload.backCount > 0, () => {
-                        iframe.contentWindow?.postMessage({ type: 'navigateBack' }, ORIGIN);
-                        postNative({ name: 'navigateBack', popupId: payload.id });
-                    }, 'Back'),
-                    button('arrow_forward', payload.forwardCount > 0, () => {
-                        iframe.contentWindow?.postMessage({ type: 'navigateForward' }, ORIGIN);
-                        postNative({ name: 'navigateForward', popupId: payload.id });
-                    }, 'Forward'),
+                    button('arrow_back', payload.backCount > 0, () => navigateBack(payload.id), 'Back'),
+                    button('arrow_forward', payload.forwardCount > 0, () => navigateForward(payload.id), 'Forward'),
                     spacer(),
                     button('close', true, () => postNative({ name: 'swipeDismiss', popupId: payload.id }), 'Close')
                 ]),
@@ -145,6 +139,32 @@
 
     function renderIframe(record) {
         record.iframe.contentWindow?.postMessage(iframeRenderMessage(record.payload), ORIGIN);
+    }
+
+    function historyCount(payload, name) {
+        return payload?.[name] || 0;
+    }
+
+    function shouldReplaceIframeContent(previous, next) {
+        if (!previous) return true;
+        if (previous.id !== next.id) return true;
+        const nextKeepsHistory =
+            historyCount(next, 'backCount') > 0 ||
+            historyCount(next, 'forwardCount') > 0;
+        if (nextKeepsHistory) return false;
+        const previousHadHistory =
+            historyCount(previous, 'backCount') > 0 ||
+            historyCount(previous, 'forwardCount') > 0;
+        const hasNextInitialEntry = (next.initialEntryJson || null) !== null;
+        if (!hasNextInitialEntry) return false;
+        if (previousHadHistory) return true;
+        const previousContentKey = previous.contentKey || null;
+        const nextContentKey = next.contentKey || null;
+        if (previousContentKey !== null || nextContentKey !== null) {
+            return previousContentKey !== nextContentKey;
+        }
+        return (previous.entriesCount || 0) !== (next.entriesCount || 0) ||
+            (previous.initialEntryJson || null) !== (next.initialEntryJson || null);
     }
 
     function setContentReady(record, ready) {
@@ -216,7 +236,7 @@
             }
             frames.set(payload.id, record);
         }
-        if (record.payload?.id !== payload.id) {
+        if (shouldReplaceIframeContent(record.payload, payload)) {
             needsRender = true;
         }
         record.root = isRoot;
@@ -591,6 +611,14 @@
         syncRootReveal();
     }
 
+    function topPopupId() {
+        let topId = null;
+        for (const id of frames.keys()) {
+            topId = id;
+        }
+        return topId;
+    }
+
     function resolveMessage(popupId, id, body) {
         const record = frames.get(popupId);
         record?.iframe.contentWindow?.postMessage({ type: 'reply', id, body }, ORIGIN);
@@ -599,6 +627,20 @@
     function highlightSelection(popupId, count) {
         const record = frames.get(popupId);
         record?.iframe.contentWindow?.postMessage({ type: 'highlightSelection', count }, ORIGIN);
+    }
+
+    function navigateBack(popupId) {
+        const record = frames.get(popupId);
+        if (!record) return;
+        record.iframe.contentWindow?.postMessage({ type: 'navigateBack' }, ORIGIN);
+        postNative({ name: 'navigateBack', popupId });
+    }
+
+    function navigateForward(popupId) {
+        const record = frames.get(popupId);
+        if (!record) return;
+        record.iframe.contentWindow?.postMessage({ type: 'navigateForward' }, ORIGIN);
+        postNative({ name: 'navigateForward', popupId });
     }
 
     function adjustSelectionBody(popupId, body) {
@@ -631,6 +673,16 @@
             body: body === undefined ? null : body
         });
     });
+
+    if (window.__hoshiReaderPopupHostDismissTopPopupOnOutsideTap === true) {
+        window.addEventListener('pointerdown', function(event) {
+            if (frames.size === 0) return;
+            if (event.target?.closest?.(`#${LAYER_ID} .hoshi-reader-popup-shell`)) return;
+            const popupId = topPopupId();
+            if (!popupId) return;
+            postNative({ name: 'swipeDismiss', popupId });
+        }, true);
+    }
 
     const style = document.createElement('style');
     style.textContent = `
@@ -684,6 +736,12 @@
         }
         #${LAYER_ID} .hoshi-reader-popup-shell[data-dark-mode="true"][data-e-ink-mode="true"] {
             border-color: #fff;
+        }
+        #${LAYER_ID} .hoshi-reader-popup-shell[data-popup-id="dictionary-search-root"] {
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
         }
         #${LAYER_ID} .hoshi-reader-popup-iframe {
             position: absolute;
@@ -762,6 +820,8 @@
         renderStack,
         resolveMessage,
         highlightSelection,
+        navigateBack,
+        navigateForward,
         renderSasayakiHighlight,
         clearSasayakiHighlight,
         preloadIdleRootFrame
