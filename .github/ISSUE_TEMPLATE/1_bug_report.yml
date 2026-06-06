@@ -1,0 +1,89 @@
+name: Bug report
+description: Report a bug you have experienced in Hoshi Reader Android
+title: '[Bug]: '
+labels: ["bug"]
+body:
+  - type: checkboxes
+    id: existing-issue
+    attributes:
+      label: Existing issue
+      description: Please search to see if an issue already exists for this bug.
+      options:
+        - label: >-
+            I have searched the existing issues and this is NOT a duplicate of
+            an already open or closed issue.
+          required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: >-
+        Describe what happened, what you expected, and how to reproduce it, if
+        you can.
+    validations:
+      required: true
+  - type: upload
+    id: attachments
+    attributes:
+      label: EPUB sample archive or attachments
+      description: >-
+        For EPUB import errors, open errors, page crashes, or formatting
+        issues, upload a .zip containing the EPUB if you can share it publicly
+        and legally. You can also attach screenshots or screen recordings. If
+        you cannot share the book publicly, say so in the description and send
+        it by Discord DM or email it to HuangAntimony@gmail.com.
+    validations:
+      required: false
+      accept: ".zip,.gz,.tar.gz,.png,.jpg,.jpeg,.gif,.webp,.mp4,.mov,.webm"
+  - type: upload
+    id: diagnostic-log
+    attributes:
+      label: Diagnostic log
+      description: >-
+        If the app crashed, open Hoshi Reader Android's Settings page, go to
+        Diagnostics, download the diagnostic log, and upload the .txt file here.
+    validations:
+      required: false
+      accept: ".txt"
+  - type: input
+    id: app-version
+    attributes:
+      label: Hoshi Reader Android version
+      placeholder: e.g. 1.1.3 or debug build from commit abc1234
+    validations:
+      required: true
+  - type: dropdown
+    id: installation-source
+    attributes:
+      label: Installation source
+      description: Make sure you have updated to the latest available version.
+      options:
+        - GitHub Releases APK
+        - Self-built/debug build
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      placeholder: e.g. Pixel 8, Boox Palma, Samsung Galaxy Tab S9
+    validations:
+      required: true
+  - type: input
+    id: android-version
+    attributes:
+      label: Android version
+      placeholder: e.g. Android 15
+    validations:
+      required: true
+  - type: checkboxes
+    id: android-confirmation
+    attributes:
+      label: I am aware that I am reporting a bug for the Android app.
+      description: >-
+        Issues regarding the iOS version should be opened on the iOS repository
+        unless instructed otherwise.
+      options:
+        - label: 'Yes'
+          required: true
