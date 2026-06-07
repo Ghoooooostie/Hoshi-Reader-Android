@@ -133,7 +133,7 @@ class ReaderSettingsTest {
         assertEquals(36.0, layout.verticalPaddingBlockPx, 0.0)
         assertEquals(72.0, layout.verticalPaddingGapPx, 0.0)
         assertEquals(315, layout.imageMaxWidthPx)
-        assertEquals(720, layout.imageMaxHeightPx)
+        assertEquals(648, layout.imageMaxHeightPx)
 
         val css = layout.cssVariables()
         assertTrue(css.contains("--page-height: 742px;"))
@@ -141,7 +141,7 @@ class ReaderSettingsTest {
         assertTrue(css.contains("--hoshi-vertical-padding-block: 36.0px;"))
         assertTrue(css.contains("--hoshi-vertical-padding-gap: 72.0px;"))
         assertTrue(css.contains("--hoshi-image-max-width: 315px;"))
-        assertTrue(css.contains("--hoshi-image-max-height: 720px;"))
+        assertTrue(css.contains("--hoshi-image-max-height: 648px;"))
     }
 
     @Test

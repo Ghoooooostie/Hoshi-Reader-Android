@@ -14,6 +14,7 @@ function readerSource(url) {
         .replaceAll('__HOSHI_VERTICAL_PADDING_BLOCK_RATIO__', '0')
         .replaceAll('__HOSHI_VERTICAL_PADDING_GAP_RATIO__', '0')
         .replaceAll('__HOSHI_IMAGE_WIDTH_VIEWPORT_RATIO__', '1')
+        .replaceAll('__HOSHI_IMAGE_HEIGHT_VIEWPORT_RATIO__', '1')
         .replaceAll('__HOSHI_IMAGE_WIDTH_REDUCTION_PX__', '0')
         .replaceAll('__HOSHI_BLUR_IMAGES__', 'false')
         .replaceAll('__HOSHI_TRAILING_SPACER_HEIGHT_LITERAL__', JSON.stringify('0px'))

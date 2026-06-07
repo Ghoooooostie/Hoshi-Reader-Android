@@ -80,6 +80,9 @@ data class ReaderSettings(
     val imageWidthViewportRatio: Double
         get() = (100 - horizontalPadding).coerceAtLeast(1) / 100.0
 
+    val imageHeightViewportRatio: Double
+        get() = (100 - verticalPadding).coerceAtLeast(1) / 100.0
+
     val continuousViewportHorizontalPaddingRatio: Double
         get() = if (continuousMode && verticalWriting) {
             horizontalPadding.coerceAtLeast(0) / 200.0

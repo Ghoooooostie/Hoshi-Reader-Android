@@ -761,7 +761,7 @@ window.hoshiReader.initialize = function() {
   document.documentElement.style.setProperty('--hoshi-vertical-padding-gap', (window.innerHeight * __HOSHI_VERTICAL_PADDING_GAP_RATIO__) + 'px');
   document.documentElement.style.setProperty('--hoshi-continuous-height', window.innerHeight + 'px');
   document.documentElement.style.setProperty('--hoshi-image-max-width', Math.max(1, Math.floor(window.innerWidth * __HOSHI_IMAGE_WIDTH_VIEWPORT_RATIO__) - __HOSHI_IMAGE_WIDTH_REDUCTION_PX__) + 'px');
-  document.documentElement.style.setProperty('--hoshi-image-max-height', Math.max(1, window.innerHeight - __HOSHI_BOTTOM_OVERLAP_PX__) + 'px');
+  document.documentElement.style.setProperty('--hoshi-image-max-height', Math.max(1, Math.floor(window.innerHeight * __HOSHI_IMAGE_HEIGHT_VIEWPORT_RATIO__)) + 'px');
   function setupReaderImage(element, src, wrap, blurElement) {
   if (!element || !src) return;
   blurElement = blurElement || element;

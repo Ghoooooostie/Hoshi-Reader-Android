@@ -24,6 +24,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 - Keep TTU bookdata imports rendering in Reader when converted XHTML has leading whitespace before the XML declaration or EPUB resources use parent-directory relative paths.
 - Keep Reader opens fast for TTU-origin books and lookup popups that reference missing local resources, avoiding WebView network fallbacks while using Android's reserved appassets origin for local content.
 - Keep paginated Reader final partial pages visible while still avoiding blank trailing pages from spacer or CSS overflow.
+- Keep large Reader images within the padded page area so vertical image pages do not spill their bottom edge onto the next page.
 
 ## [v1.1.3] - 2026-06-04
 

@@ -108,6 +108,26 @@ class ReaderPaginationScriptsTest {
     }
 
     @Test
+    fun verticalImageBoundsFitPaddedPageContentOnAndroidWebView() {
+        val settings = ReaderSettings(
+            verticalWriting = true,
+            fontSize = 28,
+            horizontalPadding = 14,
+            verticalPadding = 14,
+        )
+        val layout = readerViewportCssLayout(
+            settings = settings,
+            viewportCssWidth = 384,
+            viewportCssHeight = 801,
+        )
+        val script = ReaderPaginationScripts.shellScript(settings = settings)
+
+        assertEquals(688, layout.imageMaxHeightPx)
+        assertTrue(layout.cssVariables().contains("--hoshi-image-max-height: 688px;"))
+        assertTrue(script.contains("Math.max(1, Math.floor(window.innerHeight * 0.86))"))
+    }
+
+    @Test
     fun doesNotPatchViewportResizeInsideReaderJavaScript() {
         val script = ReaderPaginationScripts.shellScript()
 
