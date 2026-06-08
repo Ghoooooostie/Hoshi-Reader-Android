@@ -13,6 +13,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
@@ -47,6 +49,8 @@ class BookRepository private constructor(
 
     private val archiveExtractor = EpubArchiveExtractor()
     private val importDataSource = BookImportDataSource(filesDir, fileDataSource, ioDispatcher = ioDispatcher)
+
+    private val legacyPackedMigrationMutex = Mutex()
 
     val currentBookFile: File get() = fileDataSource.currentBookFile
 
@@ -219,15 +223,16 @@ class BookRepository private constructor(
     private suspend fun migrateLegacyBookForIosBackupCompatibility(
         root: File,
         storedMetadata: BookMetadata?,
-    ): LegacyBookMigration {
-        val oldId = storedMetadata?.id ?: root.name
-        val baseMetadata = storedMetadata ?: root.fallbackMetadata()
+    ): LegacyBookMigration = legacyPackedMigrationMutex.withLock {
+        val currentMetadata = loadMetadata(root) ?: storedMetadata
+        val oldId = storedMetadata?.id ?: currentMetadata?.id ?: root.name
+        val baseMetadata = currentMetadata ?: root.fallbackMetadata()
         val iosMetadata = baseMetadata.withIosBackupCompatibleFields(root)
-        if (iosMetadata != storedMetadata) {
+        if (iosMetadata != currentMetadata) {
             saveMetadata(root, iosMetadata)
         }
         val packedMetadata = migrateLegacyExtractedBookToPackedEpub(root, iosMetadata)
-        return LegacyBookMigration(oldId = oldId, metadata = packedMetadata)
+        LegacyBookMigration(oldId = oldId, metadata = packedMetadata)
     }
 
     // Legacy migration for Android builds that predate iOS-compatible Books backup.

@@ -22,6 +22,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 - Keep iframe lookup popups ready for the next word tap immediately after closing a recursive popup, and let blank parent popup areas dismiss child popups.
 - Keep Dictionary search and Process Text lookup popups on the same iframe popup path as Reader, preserving recursive lookup, dismissal, audio, Anki, and dictionary media behavior without the legacy native popup overlay.
 - Keep TTU bookdata imports rendering in Reader when converted XHTML has leading whitespace before the XML declaration or EPUB resources use parent-directory relative paths.
+- Prevent startup crashes and duplicate packing work when old extracted book folders are migrated to packed EPUB storage.
 - Keep Reader opens fast for TTU-origin books and lookup popups that reference missing local resources, avoiding WebView network fallbacks while using Android's reserved appassets origin for local content.
 - Keep paginated Reader final partial pages visible while still avoiding blank trailing pages from spacer or CSS overflow.
 - Keep large Reader images within the padded page area so vertical image pages do not spill their bottom edge onto the next page.

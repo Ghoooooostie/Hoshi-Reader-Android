@@ -2,6 +2,9 @@ package moe.antimony.hoshi.epub
 
 
 import kotlinx.serialization.json.Json
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonArray
@@ -105,6 +108,36 @@ class BookMetadataStorageTest {
             assertEquals(ZipEntry.STORED, first.method)
             assertEquals("application/epub+zip", zip.getInputStream(first).readBytes().decodeToString())
         }
+    }
+
+    @Test
+    fun loadBookEntriesSerializesConcurrentLegacyPackedMigration() = runBlocking {
+        val storage = BookStorage(Files.createTempDirectory("hoshi-packed-migration-concurrent").toFile())
+        val root = storage.createBookDirectory("legacy-book")
+        writeMinimalExtractedEpub(root, title = "Legacy Book")
+        root.resolve("OPS/padding.bin").writeBytes(ByteArray(2_000_000) { (it % 251).toByte() })
+        val id = UUID.randomUUID().toString()
+        storage.saveMetadata(
+            root,
+            BookMetadata(
+                id = id,
+                title = "Legacy Book",
+                cover = null,
+                folder = "legacy-book",
+                lastAccess = 1.0,
+            ),
+        )
+
+        val entries = (0 until 8)
+            .map { async(Dispatchers.IO) { storage.loadBookEntries().single() } }
+            .awaitAll()
+
+        assertEquals(List(8) { "legacy-book.epub" }, entries.map { it.metadata.epub })
+        assertEquals("legacy-book.epub", storage.loadMetadata(root)?.epub)
+        assertTrue(root.resolve("legacy-book.epub").isFile)
+        assertFalse(root.resolve(".legacy-book.epub.tmp").exists())
+        assertFalse(root.resolve("META-INF").exists())
+        assertFalse(root.resolve("OPS").exists())
     }
 
     @Test
