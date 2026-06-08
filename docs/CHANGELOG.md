@@ -5,30 +5,28 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+## [v1.1.4] - 2026-06-08
+
 ### Added
 
-- Show the Android WebView implementation package and version at the top of Settings -> Diagnostics reports.
-- Add iOS-compatible Books backup storage, EPUB export from Books, TTU bookdata backup import/export that reports empty archives as failed imports, Google Drive Upload Books sync with iOS-aligned sidecar behavior, and a remote-only Google Drive bookshelf section for importing or trashing TTU books with iOS-like refresh and title ordering.
+- Show the installed WebView package and version in Settings -> Diagnostics.
+- Add iOS-compatible Books backup storage, EPUB export, TTU bookdata import/export with edge-case handling, Google Drive Upload Books sync, and remote-only book import/trash actions.
+
+### Changed
+
+- Prepare existing books for the new backup-compatible storage, with Bookshelf progress shown.
+- Align Dictionary search and Process Text lookup popups with Reader behavior.
+- Tighten Dictionary search layout and interactions, including replace-in-place searches and active-tab refocus.
 
 ### Fixed
 
 - Keep the Advanced Audio Local source switch synchronized with the Local Audio setting, preventing duplicate Local sources when turning it off from the source list.
 - Show the update prompt during the same app session when the startup update check finds a new APK, instead of waiting until the next launch.
-- Import EPUB archives that use stored ZIP entries with data descriptors, matching iOS for books that previously failed during import.
-- Prevent vertical reader text in paginated and continuous modes from prematurely wrapping after furigana, and keep ruby-aware lookup highlights from expanding into adjacent kanji.
-- Keep bottom safe-area reader taps dismissing lookup popups or toggling Focus Mode, prevent blurred vertical images from disappearing at zero horizontal padding, and keep ruby lookup stable when EPUB ruby markup contains whitespace.
-- Trim unmatched quotation brackets from reader lookup sentences before Anki mining, matching iOS for quoted multi-sentence passages. #98
-- Keep Dictionary search results tight below a Material-style top search field, allow new searches to replace the current results, add a guarded pull-to-clear/show-keyboard gesture that ignores recursive popup scrolling, and refocus with all search text selected when tapping the active Dictionary tab.
-- Keep iframe lookup popups ready for the next word tap immediately after closing a recursive popup, and let blank parent popup areas dismiss child popups.
-- Keep Dictionary search and Process Text lookup popups on the same iframe popup path as Reader, preserving recursive lookup, dismissal, audio, Anki, and dictionary media behavior without the legacy native popup overlay.
-- Keep Reader, Dictionary search, Process Text, and lookup popup Japanese text on Android Japanese font fallbacks, removing iOS-only font names.
-- Keep TTU bookdata imports rendering in Reader when converted XHTML has leading whitespace before the XML declaration or EPUB resources use parent-directory relative paths.
-- Prevent startup crashes and duplicate packing work when old extracted book folders are migrated to packed EPUB storage, and show Bookshelf progress while those older books are prepared.
-- Keep Reader opens fast for TTU-origin books and lookup popups that reference missing local resources, avoiding WebView network fallbacks while using Android's reserved appassets origin for local content.
-- Keep Reader chapters visible when an EPUB contains a broken image resource, instead of staying blank while waiting for the failed image.
-- Keep paginated Reader final partial pages visible while still avoiding blank trailing pages from spacer or CSS overflow.
-- Keep large Reader images within the padded page area so vertical image pages do not spill their bottom edge onto the next page.
-- Keep vertical E-ink Sasayaki sentence underlines from merging adjacent ruby columns into one misplaced line.
+- Import stored-entry EPUB ZIP archives that previously failed.
+- Improve vertical reader and ruby handling across pagination, lookup highlights, safe-area taps, zero-padding blurred images, final partial pages, large images, and E-ink Sasayaki underlines.
+- Trim unmatched quotation brackets from reader lookup sentences before Anki mining. #98
+- Render Japanese text with Android Japanese font fallbacks in Reader, Dictionary search, Process Text, and lookup popups.
+- Keep Reader chapters visible when EPUB image resources are broken.
 
 ## [v1.1.3] - 2026-06-04
 
