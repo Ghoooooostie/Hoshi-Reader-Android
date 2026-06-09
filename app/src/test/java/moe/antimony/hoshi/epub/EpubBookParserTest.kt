@@ -127,6 +127,26 @@ class EpubBookParserTest {
     }
 
     @Test
+    fun parsesPackedEpubReextractsIncompleteCacheBeforeReusingBookInfo() {
+        val archive = tempFolder.newFile("incomplete-cache.epub")
+        val cacheRoot = tempFolder.newFolder("incomplete-cache")
+        writeMinimalEpubArchive(archive, title = "Incomplete Cache Book")
+        val parser = EpubBookParser()
+        val first = parser.parsePacked(archive, cacheRoot)
+        val extractedRoot = requireNotNull(first.rootDirectory)
+        val missingChapter = extractedRoot.resolve("OPS/text/chapter-2.xhtml")
+        assertTrue(missingChapter.delete())
+
+        val second = parser.parsePacked(archive, cacheRoot, cachedBookInfo = first.bookInfo)
+
+        assertTrue(missingChapter.isFile)
+        assertArrayEquals(
+            "<html><body><p>Second</p></body></html>".toByteArray(),
+            second.readResource("OPS/text/chapter-2.xhtml"),
+        )
+    }
+
+    @Test
     fun parsesPackedEpubKeepsOtherExtractionRootsReadableLikeIosTempStorage() {
         val firstArchive = tempFolder.newFile("first-packed.epub")
         val secondArchive = tempFolder.newFile("second-packed.epub")

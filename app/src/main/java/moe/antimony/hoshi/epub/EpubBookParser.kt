@@ -98,10 +98,17 @@ class EpubBookParser @Inject constructor(
         val extractedRoot = cacheRoot.resolve(epubFile.stableExtractionDirectoryName()).canonicalFile
         return runCatching {
             if (!extractedRoot.resolve("META-INF/container.xml").isFile) {
-                extractedRoot.deleteRecursively()
-                EpubArchiveExtractor().extract(epubFile, extractedRoot)
+                extractPackedEpubFresh(epubFile, extractedRoot)
             }
-            parseExtracted(extractedRoot, fallbackTitle ?: epubFile.nameWithoutExtension, cachedBookInfo)
+            var book = parseExtracted(extractedRoot, fallbackTitle ?: epubFile.nameWithoutExtension, cachedBookInfo)
+            if (book.hasMissingChapterFiles()) {
+                extractPackedEpubFresh(epubFile, extractedRoot)
+                book = parseExtracted(extractedRoot, fallbackTitle ?: epubFile.nameWithoutExtension, cachedBookInfo)
+            }
+            check(!book.hasMissingChapterFiles()) {
+                "Packed EPUB extraction is missing reader chapter resources."
+            }
+            book
         }.onFailure {
             extractedRoot.deleteRecursively()
         }.getOrThrow()
@@ -168,6 +175,18 @@ class EpubBookParser @Inject constructor(
             rootDirectory = root,
             bookInfo = reusableBookInfo ?: chapters.toBookInfo(),
         )
+    }
+}
+
+private fun extractPackedEpubFresh(epubFile: File, extractedRoot: File) {
+    extractedRoot.deleteRecursively()
+    EpubArchiveExtractor().extract(epubFile, extractedRoot)
+}
+
+private fun EpubBook.hasMissingChapterFiles(): Boolean {
+    val root = rootDirectory ?: return false
+    return chapters.any { chapter ->
+        !root.resolve(chapter.href.normalizeResourceHref()).isFile
     }
 }
 
