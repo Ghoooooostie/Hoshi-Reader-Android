@@ -5,6 +5,8 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ## [Unreleased]
 
+## [v1.1.5] - 2026-06-11
+
 ### Added
 
 - Add shelf renaming from each shelf row's management menu.
