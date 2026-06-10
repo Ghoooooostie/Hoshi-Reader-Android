@@ -40,18 +40,20 @@ This project is a native Android recreation of [Hoshi Reader](https://github.com
 
 ### Bookshelf
 
-- Import one or multiple EPUBs and keep reading progress visible from the bookshelf.
+- Import EPUBs individually, in batches, or recursively from folders, and keep reading progress visible from the bookshelf.
 - Organize books with custom shelves.
+- Export EPUBs or pull remote synced books back into the local library.
 
 ### Reading
 
 - Read Japanese books in vertical or horizontal text, with paginated or continuous scrolling.
-- Customize themes, fonts, and spacing.
-- Use focus mode, volume-key page turning, and e-ink display options.
+- Customize themes, fonts, paragraph spacing, and reader controls, including custom reader themes.
+- Use immersive focus mode, volume-key page turning, and e-ink display options.
+- Open reader images in fullscreen with zoom, copy, save, and share actions.
 
 ### Lookup
 
-- Import and manage Yomitan dictionaries, with one-tap updates.
+- Import, download, update, and manage Yomitan dictionaries.
 - Tap text in the reader, search from the Dictionary tab, or look up selected text from other Android apps.
 - Tap unknown words inside definitions for recursive lookup.
 - Inject custom CSS styles.
@@ -65,7 +67,7 @@ This project is a native Android recreation of [Hoshi Reader](https://github.com
 ### Anki Card Mining
 
 - Create cards through AnkiDroid or AnkiConnect.
-- Use [Lapis](https://github.com/donkuri/lapis)-compatible fields and duplicate checks.
+- Use [Lapis](https://github.com/donkuri/lapis)-compatible fields, duplicate checks, and media export.
 
 ### Audiobook Read-Along
 
@@ -75,8 +77,8 @@ This project is a native Android recreation of [Hoshi Reader](https://github.com
 
 ### Data Sync And Migration
 
-- Sync reading progress and statistics through Google Drive, compatible with ッツ Reader.
-- Back up or restore books and dictionaries with `.hoshi` archives, compatible with Hoshi Reader iOS.
+- Sync reading progress, statistics, and books through Google Drive, compatible with ッツ Reader.
+- Import or export ッツ bookdata, and back up or restore books and dictionaries with `.hoshi` archives compatible with Hoshi Reader iOS.
 
 ## Download Hoshi Reader Android APK
 
