@@ -123,7 +123,7 @@ class ProfileDictionarySettingsRepositoryTest {
     }
 
     @Test
-    fun migratesProfileDictionarySettingsFromDataStoreAndLegacyCollapsedFile() = runBlocking {
+    fun migratesProfileDictionarySettingsFromDataStore() = runBlocking {
         val filesDir = tempFolder.newFolder("files")
         val profileRepository = ProfileRepository(filesDir)
         val scope = CoroutineScope(Dispatchers.IO + Job())
@@ -149,7 +149,8 @@ class ProfileDictionarySettingsRepositoryTest {
                     customCSS = ".legacy { color: green; }",
                 )
             }
-            profileRepository.collapsedDictionariesFile().writeProfileText("""["CollapsedFile"]""")
+            filesDir.resolve("Profiles/${profileRepository.state.value.defaultProfileId}/dictionary_collapsed.json")
+                .writeProfileText("""["CollapsedFile"]""")
 
             val repository = DictionarySettingsRepository(
                 dataStore = dataStore,
@@ -164,7 +165,7 @@ class ProfileDictionarySettingsRepositoryTest {
             assertEquals(1, migrated.scanLength)
             assertEquals(DictionaryCollapseMode.Custom, migrated.collapseMode)
             assertTrue(migrated.expandFirstDictionary)
-            assertEquals(setOf("CollapsedFile"), migrated.collapsedDictionaries)
+            assertEquals(setOf("DataStore"), migrated.collapsedDictionaries)
             assertFalse(migrated.compactGlossaries)
             assertTrue(migrated.showExpressionTags)
             assertTrue(migrated.harmonicFrequency)

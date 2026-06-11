@@ -19,8 +19,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.SetSerializer
-import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import moe.antimony.hoshi.R
 import moe.antimony.hoshi.profiles.ProfileRepository
@@ -321,20 +319,9 @@ class DictionarySettingsRepository(
                 json.decodeFromString<ProfileDictionarySettings>(file.readText()).normalized()
             }.getOrDefault(globalSettings.toProfileDictionarySettings())
         }
-        val migrated = globalSettings.toProfileDictionarySettings().copy(
-            collapsedDictionaries = legacyCollapsedDictionariesOrNull()?.toSet()
-                ?: globalSettings.collapsedDictionaries,
-        ).normalized()
+        val migrated = globalSettings.toProfileDictionarySettings()
         saveProfileDictionarySettings(migrated)
         return migrated
-    }
-
-    private fun legacyCollapsedDictionariesOrNull(): Set<String>? {
-        val file = profileRepository?.collapsedDictionariesFile() ?: return null
-        if (!file.isFile) return null
-        return runCatching {
-            json.decodeFromString(StringSetSerializer, file.readText())
-        }.getOrNull()
     }
 
     private fun saveProfileDictionarySettings(settings: ProfileDictionarySettings) {
@@ -366,7 +353,6 @@ class DictionarySettingsRepository(
         private val KEY_COMPACT_PITCH_ACCENTS = booleanPreferencesKey("compactPitchAccents")
         private val KEY_LOW_RAM_DICTIONARY_IMPORT = booleanPreferencesKey("lowRamDictionaryImport")
         private val KEY_CUSTOM_CSS = stringPreferencesKey("customCSS")
-        private val StringSetSerializer = SetSerializer(String.serializer())
         private val json = Json {
             prettyPrint = true
             encodeDefaults = true

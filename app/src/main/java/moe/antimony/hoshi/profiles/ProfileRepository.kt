@@ -9,8 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.SetSerializer
-import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import moe.antimony.hoshi.content.ContentLanguageProfile
 import moe.antimony.hoshi.di.FilesDir
@@ -136,31 +134,11 @@ class ProfileRepository internal constructor(
     fun dictionarySettingsFile(profileId: String = currentEffectiveProfileId): File =
         profileDataFile(profileId, DictionarySettingsFileName)
 
-    fun collapsedDictionariesFile(profileId: String = currentEffectiveProfileId): File =
-        profileDataFile(profileId, DictionaryCollapsedFileName)
-
     fun ankiConfigFile(profileId: String = currentEffectiveProfileId): File =
         profileDataFile(profileId, AnkiConfigFileName)
 
     fun readerSettingsFile(profileId: String = currentEffectiveProfileId): File =
         profileDataFile(profileId, ReaderSettingsFileName)
-
-    fun loadCollapsedDictionariesOrMigrate(legacyCollapsedDictionaries: Set<String>): Set<String> =
-        synchronized(lock) {
-            val file = collapsedDictionariesFile()
-            if (!file.isFile) {
-                saveCollapsedDictionariesLocked(file, legacyCollapsedDictionaries)
-                return@synchronized legacyCollapsedDictionaries
-            }
-            runCatching {
-                json.decodeFromString(StringSetSerializer, file.readText())
-            }.getOrDefault(emptySet())
-        }
-
-    fun saveCollapsedDictionaries(collapsedDictionaries: Set<String>) = synchronized(lock) {
-        saveCollapsedDictionariesLocked(collapsedDictionariesFile(), collapsedDictionaries)
-        publishLocked()
-    }
 
     private fun initializeIndex(): StoredProfileIndex {
         profilesDir.mkdirs()
@@ -266,11 +244,6 @@ class ProfileRepository internal constructor(
         }
     }
 
-    private fun saveCollapsedDictionariesLocked(file: File, collapsedDictionaries: Set<String>) {
-        file.parentFile?.mkdirs()
-        file.writeText(json.encodeToString(StringSetSerializer, collapsedDictionaries))
-    }
-
     @Serializable
     private data class StoredProfileIndex(
         val profiles: List<HoshiProfile>,
@@ -286,18 +259,14 @@ class ProfileRepository internal constructor(
         private const val LegacyDictionaryConfigFileName = "config.json"
         private const val DictionaryConfigFileName = "dictionary_config.json"
         private const val DictionarySettingsFileName = "dictionary_settings.json"
-        private const val DictionaryCollapsedFileName = "dictionary_collapsed.json"
         private const val AnkiConfigFileName = "anki_config.json"
         private const val ReaderSettingsFileName = "reader_settings.json"
         private val ProfileOwnedFileNames = listOf(
             DictionaryConfigFileName,
             DictionarySettingsFileName,
-            DictionaryCollapsedFileName,
             AnkiConfigFileName,
             ReaderSettingsFileName,
         )
-
-        private val StringSetSerializer = SetSerializer(String.serializer())
 
         internal fun defaultJson(): Json = Json {
             prettyPrint = true
