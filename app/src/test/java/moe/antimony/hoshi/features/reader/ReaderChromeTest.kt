@@ -45,7 +45,7 @@ class ReaderChromeTest {
             totalCharacters = 169_325,
         ).progressText(ReaderSettings(), ReaderProgressDisplay.word())
 
-        assertEquals("71 / 33,865 words 0.21%", text)
+        assertEquals("71 / 33,865 0.21%", text)
     }
 
     @Test
@@ -64,16 +64,16 @@ class ReaderChromeTest {
             ReaderProgressDisplay.word(),
         )
 
-        assertEquals("720 words / h 0:01", text)
+        assertEquals("720 / h 0:01", text)
     }
 
     @Test
-    fun formatsEnglishProfileCountsWithWordUnits() {
+    fun formatsEnglishProfileCountsWithoutWordUnits() {
         val display = ReaderProgressDisplay.word()
 
-        assertEquals("1 word", display.countText(1))
-        assertEquals("71 words", display.countText(355))
-        assertEquals("720 words / h", display.speedText(3_600))
+        assertEquals("1", display.countText(1))
+        assertEquals("71", display.countText(355))
+        assertEquals("720 / h", display.speedText(3_600))
     }
 
     @Test

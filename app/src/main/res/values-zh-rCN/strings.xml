@@ -233,12 +233,7 @@
     <string name="reader_jump_to_character">跳转到字符</string>
     <string name="reader_jump_to_word">跳转到单词</string>
     <string name="reader_character">字符</string>
-    <string name="reader_word" comment="Jump input field label; intentionally matches the inline word unit in Chinese.">单词</string>
-    <string name="reader_progress_word_singular" comment="Inline count unit for English-profile approximate word displays.">单词</string>
-    <string name="reader_progress_word_plural" comment="Inline count unit for English-profile approximate word displays.">单词</string>
-    <string name="reader_progress_word_count_format">%1$s %2$s</string>
-    <string name="reader_progress_word_range_format">%1$s / %2$s %3$s</string>
-    <string name="reader_progress_word_speed_format">%1$s %2$s / h</string>
+    <string name="reader_word" comment="Jump input field label for English-profile approximate word jump.">单词</string>
     <string name="reader_jump">跳转</string>
     <string name="reader_no_highlights">没有标注</string>
     <string name="reader_delete_highlight">删除标注</string>

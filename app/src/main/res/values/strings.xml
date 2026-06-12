@@ -235,12 +235,7 @@
     <string name="reader_jump_to_character">Jump to Character</string>
     <string name="reader_jump_to_word">Jump to Word</string>
     <string name="reader_character">Character</string>
-    <string name="reader_word" comment="Jump input field label; capitalized separately from the inline word unit.">Word</string>
-    <string name="reader_progress_word_singular" comment="Inline lowercase count unit for English-profile approximate word displays.">word</string>
-    <string name="reader_progress_word_plural" comment="Inline lowercase count unit for English-profile approximate word displays.">words</string>
-    <string name="reader_progress_word_count_format">%1$s %2$s</string>
-    <string name="reader_progress_word_range_format">%1$s / %2$s %3$s</string>
-    <string name="reader_progress_word_speed_format">%1$s %2$s / h</string>
+    <string name="reader_word" comment="Jump input field label for English-profile approximate word jump.">Word</string>
     <string name="reader_jump">Jump</string>
     <string name="reader_no_highlights">No Highlights</string>
     <string name="reader_delete_highlight">Delete highlight</string>
