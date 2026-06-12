@@ -1214,7 +1214,16 @@ fun ReaderWebView(
                         chapterPosition = readerPosition.loadPosition,
                         chapterFragment = readerPosition.loadFragment,
                         webViewViewportSize = stateHolder.webViewViewportSize,
-                        onReaderViewportSizeChanged = stateHolder::updateViewportSize,
+                        onReaderViewportSizeChanged = { size ->
+                            val shouldResumeLookupAudio = stateHolder.lookupPopups.isNotEmpty() &&
+                                stateHolder.sasayakiWasPausedByLookup
+                            if (stateHolder.updateViewportSize(size)) {
+                                rootSelectionHighlight = null
+                                if (shouldResumeLookupAudio) {
+                                    resumeSasayakiAfterLookupIfNeeded()
+                                }
+                            }
+                        },
                         onWebViewReady = { webView = it },
                         isWebViewRestoring = stateHolder.isWebViewRestoring,
                         webViewRestoreEpoch = stateHolder.webViewRestoreEpoch,

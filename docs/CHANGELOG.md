@@ -16,6 +16,10 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 - Improve English reader lookups so taps inside a word scan from the word start, phrase scans can include spaces, English punctuation stays out of lookup text, and Japanese-only non-Japanese scan filtering no longer affects English profiles.
 - Show English profile reader progress, jump targets, chapter counts, and reading statistics as approximate words instead of raw characters.
 
+### Fixed
+
+- Keep reader lookup popups and page turns responsive after rotating back from a landscape lookup popup.
+
 ## [v1.1.5] - 2026-06-11
 
 ### Added
