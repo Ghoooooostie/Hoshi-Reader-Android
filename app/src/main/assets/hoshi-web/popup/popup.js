@@ -1215,8 +1215,9 @@ function createTranscriptionGroup(transcriptionData) {
 }
 
 function createTags(entry) {
-    const { deinflectionTrace, frequencies, pitches, reading, expression } = entry;
-    const hasDeinflection = deinflectionTrace?.length;
+    const { deinflectionTraceRows, frequencies, pitches, reading, expression } = entry;
+    const traceRows = (deinflectionTraceRows || []).filter(row => row?.length);
+    const hasDeinflection = traceRows.length;
     const hasFrequencies = frequencies?.length;
     const pitchGroups = (pitches || []).filter(pitch => pitch?.pitchPositions?.length);
     const transcriptionGroups = (pitches || []).filter(pitch => pitch?.transcriptions?.length);
@@ -1239,9 +1240,11 @@ function createTags(entry) {
     }
 
     if (hasDeinflection) {
-        const deinflectionDiv = el('div', { className: 'tag-row' });
-        deinflectionTrace.forEach(tag => deinflectionDiv.appendChild(createDeinflectionTag(tag)));
-        container.appendChild(deinflectionDiv);
+        traceRows.forEach(row => {
+            const deinflectionDiv = el('div', { className: 'tag-row' });
+            row.forEach(tag => deinflectionDiv.appendChild(createDeinflectionTag(tag)));
+            container.appendChild(deinflectionDiv);
+        });
     }
 
     if (hasFrequencies) {

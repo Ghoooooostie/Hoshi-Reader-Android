@@ -533,10 +533,8 @@ class LookupPopupTest {
         reading: String,
         glossary: String,
     ): LookupResult = LookupResult(
-        expression,
-        expression,
-        emptyArray(),
-        TermResult(
+        matched = expression,
+        term = TermResult(
             expression = expression,
             reading = reading,
             rules = "",
@@ -551,6 +549,6 @@ class LookupPopupTest {
             frequencies = emptyArray(),
             pitches = emptyArray(),
         ),
-        0,
+        traceCandidates = emptyArray(),
     )
 }

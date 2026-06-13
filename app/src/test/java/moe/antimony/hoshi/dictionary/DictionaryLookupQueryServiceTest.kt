@@ -188,8 +188,6 @@ class DictionaryLookupQueryServiceTest {
             return listOf(
                 LookupResult(
                     matched = text,
-                    deinflected = text,
-                    process = emptyArray(),
                     term = TermResult(
                         expression = text,
                         reading = text,
@@ -205,7 +203,7 @@ class DictionaryLookupQueryServiceTest {
                         frequencies = emptyArray(),
                         pitches = emptyArray(),
                     ),
-                    preprocessorSteps = 0,
+                    traceCandidates = emptyArray(),
                 ),
             )
         }

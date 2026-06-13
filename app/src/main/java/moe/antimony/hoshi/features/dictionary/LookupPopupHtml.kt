@@ -2,6 +2,8 @@ package moe.antimony.hoshi.features.dictionary
 
 import android.content.Context
 import de.manhhao.hoshi.LookupResult
+import de.manhhao.hoshi.TraceCandidate
+import de.manhhao.hoshi.TraceSource
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
@@ -464,12 +466,18 @@ internal object LookupPopupHtml {
         put("expression", term.expression)
         put("reading", term.reading)
         put("matched", matched)
-        putJsonArray("deinflectionTrace") {
-            process.reversedArray().forEach { transformGroup ->
+        putJsonArray("deinflectionTraceRows") {
+            traceCandidates.sortedForDisplay().forEach { candidate ->
                 add(
-                    buildJsonObject {
-                        put("name", transformGroup.name)
-                        put("description", transformGroup.description)
+                    buildJsonArray {
+                        candidate.trace.reversedArray().forEach { transformGroup ->
+                            add(
+                                buildJsonObject {
+                                    put("name", transformGroup.name)
+                                    put("description", transformGroup.description)
+                                },
+                            )
+                        }
                     },
                 )
             }
@@ -526,6 +534,22 @@ internal object LookupPopupHtml {
                 .forEach { add(JsonPrimitive(it)) }
         }
     }
+
+    private fun Array<TraceCandidate>.sortedForDisplay(): List<TraceCandidate> =
+        withIndex()
+            .filter { it.value.source != TraceSource.DICTIONARY }
+            .sortedWith(
+                compareBy<IndexedValue<TraceCandidate>> { it.value.source.displayRank() }
+                    .thenBy { it.index },
+            )
+            .map { it.value }
+
+    private fun TraceSource.displayRank(): Int =
+        when (this) {
+            TraceSource.ALGORITHM -> 0
+            TraceSource.BOTH -> 1
+            TraceSource.DICTIONARY -> 2
+        }
 
     private const val androidColorSchemeCss = """
         html[data-hoshi-color-scheme="light"],

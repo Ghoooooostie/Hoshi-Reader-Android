@@ -52,12 +52,23 @@ class TransformGroup(
     val description: String,
 )
 
+enum class TraceSource {
+    ALGORITHM,
+    DICTIONARY,
+    BOTH,
+}
+
+class TraceCandidate(
+    val deinflected: String,
+    val preprocessorSteps: Int,
+    val source: TraceSource,
+    val trace: Array<TransformGroup>,
+)
+
 class LookupResult(
     val matched: String,
-    val deinflected: String,
-    val process: Array<TransformGroup>,
     val term: TermResult,
-    val preprocessorSteps: Int,
+    val traceCandidates: Array<TraceCandidate>,
 )
 
 object HoshiDicts {

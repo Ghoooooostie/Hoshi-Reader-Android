@@ -5,7 +5,13 @@ import de.manhhao.hoshi.GlossaryEntry
 import de.manhhao.hoshi.LookupResult
 import de.manhhao.hoshi.PitchEntry
 import de.manhhao.hoshi.TermResult
+import de.manhhao.hoshi.TraceCandidate
+import de.manhhao.hoshi.TraceSource
 import de.manhhao.hoshi.TransformGroup
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import moe.antimony.hoshi.content.ContentLanguageProfile
 import moe.antimony.hoshi.features.anki.AnkiPopupSettings
 import moe.antimony.hoshi.features.audio.AudioSettings
@@ -190,25 +196,84 @@ class LookupPopupHtmlTest {
     }
 
     @Test
-    fun deinflectionTraceIsCarriedInEntryJsonForIframePopup() {
+    fun deinflectionTraceRowsAreCarriedInEntryJsonForIframePopup() {
         val entryJson = LookupPopupHtml.entryJsonString(
             lookupResult(
                 expression = "食べる",
                 reading = "たべる",
                 glossary = "to eat",
-                process = arrayOf(
-                    TransformGroup(
-                        name = "polite",
-                        description = "Polite conjugation of verbs and adjectives.\nUsage: example text.",
+                traceCandidates = arrayOf(
+                    TraceCandidate(
+                        deinflected = "食べる",
+                        preprocessorSteps = 0,
+                        source = TraceSource.ALGORITHM,
+                        trace = arrayOf(
+                            TransformGroup(
+                                name = "polite",
+                                description = "Polite conjugation of verbs and adjectives.\nUsage: example text.",
+                            ),
+                        ),
                     ),
                 ),
             ),
         )
         val html = LookupPopupHtml.renderIframeDocument()
+        val rows = Json.parseToJsonElement(entryJson).jsonObject.getValue("deinflectionTraceRows").jsonArray
 
-        assertTrue(entryJson.contains(""""name":"polite""""))
-        assertTrue(entryJson.contains(""""description":"Polite conjugation of verbs and adjectives.\nUsage: example text.""""))
+        assertTrue(rows.single().jsonArray.single().jsonObject.getValue("name").jsonPrimitive.content == "polite")
+        assertTrue(
+            rows.single().jsonArray.single().jsonObject.getValue("description").jsonPrimitive.content ==
+                "Polite conjugation of verbs and adjectives.\nUsage: example text.",
+        )
         assertTrue(html.contains("""<div class="overlay-close" onclick="closeOverlay()">×</div>"""))
+    }
+
+    @Test
+    fun deinflectionTraceRowsKeepOneEntrySortBySourceAndHideDictionaryOnlyRows() {
+        val entryJson = LookupPopupHtml.entryJsonString(
+            lookupResult(
+                expression = "食べる",
+                reading = "たべる",
+                glossary = "to eat",
+                traceCandidates = arrayOf(
+                    TraceCandidate(
+                        deinflected = "食べる",
+                        preprocessorSteps = 0,
+                        source = TraceSource.DICTIONARY,
+                        trace = arrayOf(TransformGroup(name = "redirect", description = "Dictionary redirect")),
+                    ),
+                    TraceCandidate(
+                        deinflected = "食べる",
+                        preprocessorSteps = 0,
+                        source = TraceSource.BOTH,
+                        trace = arrayOf(TransformGroup(name = "both", description = "Algorithm and redirect")),
+                    ),
+                    TraceCandidate(
+                        deinflected = "食べる",
+                        preprocessorSteps = 0,
+                        source = TraceSource.ALGORITHM,
+                        trace = arrayOf(
+                            TransformGroup(name = "past", description = "Past tense"),
+                            TransformGroup(name = "polite", description = "Polite form"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val json = Json.parseToJsonElement(entryJson).jsonObject
+        val rows = json.getValue("deinflectionTraceRows").jsonArray
+
+        assertTrue(entryJson.contains(""""expression":"食べる""""))
+        assertTrue(entryJson.contains(""""glossaries":[{"""))
+        assertFalse(json.containsKey("deinflectionTrace"))
+        assertTrue(rows.size == 2)
+        assertTrue(rows[0].jsonArray.map { it.jsonObject.getValue("name").jsonPrimitive.content } == listOf("polite", "past"))
+        assertTrue(rows[1].jsonArray.single().jsonObject.getValue("name").jsonPrimitive.content == "both")
+        assertFalse(
+            rows.flatMap { row -> row.jsonArray.map { it.jsonObject.getValue("name").jsonPrimitive.content } }
+                .contains("redirect"),
+        )
     }
 
     @Test
@@ -236,13 +301,11 @@ class LookupPopupHtmlTest {
         expression: String,
         reading: String,
         glossary: String,
-        process: Array<TransformGroup> = emptyArray(),
+        traceCandidates: Array<TraceCandidate> = emptyArray(),
         frequencies: Array<FrequencyEntry> = emptyArray(),
         pitches: Array<PitchEntry> = emptyArray(),
     ): LookupResult = LookupResult(
-        expression,
-        expression,
-        process,
+        matched = expression,
         TermResult(
             expression = expression,
             reading = reading,
@@ -258,7 +321,7 @@ class LookupPopupHtmlTest {
             frequencies = frequencies,
             pitches = pitches,
         ),
-        0,
+        traceCandidates = traceCandidates,
     )
 
     private fun assertScriptOrder(html: String, vararg snippets: String) {

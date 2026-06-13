@@ -264,8 +264,6 @@ class DictionarySearchViewModelTest {
 
     private fun lookupResult(matched: String): LookupResult = LookupResult(
         matched = matched,
-        deinflected = matched,
-        process = emptyArray(),
         term = TermResult(
             expression = matched,
             reading = matched,
@@ -281,7 +279,7 @@ class DictionarySearchViewModelTest {
             frequencies = emptyArray<FrequencyEntry>(),
             pitches = emptyArray<PitchEntry>(),
         ),
-        preprocessorSteps = 0,
+        traceCandidates = emptyArray(),
     )
 }
 

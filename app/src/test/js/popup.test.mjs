@@ -309,13 +309,39 @@ test('popup language detection does not depend on the selection object', () => {
     assert.equal(context.getLanguageFromText('猫 glossary', 'en'), 'ja');
 });
 
+test('popup renders each deinflection trace candidate as its own tag row', () => {
+    const { context } = popupContext();
+
+    const tags = context.createTags({
+        expression: '食べる',
+        reading: 'たべる',
+        deinflectionTraceRows: [
+            [
+                { name: 'polite', description: 'Polite form' },
+                { name: 'past', description: 'Past tense' },
+            ],
+            [
+                { name: 'redirect', description: 'Dictionary redirect' },
+            ],
+        ],
+        frequencies: [],
+        pitches: [],
+    });
+
+    assert.ok(tags);
+    const rows = tags.children.filter((node) => String(node.className).split(' ').includes('tag-row'));
+    assert.equal(rows.length, 2);
+    assert.deepEqual(rows[0].children.map((node) => node.textContent), ['polite', 'past']);
+    assert.deepEqual(rows[1].children.map((node) => node.textContent), ['redirect']);
+});
+
 test('popup transcription entries do not render as Japanese pitch accents', () => {
     const { context } = popupContext();
 
     const tags = context.createTags({
         expression: 'read',
         reading: 'read',
-        deinflectionTrace: [],
+        deinflectionTraceRows: [],
         frequencies: [],
         pitches: [
             {
@@ -339,7 +365,7 @@ test('popup preserves IPA dictionary transcription delimiters', () => {
     const tags = context.createTags({
         expression: 'read',
         reading: 'read',
-        deinflectionTrace: [],
+        deinflectionTraceRows: [],
         frequencies: [],
         pitches: [
             {
