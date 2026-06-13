@@ -65,6 +65,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.unit.IntSize
@@ -109,10 +110,20 @@ internal fun dictionarySearchKeyboardOptions(
     contentLanguageProfile: ContentLanguageProfile = ContentLanguageProfile.Default,
 ): KeyboardOptions =
     KeyboardOptions(
+        keyboardType = dictionarySearchKeyboardType(contentLanguageProfile),
         imeAction = ImeAction.Search,
         showKeyboardOnFocus = true,
         hintLocales = LocaleList(Locale(contentLanguageProfile.inputLocaleTag)),
     )
+
+private fun dictionarySearchKeyboardType(
+    contentLanguageProfile: ContentLanguageProfile,
+): KeyboardType =
+    if (contentLanguageProfile.dictionaryLanguageId == ContentLanguageProfile.EnglishLanguageId) {
+        KeyboardType.Ascii
+    } else {
+        KeyboardType.Unspecified
+    }
 
 internal fun dictionarySearchTextStyle(
     baseStyle: TextStyle,
