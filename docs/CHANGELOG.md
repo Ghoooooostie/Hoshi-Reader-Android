@@ -20,6 +20,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ### Fixed
 
+- Sort AnkiDroid and AnkiConnect deck pickers by deck name after fetching deck lists.
 - Detect AnkiDroid duplicates across a selected nested deck's root and sibling decks when duplicate scope is Deck root.
 - Keep reader lookup popups and page turns responsive after rotating back from a landscape lookup popup.
 
