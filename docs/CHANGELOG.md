@@ -20,6 +20,7 @@ The format follows a Keep a Changelog style, and release sections use Semantic V
 
 ### Fixed
 
+- Detect AnkiDroid duplicates across a selected nested deck's root and sibling decks when duplicate scope is Deck root.
 - Keep reader lookup popups and page turns responsive after rotating back from a landscape lookup popup.
 
 ## [v1.1.5] - 2026-06-11
