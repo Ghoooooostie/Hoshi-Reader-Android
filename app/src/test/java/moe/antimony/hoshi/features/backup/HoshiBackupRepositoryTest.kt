@@ -329,6 +329,68 @@ class HoshiBackupRepositoryTest {
     }
 
     @Test
+    fun restoreProfileDictionaryArchivePreservesTargetProfileOwnedSettingsOutsideDictionaryPayload() = runBlocking {
+        val rootDefaultConfig = dictionaryConfig("JMdict", enabled = false)
+        val englishConfig = dictionaryConfig("Oxford", enabled = true)
+        val targetDir = Files.createTempDirectory("hoshi-dictionaries-profile-restore-preserve").toFile()
+        val targetProfiles = ProfileRepository(targetDir)
+        val english = targetProfiles.createProfile("English", "en")
+        targetProfiles.readerSettingsFile("default-ja").writeProfileText("""{"fontSize":20}""")
+        targetProfiles.ankiConfigFile("default-ja").writeProfileText("""{"deck":"Japanese"}""")
+        targetProfiles.readerSettingsFile(english.id).writeProfileText("""{"fontSize":22}""")
+        targetProfiles.ankiConfigFile(english.id).writeProfileText("""{"deck":"English"}""")
+        val archive = zipBytes(
+            "Term/JMdict/index.json" to """{"title":"JMdict"}""".toByteArray(),
+            "Term/Oxford/index.json" to """{"title":"Oxford"}""".toByteArray(),
+            "config.json" to rootDefaultConfig.toByteArray(),
+            ".hoshi-profiles/profiles.json" to profilesJson(
+                globalActiveProfileId = english.id,
+                englishProfileId = english.id,
+            ).toByteArray(),
+            ".hoshi-profiles/${english.id}/dictionary_config.json" to englishConfig.toByteArray(),
+            ".hoshi-profiles/${english.id}/dictionary_settings.json" to """{"customCSS":".en{}"}""".toByteArray(),
+        )
+
+        HoshiBackupRepository(targetDir).restoreDictionaries(ByteArrayInputStream(archive))
+
+        val repository = ProfileRepository(targetDir)
+        assertEquals(english.id, repository.state.value.globalActiveProfileId)
+        assertEquals(rootDefaultConfig, repository.dictionaryConfigFile("default-ja").readText())
+        assertEquals(englishConfig, repository.dictionaryConfigFile(english.id).readText())
+        assertEquals("""{"customCSS":".en{}"}""", repository.dictionarySettingsFile(english.id).readText())
+        assertEquals("""{"fontSize":20}""", repository.readerSettingsFile("default-ja").readText())
+        assertEquals("""{"deck":"Japanese"}""", repository.ankiConfigFile("default-ja").readText())
+        assertEquals("""{"fontSize":22}""", repository.readerSettingsFile(english.id).readText())
+        assertEquals("""{"deck":"English"}""", repository.ankiConfigFile(english.id).readText())
+    }
+
+    @Test
+    fun restoreLegacyDictionaryArchivePreservesExistingProfilesAndProfileOwnedSettingsOutsideDictionaryPayload() = runBlocking {
+        val legacyConfig = dictionaryConfig("JMdict", enabled = false)
+        val archive = zipBytes(
+            "Term/JMdict/index.json" to """{"title":"JMdict"}""".toByteArray(),
+            "config.json" to legacyConfig.toByteArray(),
+        )
+        val targetDir = Files.createTempDirectory("hoshi-dictionaries-legacy-profile-restore-preserve").toFile()
+        val targetProfiles = ProfileRepository(targetDir)
+        val english = targetProfiles.createProfile("English", "en")
+        targetProfiles.readerSettingsFile("default-ja").writeProfileText("""{"fontSize":20}""")
+        targetProfiles.ankiConfigFile("default-ja").writeProfileText("""{"deck":"Japanese"}""")
+        targetProfiles.readerSettingsFile(english.id).writeProfileText("""{"fontSize":22}""")
+        targetProfiles.ankiConfigFile(english.id).writeProfileText("""{"deck":"English"}""")
+
+        HoshiBackupRepository(targetDir).restoreDictionaries(ByteArrayInputStream(archive))
+
+        val repository = ProfileRepository(targetDir)
+        assertEquals(listOf("default-ja", english.id), repository.state.value.profiles.map { it.id })
+        assertEquals(legacyConfig, repository.dictionaryConfigFile("default-ja").readText())
+        assertEquals("""{"fontSize":20}""", repository.readerSettingsFile("default-ja").readText())
+        assertEquals("""{"deck":"Japanese"}""", repository.ankiConfigFile("default-ja").readText())
+        assertEquals("""{"fontSize":22}""", repository.readerSettingsFile(english.id).readText())
+        assertEquals("""{"deck":"English"}""", repository.ankiConfigFile(english.id).readText())
+    }
+
+    @Test
     fun restoreDictionaryZipSlipArchiveDoesNotDeleteCurrentDictionariesOrProfiles() = runBlocking {
         val filesDir = Files.createTempDirectory("hoshi-dictionaries-profile-zipslip").toFile()
         filesDir.resolve("Dictionaries/keep.txt").writeProfileText("keep-dictionaries")
@@ -495,16 +557,16 @@ class HoshiBackupRepositoryTest {
     private fun dictionaryConfig(fileName: String, enabled: Boolean): String =
         """{"termDictionaries":[{"fileName":"$fileName","isEnabled":$enabled,"order":0}],"frequencyDictionaries":[],"pitchDictionaries":[]}"""
 
-    private fun profilesJson(globalActiveProfileId: String = "default-ja"): String =
+    private fun profilesJson(globalActiveProfileId: String = "default-ja", englishProfileId: String = "profile-en"): String =
         """
         {
           "profiles": [
             {"id": "default-ja", "name": "Japanese", "dictionaryLanguageId": "ja", "isDefault": true},
-            {"id": "profile-en", "name": "English", "dictionaryLanguageId": "en", "isDefault": false}
+            {"id": "$englishProfileId", "name": "English", "dictionaryLanguageId": "en", "isDefault": false}
           ],
           "defaultProfileId": "default-ja",
           "globalActiveProfileId": "$globalActiveProfileId",
-          "primaryProfileIdsByLanguage": {"ja": "default-ja", "en": "profile-en"}
+          "primaryProfileIdsByLanguage": {"ja": "default-ja", "en": "$englishProfileId"}
         }
         """.trimIndent()
 

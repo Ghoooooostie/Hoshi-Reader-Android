@@ -185,20 +185,33 @@ class ProfileRepository internal constructor(
     ): Unit = withContext(ioDispatcher) {
         synchronized(lock) {
             destinationProfilesDir.deleteRecursively()
-            destinationProfilesDir.mkdirs()
+            if (profilesDir.isDirectory) {
+                profilesDir.copyRecursively(destinationProfilesDir, overwrite = true)
+            } else {
+                destinationProfilesDir.mkdirs()
+            }
             val payloadDir = restoredDictionariesDir.resolve(DictionaryBackupProfilesDirectoryName)
             val payloadIndexFile = payloadDir.resolve(IndexFileName)
+            val currentIndex = storedIndex.normalized()
             val restoredIndex = if (payloadIndexFile.isFile) {
                 json.decodeFromString(StoredProfileIndex.serializer(), payloadIndexFile.readText()).normalized()
             } else {
-                defaultStoredIndex().normalized()
+                currentIndex
+            }
+            val mergedIndex = if (payloadIndexFile.isFile) {
+                currentIndex.mergeDictionaryRestore(restoredIndex)
+            } else {
+                currentIndex
             }
             destinationProfilesDir.resolve(IndexFileName)
-                .writeText(json.encodeToString(StoredProfileIndex.serializer(), restoredIndex))
+                .writeText(json.encodeToString(StoredProfileIndex.serializer(), mergedIndex))
             if (payloadDir.isDirectory) {
                 restoredIndex.profiles.forEach { profile ->
                     val sourceProfileDir = safeProfileDir(payloadDir, profile.id)
                     val targetProfileDir = safeProfileDir(destinationProfilesDir, profile.id)
+                    DictionaryBackupProfileFileNames.forEach { fileName ->
+                        targetProfileDir.resolve(fileName).delete()
+                    }
                     DictionaryBackupProfileFileNames.forEach { fileName ->
                         val source = sourceProfileDir.resolve(fileName)
                         if (!source.isFile) return@forEach
@@ -305,6 +318,21 @@ class ProfileRepository internal constructor(
             loadedProfileId = validLoaded,
             primaryProfileIdsByLanguage = normalized.primaryProfileIdsByLanguage,
         )
+    }
+
+    private fun StoredProfileIndex.mergeDictionaryRestore(restored: StoredProfileIndex): StoredProfileIndex {
+        val currentById = profiles.associateBy { it.id }
+        val restoredById = restored.profiles.associateBy { it.id }
+        val mergedProfiles = profiles.map { profile ->
+            restoredById[profile.id] ?: profile
+        } + restored.profiles.filter { profile -> profile.id !in currentById }
+        val mergedIds = mergedProfiles.mapTo(mutableSetOf()) { it.id }
+        return StoredProfileIndex(
+            profiles = mergedProfiles,
+            defaultProfileId = restored.defaultProfileId.takeIf { it in mergedIds } ?: defaultProfileId,
+            globalActiveProfileId = restored.globalActiveProfileId.takeIf { it in mergedIds } ?: globalActiveProfileId,
+            primaryProfileIdsByLanguage = primaryProfileIdsByLanguage + restored.primaryProfileIdsByLanguage,
+        ).normalized()
     }
 
     private fun persistIndexLocked() {

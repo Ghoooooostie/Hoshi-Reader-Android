@@ -62,8 +62,9 @@ refactor goals belong in `docs/ARCHITECTURE_REFACTORING.md`.
   Android compatibility and include profile-scoped dictionary metadata under the
   reserved `.hoshi-profiles/` payload. The root `config.json` projects the
   default Japanese profile for single-profile restore targets; newer Android
-  restores recover the full profile index plus profile dictionary
-  config/settings.
+  restores merge the profile index and profile dictionary config/settings while
+  preserving profile-owned Anki and Reader settings that are outside the
+  dictionary payload.
 - Reader Appearance settings are stored per active/effective profile in
   `Profiles/<profileId>/reader_settings.json`; Reader Behavior and statistics
   sync settings remain global DataStore settings.
