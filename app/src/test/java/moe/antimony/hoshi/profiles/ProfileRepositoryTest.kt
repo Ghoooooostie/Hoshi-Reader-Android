@@ -83,6 +83,66 @@ class ProfileRepositoryTest {
     }
 
     @Test
+    fun dictionaryBackupPayloadCopiesOnlyDictionaryProfileFilesAndNormalizedIndex() {
+        val repository = ProfileRepository(tempFolder.newFolder("files"))
+        val defaultId = repository.state.value.defaultProfileId
+        val defaultConfig = """{"termDictionaries":[{"fileName":"JMdict","isEnabled":false,"order":0}]}"""
+        val defaultSettings = """{"customCSS":".jp{}"}"""
+        val english = repository.createProfile("English", "en")
+        val englishConfig = """{"termDictionaries":[{"fileName":"Oxford","isEnabled":true,"order":0}]}"""
+        val englishSettings = """{"customCSS":".en{}"}"""
+        repository.dictionaryConfigFile(defaultId).writeProfileText(defaultConfig)
+        repository.dictionarySettingsFile(defaultId).writeProfileText(defaultSettings)
+        repository.ankiConfigFile(defaultId).writeProfileText("""{"selectedDeckName":"Japanese"}""")
+        repository.readerSettingsFile(defaultId).writeProfileText("""{"theme":"Dark"}""")
+        repository.dictionaryConfigFile(english.id).writeProfileText(englishConfig)
+        repository.dictionarySettingsFile(english.id).writeProfileText(englishSettings)
+        val payload = tempFolder.newFolder("payload")
+
+        repository.writeDictionaryBackupProfilePayload(payload)
+
+        val indexText = payload.resolve("profiles.json").readText()
+        assertTrue(indexText.contains("default-ja"))
+        assertTrue(indexText.contains(english.id))
+        assertEquals(defaultConfig, payload.resolve("$defaultId/dictionary_config.json").readText())
+        assertEquals(defaultSettings, payload.resolve("$defaultId/dictionary_settings.json").readText())
+        assertEquals(englishConfig, payload.resolve("${english.id}/dictionary_config.json").readText())
+        assertEquals(englishSettings, payload.resolve("${english.id}/dictionary_settings.json").readText())
+        assertFalse(payload.resolve("$defaultId/anki_config.json").exists())
+        assertFalse(payload.resolve("$defaultId/reader_settings.json").exists())
+    }
+
+    @Test
+    fun prepareDictionaryBackupProfilesRestoreUsesPayloadAndRootConfigThenReloadPublishesState() {
+        val filesDir = tempFolder.newFolder("files")
+        val repository = ProfileRepository(filesDir)
+        val restoredDictionaries = tempFolder.newFolder("restoredDictionaries")
+        val preparedProfiles = tempFolder.newFolder("preparedProfiles")
+        val rootDefaultConfig = """{"termDictionaries":[{"fileName":"JMdict","isEnabled":false,"order":0}]}"""
+        val payloadDefaultConfig = """{"termDictionaries":[{"fileName":"Payload","isEnabled":true,"order":0}]}"""
+        val englishConfig = """{"termDictionaries":[{"fileName":"Oxford","isEnabled":true,"order":0}]}"""
+        restoredDictionaries.resolve("config.json").writeProfileText(rootDefaultConfig)
+        restoredDictionaries.resolve(".hoshi-profiles/profiles.json").writeProfileText(profilesJson(globalActiveProfileId = "profile-en"))
+        restoredDictionaries.resolve(".hoshi-profiles/default-ja/dictionary_config.json").writeProfileText(payloadDefaultConfig)
+        restoredDictionaries.resolve(".hoshi-profiles/profile-en/dictionary_config.json").writeProfileText(englishConfig)
+        restoredDictionaries.resolve(".hoshi-profiles/profile-en/dictionary_settings.json").writeProfileText("""{"customCSS":".en{}"}""")
+
+        repository.prepareDictionaryBackupProfilesRestore(
+            restoredDictionariesDir = restoredDictionaries,
+            destinationProfilesDir = preparedProfiles,
+        )
+        filesDir.resolve("Profiles").deleteRecursively()
+        preparedProfiles.copyRecursively(filesDir.resolve("Profiles"))
+        repository.reloadProfilesFromDisk()
+
+        assertFalse(restoredDictionaries.resolve(".hoshi-profiles").exists())
+        assertEquals("profile-en", repository.state.value.globalActiveProfileId)
+        assertEquals(rootDefaultConfig, repository.dictionaryConfigFile("default-ja").readText())
+        assertEquals(englishConfig, repository.dictionaryConfigFile("profile-en").readText())
+        assertEquals("""{"customCSS":".en{}"}""", repository.dictionarySettingsFile("profile-en").readText())
+    }
+
+    @Test
     fun rejectsUnsupportedDictionaryLanguageIds() {
         val repository = ProfileRepository(tempFolder.newFolder("files"))
 
@@ -125,4 +185,17 @@ class ProfileRepositoryTest {
         parentFile?.mkdirs()
         writeText(value)
     }
+
+    private fun profilesJson(globalActiveProfileId: String = "default-ja"): String =
+        """
+        {
+          "profiles": [
+            {"id": "default-ja", "name": "Japanese", "dictionaryLanguageId": "ja", "isDefault": true},
+            {"id": "profile-en", "name": "English", "dictionaryLanguageId": "en", "isDefault": false}
+          ],
+          "defaultProfileId": "default-ja",
+          "globalActiveProfileId": "$globalActiveProfileId",
+          "primaryProfileIdsByLanguage": {"ja": "default-ja", "en": "profile-en"}
+        }
+        """.trimIndent()
 }

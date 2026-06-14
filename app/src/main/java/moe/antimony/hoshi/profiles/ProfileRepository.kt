@@ -40,6 +40,9 @@ class ProfileRepository internal constructor(
     val currentEffectiveContentLanguageProfile: ContentLanguageProfile
         get() = state.value.effectiveContentLanguageProfile
 
+    val profilesDirectory: File
+        get() = profilesDir
+
     fun createProfile(name: String, dictionaryLanguageId: String): HoshiProfile = synchronized(lock) {
         validateDictionaryLanguage(dictionaryLanguageId)
         val sourceProfileId = storedIndex.globalActiveProfileId
@@ -134,6 +137,69 @@ class ProfileRepository internal constructor(
 
     fun readerSettingsFile(profileId: String = currentEffectiveProfileId): File =
         profileDataFile(profileId, ReaderSettingsFileName)
+
+    fun defaultDictionaryConfigFileForBackup(): File? = synchronized(lock) {
+        dictionaryConfigFile(DefaultProfileId).takeIf(File::isFile)
+    }
+
+    fun writeDictionaryBackupProfilePayload(destination: File) = synchronized(lock) {
+        destination.deleteRecursively()
+        destination.mkdirs()
+        val normalized = storedIndex.normalized()
+        destination.resolve(IndexFileName)
+            .writeText(json.encodeToString(StoredProfileIndex.serializer(), normalized))
+        normalized.profiles.forEach { profile ->
+            val targetProfileDir = safeProfileDir(destination, profile.id)
+            DictionaryBackupProfileFileNames.forEach { fileName ->
+                val source = profileDataFile(profile.id, fileName)
+                if (!source.isFile) return@forEach
+                targetProfileDir.mkdirs()
+                source.copyTo(targetProfileDir.resolve(fileName), overwrite = true)
+            }
+        }
+    }
+
+    fun prepareDictionaryBackupProfilesRestore(
+        restoredDictionariesDir: File,
+        destinationProfilesDir: File,
+    ) = synchronized(lock) {
+        destinationProfilesDir.deleteRecursively()
+        destinationProfilesDir.mkdirs()
+        val payloadDir = restoredDictionariesDir.resolve(DictionaryBackupProfilesDirectoryName)
+        val payloadIndexFile = payloadDir.resolve(IndexFileName)
+        val restoredIndex = if (payloadIndexFile.isFile) {
+            json.decodeFromString(StoredProfileIndex.serializer(), payloadIndexFile.readText()).normalized()
+        } else {
+            defaultStoredIndex().normalized()
+        }
+        destinationProfilesDir.resolve(IndexFileName)
+            .writeText(json.encodeToString(StoredProfileIndex.serializer(), restoredIndex))
+        if (payloadDir.isDirectory) {
+            restoredIndex.profiles.forEach { profile ->
+                val sourceProfileDir = safeProfileDir(payloadDir, profile.id)
+                val targetProfileDir = safeProfileDir(destinationProfilesDir, profile.id)
+                DictionaryBackupProfileFileNames.forEach { fileName ->
+                    val source = sourceProfileDir.resolve(fileName)
+                    if (!source.isFile) return@forEach
+                    targetProfileDir.mkdirs()
+                    source.copyTo(targetProfileDir.resolve(fileName), overwrite = true)
+                }
+            }
+        }
+        val legacyConfig = restoredDictionariesDir.resolve(LegacyDictionaryConfigFileName)
+        if (legacyConfig.isFile) {
+            val defaultProfileDir = safeProfileDir(destinationProfilesDir, DefaultProfileId)
+            defaultProfileDir.mkdirs()
+            legacyConfig.copyTo(defaultProfileDir.resolve(DictionaryConfigFileName), overwrite = true)
+        }
+        payloadDir.deleteRecursively()
+    }
+
+    fun reloadProfilesFromDisk() = synchronized(lock) {
+        storedIndex = initializeIndex()
+        loadedProfileId = null
+        publishLocked()
+    }
 
     private fun initializeIndex(): StoredProfileIndex {
         profilesDir.mkdirs()
@@ -236,6 +302,16 @@ class ProfileRepository internal constructor(
     private fun profileDir(profileId: String): File =
         profilesDir.resolve(profileId)
 
+    private fun safeProfileDir(root: File, profileId: String): File {
+        require(profileId.isNotBlank() && profileId != "." && profileId != "..") {
+            "Unsafe profile id: $profileId"
+        }
+        require(profileId.none { it == '/' || it == '\\' }) {
+            "Unsafe profile id: $profileId"
+        }
+        return root.resolve(profileId)
+    }
+
     private fun copyProfileOwnedFiles(sourceProfileId: String, targetProfileId: String) {
         val sourceDir = profileDir(sourceProfileId)
         val targetDir = profileDir(targetProfileId)
@@ -257,6 +333,7 @@ class ProfileRepository internal constructor(
 
     companion object {
         const val DefaultProfileId = "default-ja"
+        const val DictionaryBackupProfilesDirectoryName = ".hoshi-profiles"
         private const val ProfilesDirectoryName = "Profiles"
         private const val IndexFileName = "profiles.json"
         private const val LegacyDictionaryConfigFileName = "config.json"
@@ -269,6 +346,10 @@ class ProfileRepository internal constructor(
             DictionarySettingsFileName,
             AnkiConfigFileName,
             ReaderSettingsFileName,
+        )
+        private val DictionaryBackupProfileFileNames = listOf(
+            DictionaryConfigFileName,
+            DictionarySettingsFileName,
         )
 
         internal fun defaultJson(): Json = Json {

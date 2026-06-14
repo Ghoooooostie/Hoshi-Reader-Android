@@ -57,6 +57,12 @@ refactor goals belong in `docs/ARCHITECTURE_REFACTORING.md`.
 - Dictionary data directories remain global under `Dictionaries/`, while each
   profile owns `dictionary_config.json` and `dictionary_settings.json` under
   `Profiles/<profileId>/`.
+- Dictionary `.hoshi` backups keep the legacy root archive shape for iOS/older
+  Android compatibility and include profile-scoped dictionary metadata under the
+  reserved `.hoshi-profiles/` payload. The root `config.json` projects the
+  default Japanese profile for single-profile restore targets; newer Android
+  restores recover the full profile index plus profile dictionary
+  config/settings.
 - Reader Appearance settings are stored per active/effective profile in
   `Profiles/<profileId>/reader_settings.json`; Reader Behavior and statistics
   sync settings remain global DataStore settings.
