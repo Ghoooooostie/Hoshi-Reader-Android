@@ -1886,6 +1886,7 @@ private fun ProfileDestinationMenu(
         SortMenuHeader(text = stringResource(R.string.bookshelf_profile))
         HorizontalDivider()
         val automaticProfile = profileState.automaticBookProfile(entry.metadata.bookLanguage)
+        val selectedProfileId = selectedBookProfileId(entry.metadata.profileId, profileState)
         DropdownMenuItem(
             text = {
                 Column {
@@ -1898,7 +1899,7 @@ private fun ProfileDestinationMenu(
                 }
             },
             leadingIcon = {
-                if (entry.metadata.profileId == null) {
+                if (selectedProfileId == null) {
                     Icon(Icons.Rounded.CheckCircle, contentDescription = null)
                 }
             },
@@ -1922,7 +1923,7 @@ private fun ProfileDestinationMenu(
                     }
                 },
                 leadingIcon = {
-                    if (entry.metadata.profileId == profile.id) {
+                    if (selectedProfileId == profile.id) {
                         Icon(Icons.Rounded.CheckCircle, contentDescription = null)
                     }
                 },
@@ -1934,6 +1935,11 @@ private fun ProfileDestinationMenu(
         }
     }
 }
+
+internal fun selectedBookProfileId(
+    bookProfileId: String?,
+    profileState: ProfileState,
+): String? = bookProfileId?.takeIf { profileState.profileById(it) != null }
 
 @Composable
 internal fun ShelfManagementDialog(
