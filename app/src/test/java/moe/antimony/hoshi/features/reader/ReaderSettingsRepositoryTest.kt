@@ -65,7 +65,7 @@ class ReaderSettingsRepositoryTest {
             assertEquals(VisualNovelScreenMode.Block, settings.visualNovelScreenMode)
             assertEquals(1, settings.visualNovelSentencesPerScreen)
             assertFalse(settings.visualNovelPreserveDialogueBubbles)
-            assertTrue(settings.visualNovelClickAdvance)
+            assertFalse(settings.visualNovelClickAdvance)
             assertFalse(settings.blurImages)
             assertFalse(settings.enableStatistics)
             assertEquals(StatisticsAutostartMode.Off, settings.statisticsAutostartMode)
