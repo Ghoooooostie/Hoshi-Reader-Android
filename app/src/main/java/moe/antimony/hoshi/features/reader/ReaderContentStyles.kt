@@ -102,8 +102,14 @@ internal object ReaderContentStyles {
         val backgroundColor = settings.backgroundColorCss(systemDark)
         val normalizedFont = settings.selectedFont
         val fontFaceFamily = normalizedFont.cssString()
-        val bodyFontFamily = normalizedFont.readerCssFontFamily(contentLanguageProfile)
-        val fontFaceCss = fontFaceUrl?.let { url ->
+        val bodyFontFamilyCss = if (ReaderFontManager.isPublisherFont(normalizedFont)) {
+            ""
+        } else {
+            "font-family: ${normalizedFont.readerCssFontFamily(contentLanguageProfile)} !important;"
+        }
+        val fontFaceCss = fontFaceUrl
+            ?.takeUnless { ReaderFontManager.isPublisherFont(normalizedFont) }
+            ?.let { url ->
             """
             @font-face {
                 font-family: $fontFaceFamily;
@@ -193,7 +199,7 @@ internal object ReaderContentStyles {
                     writing-mode: ${settings.writingModeCss} !important;
                 }
                 body {
-                    font-family: $bodyFontFamily !important;
+                    $bodyFontFamilyCss
                     font-size: ${settings.fontSize}px !important;
                     -webkit-text-size-adjust: none !important;
                     $textSpacingCss
@@ -218,7 +224,7 @@ internal object ReaderContentStyles {
                     color: var(--hoshi-text-color) !important;
                 }
                 body {
-                    font-family: $bodyFontFamily !important;
+                    $bodyFontFamilyCss
                     font-size: ${settings.fontSize}px !important;
                     -webkit-text-size-adjust: none !important;
                     $textSpacingCss
@@ -265,7 +271,7 @@ internal object ReaderContentStyles {
                     writing-mode: ${settings.writingModeCss} !important;
                 }
                 body {
-                    font-family: $bodyFontFamily !important;
+                    $bodyFontFamilyCss
                     font-size: ${settings.fontSize}px !important;
                     -webkit-text-size-adjust: none !important;
                     $textSpacingCss

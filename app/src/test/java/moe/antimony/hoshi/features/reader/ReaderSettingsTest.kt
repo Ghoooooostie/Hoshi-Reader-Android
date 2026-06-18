@@ -211,6 +211,19 @@ class ReaderSettingsTest {
     }
 
     @Test
+    fun publisherFontReaderCssKeepsEpubFontFamily() {
+        val css = ReaderContentStyles.styleTag(
+            settings = ReaderSettings(selectedFont = ReaderFontManager.publisherFont),
+            fontFaceUrl = "https://appassets.androidplatform.net/fonts/ignored.ttf",
+        )
+
+        assertFalse(css.contains("@font-face"))
+        assertFalse(css.contains("font-family:"))
+        assertTrue(css.contains("font-size: 22px !important;"))
+        assertTrue(css.contains("writing-mode: vertical-rl !important;"))
+    }
+
+    @Test
     fun horizontalReaderCssUsesIosWritingModeMapping() {
         val css = ReaderContentStyles.styleTag(ReaderSettings(verticalWriting = false))
 

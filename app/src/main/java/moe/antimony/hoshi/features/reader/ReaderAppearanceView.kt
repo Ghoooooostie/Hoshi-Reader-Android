@@ -189,9 +189,10 @@ private fun ReaderAppearanceContent(
         }
     }
     val fontOptions = remember(importedFonts, settings.selectedFont) {
-        (ReaderFontManager.defaultFonts + importedFonts.map { it.name } + settings.selectedFont)
-            .filter { it.isNotBlank() }
-            .distinct()
+        readerAppearanceFontOptions(
+            importedFontNames = importedFonts.map { it.name },
+            selectedFont = settings.selectedFont,
+        )
     }
     val palette = appearancePalette()
     val metrics = readerSheetDensityMetrics()
@@ -299,7 +300,8 @@ private fun ReaderAppearanceContent(
                             fontMenuExpanded = false
                             onSettingsChange(settings.copy(selectedFont = fontName))
                         },
-                        canDeleteFont = !fontManager.isDefaultFont(settings.selectedFont),
+                        canDeleteFont = !fontManager.isDefaultFont(settings.selectedFont) &&
+                            !ReaderFontManager.isPublisherFont(settings.selectedFont),
                         onDeleteFont = { fontToDelete = settings.selectedFont },
                     )
                     AppearanceDivider(palette)
@@ -752,6 +754,11 @@ private fun ReaderAppearanceContent(
 internal fun readerAppearanceSasayakiRows(settings: SasayakiSettings): List<Int> =
     if (settings.enabled) listOf(R.string.reader_appearance_show_sasayaki_toggle) else emptyList()
 
+internal fun readerAppearanceFontOptions(importedFontNames: List<String>, selectedFont: String): List<String> =
+    (listOf(ReaderFontManager.publisherFont) + ReaderFontManager.defaultFonts + importedFontNames + selectedFont)
+        .filter { it.isNotBlank() }
+        .distinct()
+
 internal fun readerAppearanceShowsCustomInterfaceTheme(settings: ReaderSettings): Boolean =
     settings.theme == ReaderTheme.Custom
 
@@ -986,6 +993,7 @@ private fun ReaderFontRow(
     onDeleteFont: () -> Unit,
 ) {
     val metrics = readerSheetDensityMetrics()
+    val selectedFontLabel = readerFontLabel(settings.selectedFont)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1008,7 +1016,7 @@ private fun ReaderFontRow(
                 CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                     TextButton(onClick = { onFontMenuExpandedChange(true) }) {
                         Text(
-                            text = settings.selectedFont,
+                            text = selectedFontLabel,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -1019,7 +1027,7 @@ private fun ReaderFontRow(
                     ) {
                         fontOptions.forEach { fontName ->
                             DropdownMenuItem(
-                                text = { Text(fontName) },
+                                text = { Text(readerFontLabel(fontName)) },
                                 onClick = { onFontSelected(fontName) },
                             )
                         }
@@ -1064,6 +1072,14 @@ private fun ActionRow(
         }
     }
 }
+
+@Composable
+private fun readerFontLabel(fontName: String): String =
+    if (ReaderFontManager.isPublisherFont(fontName)) {
+        stringResource(R.string.reader_appearance_font_publisher)
+    } else {
+        fontName
+    }
 
 @Composable
 private fun SwitchRow(

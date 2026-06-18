@@ -284,6 +284,7 @@
     <string name="reader_appearance_vertical">Vertical</string>
     <string name="reader_appearance_horizontal">Horizontal</string>
     <string name="reader_appearance_font" comment="Reader font setting, intentionally matching dictionary custom CSS font.">Font</string>
+    <string name="reader_appearance_font_publisher">Publisher</string>
     <string name="reader_appearance_font_file" comment="Fallback filename label, intentionally matching font setting labels.">font</string>
     <string name="reader_appearance_import_font">Import Font</string>
     <string name="reader_appearance_importing" comment="Generic import progress label, intentionally shared with ッツ backup import.">Importing...</string>
