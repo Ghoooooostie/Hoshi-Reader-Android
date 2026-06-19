@@ -476,6 +476,7 @@ internal data class ReaderAppearanceUpdateKey(
     val eInkLineColorCss: String,
     val eInkModeCss: String,
     val verticalWritingCss: String,
+    val visualNovelRevealSpeed: Int,
     val sasayakiTextColorCss: String,
     val sasayakiBackgroundColorCss: String,
 )
@@ -492,6 +493,7 @@ internal fun readerAppearanceUpdateKey(
         eInkLineColorCss = if (settings.usesDarkInterface(systemDark)) "#fff" else "#000",
         eInkModeCss = if (settings.eInkMode) "1" else "0",
         verticalWritingCss = if (settings.verticalWriting) "1" else "0",
+        visualNovelRevealSpeed = settings.visualNovelRevealSpeed.coerceIn(0, 120),
         sasayakiTextColorCss = sasayakiTextColor.toReaderCssColor(),
         sasayakiBackgroundColorCss = sasayakiBackgroundColor.toReaderCssColor(includeAlpha = true),
     )
@@ -899,6 +901,7 @@ private fun readerAppearanceScript(
     val eInkLineColor = readerJavaScriptStringLiteral(appearanceUpdateKey.eInkLineColorCss)
     val eInkMode = readerJavaScriptStringLiteral(appearanceUpdateKey.eInkModeCss)
     val verticalWriting = readerJavaScriptStringLiteral(appearanceUpdateKey.verticalWritingCss)
+    val visualNovelRevealSpeed = appearanceUpdateKey.visualNovelRevealSpeed
     val sasayakiText = readerJavaScriptStringLiteral(appearanceUpdateKey.sasayakiTextColorCss)
     val sasayakiBackground = readerJavaScriptStringLiteral(appearanceUpdateKey.sasayakiBackgroundColorCss)
     return """
@@ -909,6 +912,7 @@ private fun readerAppearanceScript(
           document.documentElement.style.setProperty('--hoshi-reader-eink-mode', $eInkMode);
           document.documentElement.dataset.hoshiReaderEinkMode = $eInkMode === '1' ? 'true' : 'false';
           document.documentElement.style.setProperty('--hoshi-reader-vertical-writing', $verticalWriting);
+          window.hoshiReader?.setRevealSpeed?.($visualNovelRevealSpeed);
           document.documentElement.style.setProperty('--hoshi-sasayaki-text-color', $sasayakiText);
           document.documentElement.style.setProperty('--hoshi-sasayaki-background-color', $sasayakiBackground);
           window.hoshiReader?.refreshSasayakiCuePresentation?.();

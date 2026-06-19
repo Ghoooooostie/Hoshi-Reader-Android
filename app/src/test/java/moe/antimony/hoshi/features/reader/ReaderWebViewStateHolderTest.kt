@@ -505,12 +505,29 @@ class ReaderWebViewStateHolderTest {
         )
         assertFalse(
             visualNovel.readerContentReloadKey() ==
-                visualNovel.copy(visualNovelRevealSpeed = 0).readerContentReloadKey(),
-        )
-        assertFalse(
-            visualNovel.readerContentReloadKey() ==
                 visualNovel.copy(visualNovelMergeCrossScreenSasayakiCues = true).readerContentReloadKey(),
         )
+    }
+
+    @Test
+    fun readerContentReloadKeyIgnoresVisualNovelRevealSpeed() {
+        val base = ReaderSettings(viewMode = ReaderViewMode.VisualNovel)
+        val changedSpeed = base.copy(visualNovelRevealSpeed = 0)
+
+        assertEquals(base.readerContentReloadKey(), changedSpeed.readerContentReloadKey())
+    }
+
+    @Test
+    fun syncedVisualNovelRevealSpeedDoesNotReloadWebView() {
+        val holder = stateHolder(initialIndex = 1)
+        holder.markWebViewRestored()
+        val previousEpoch = holder.webViewRestoreEpoch
+
+        holder.syncSettings(ReaderSettings(visualNovelRevealSpeed = 80))
+
+        assertFalse(holder.isWebViewRestoring)
+        assertEquals(previousEpoch, holder.webViewRestoreEpoch)
+        assertEquals(80, holder.effectiveSettings.visualNovelRevealSpeed)
     }
 
     @Test
@@ -549,6 +566,21 @@ class ReaderWebViewStateHolderTest {
         assertFalse(
             readerAppearanceUpdateKey(base, systemDark = false, sasayakiTextColor = 0xFF111111, sasayakiBackgroundColor = 0xFFFFFFFF) ==
                 readerAppearanceUpdateKey(textChanged, systemDark = false, sasayakiTextColor = 0xFF111111, sasayakiBackgroundColor = 0xFFFFFFFF),
+        )
+    }
+
+    @Test
+    fun readerAppearanceUpdateKeyTracksVisualNovelRevealSpeedWithoutReloadingContent() {
+        val base = ReaderSettings(
+            viewMode = ReaderViewMode.VisualNovel,
+            visualNovelRevealSpeed = 45,
+        )
+        val changedSpeed = base.copy(visualNovelRevealSpeed = 90)
+
+        assertEquals(base.readerContentReloadKey(), changedSpeed.readerContentReloadKey())
+        assertFalse(
+            readerAppearanceUpdateKey(base, systemDark = false, sasayakiTextColor = 0xFF111111, sasayakiBackgroundColor = 0xFFFFFFFF) ==
+                readerAppearanceUpdateKey(changedSpeed, systemDark = false, sasayakiTextColor = 0xFF111111, sasayakiBackgroundColor = 0xFFFFFFFF),
         )
     }
 

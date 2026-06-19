@@ -6,6 +6,10 @@ Historical release notes before v1.1.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ## [Unreleased]
 
+### Fixed
+
+- Update VN reveal speed in Reader Appearance without reloading the current chapter.
+
 ## [v1.2.1] - 2026-06-18
 
 ### Added

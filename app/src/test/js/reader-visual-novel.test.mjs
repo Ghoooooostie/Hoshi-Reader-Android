@@ -912,6 +912,19 @@ test('visual novel reveal speed progressively reveals characters faster at highe
     assert.equal(textNodes[1].textContent, '二三。');
 });
 
+test('visual novel reveal speed updates active reveal without reloading the screen', async () => {
+    const { reader, timers } = await initializeReader(bodyWith(p('一二三。')), { revealSpeed: 10 });
+
+    assert.equal(timers[0].delay, 100);
+
+    reader.setRevealSpeed(50);
+
+    assert.equal(reader.revealSpeed, 50);
+    assert.equal(timers[0], null);
+    assert.equal(timers[1].delay, 20);
+    assert.equal(currentScreen(reader).textContent, '一二三。');
+});
+
 test('visual novel image setup preserves blur and native image tap behavior', async () => {
     const body = bodyWith(imageBlock('images/pic.jpg'));
     const { reader, imageMessages } = await initializeReader(body, {

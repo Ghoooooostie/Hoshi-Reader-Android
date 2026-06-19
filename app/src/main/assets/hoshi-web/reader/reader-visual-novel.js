@@ -52,6 +52,14 @@ window.hoshiReader = {
   readerCssVariable: function(name) {
     return window.getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   },
+  setRevealSpeed: function(speed) {
+    var parsed = Number(speed);
+    this.revealSpeed = Number.isFinite(parsed) ? Math.min(120, Math.max(0, parsed)) : 0;
+    if (!this.revealComplete) {
+      this.clearRevealTimer();
+      this.scheduleRevealTick();
+    }
+  },
   isEInkMode: function() {
     return this.readerCssVariable('--hoshi-reader-eink-mode') === '1';
   },
