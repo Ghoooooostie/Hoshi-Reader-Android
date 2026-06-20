@@ -20,6 +20,8 @@ window.hoshiReader = {
   nodeStartRawOffsets: new WeakMap(),
   sourceTextOffsets: new WeakMap(),
   sourceTextRawOffsets: new WeakMap(),
+  sourceNodeStats: new WeakMap(),
+  sourceOrderIndexes: new WeakMap(),
   cloneTextOffsets: new WeakMap(),
   cloneTextRawOffsets: new WeakMap(),
   ttuRegexNegated: /[^0-9A-Za-z○◯々-〇〻ぁ-ゖゝ-ゞァ-ヺー０-９Ａ-Ｚａ-ｚｦ-ﾝ\p{Radical}\p{Unified_Ideograph}]+/gimu,
@@ -203,7 +205,13 @@ window.hoshiReader = {
   buildSourceIndexes: function() {
     this.sourceTextOffsets = new WeakMap();
     this.sourceTextRawOffsets = new WeakMap();
+    this.sourceNodeStats = new WeakMap();
+    this.sourceOrderIndexes = new WeakMap();
     this.sourceEntries = [];
+    var topLevelNodes = Array.from(this.sourceRoot.childNodes || []);
+    for (var order = 0; order < topLevelNodes.length; order++) {
+      this.sourceOrderIndexes.set(topLevelNodes[order], order);
+    }
     var walker = this.createWalker(this.sourceRoot);
     var count = 0;
     var rawCount = 0;
@@ -222,8 +230,30 @@ window.hoshiReader = {
       entry.endChar = count;
       entry.endRaw = rawCount;
       this.sourceEntries.push(entry);
+      this.updateSourceNodeStats(node, entry);
     }
     this.totalChapterChars = count;
+  },
+  updateSourceNodeStats: function(node, entry) {
+    var current = node;
+    while (current && current !== this.sourceRoot) {
+      var stats = this.sourceNodeStats.get(current);
+      if (!stats) {
+        this.sourceNodeStats.set(current, {
+          hasText: true,
+          startChar: entry.startChar,
+          endChar: entry.endChar,
+          startRaw: entry.startRaw,
+          endRaw: entry.endRaw
+        });
+      } else {
+        stats.startChar = Math.min(stats.startChar, entry.startChar);
+        stats.endChar = Math.max(stats.endChar, entry.endChar);
+        stats.startRaw = Math.min(stats.startRaw, entry.startRaw);
+        stats.endRaw = Math.max(stats.endRaw, entry.endRaw);
+      }
+      current = current.parentNode;
+    }
   },
   buildScreens: function() {
     var mode = String(this.screenMode || '').toLowerCase();
@@ -251,16 +281,50 @@ window.hoshiReader = {
   mergeSasayakiCrossScreenScreens: function(screens) {
     if (!this.mergeCrossScreenSasayakiCues || !Array.isArray(screens) || screens.length < 2) return screens || [];
     if (!Array.isArray(this.sasayakiCues) || !this.sasayakiCues.length) return screens;
+    var cues = [];
+    for (var cueIndex = 0; cueIndex < this.sasayakiCues.length; cueIndex++) {
+      var cue = this.sasayakiCueForInput(this.sasayakiCues[cueIndex]);
+      if (cue) cues.push(cue);
+    }
+    if (!cues.length) return screens;
+    cues.sort((a, b) => {
+      var startDelta = this.sasayakiCueStart(a) - this.sasayakiCueStart(b);
+      if (startDelta !== 0) return startDelta;
+      return this.sasayakiCueEnd(a) - this.sasayakiCueEnd(b);
+    });
     var intervals = [];
-    for (var i = 0; i < this.sasayakiCues.length; i++) {
-      var cue = this.sasayakiCueForInput(this.sasayakiCues[i]);
-      if (!cue) continue;
+    var searchStart = 0;
+    for (var i = 0; i < cues.length; i++) {
+      var cue = cues[i];
       var first = -1;
       var last = -1;
-      for (var screenIndex = 0; screenIndex < screens.length; screenIndex++) {
-        if (!this.sasayakiCueIntersectsScreen(cue, screens[screenIndex])) continue;
+      var cueStart = this.sasayakiCueStart(cue);
+      var cueEnd = this.sasayakiCueEnd(cue);
+      var zeroLengthCue = cueEnd <= cueStart;
+      while (searchStart < screens.length) {
+        var screenEnd = Number(screens[searchStart].endCharCount) || 0;
+        if (zeroLengthCue) {
+          if (cueStart <= screenEnd) break;
+        } else if (cueEnd > (Number(screens[searchStart].startCharCount) || 0)) {
+          if (cueStart < screenEnd) break;
+        }
+        searchStart += 1;
+      }
+      for (var screenIndex = searchStart; screenIndex < screens.length; screenIndex++) {
+        var screen = screens[screenIndex];
+        var screenStart = Number(screen.startCharCount) || 0;
+        var screenEnd = Number(screen.endCharCount) || 0;
+        if (!this.sasayakiCueIntersectsScreen(cue, screen)) {
+          if (zeroLengthCue ? cueStart < screenStart : cueEnd <= screenStart) break;
+          continue;
+        }
         if (first < 0) first = screenIndex;
         last = screenIndex;
+        if (zeroLengthCue) {
+          if (cueStart < screenEnd) break;
+        } else if (cueEnd <= screenEnd) {
+          break;
+        }
       }
       if (first < 0 || last <= first) continue;
       var canMerge = true;
@@ -385,9 +449,22 @@ window.hoshiReader = {
       while (measurement.content.firstChild) measurement.content.removeChild(measurement.content.firstChild);
     }
     measurement.content.appendChild(screen.render());
+    if (this.measurementScrollFits(measurement)) return true;
     var bounds = this.measurementBounds(measurement);
     if (!bounds) return true;
     return this.renderedTextFitsBounds(measurement.content, bounds);
+  },
+  measurementScrollFits: function(measurement) {
+    var root = measurement && measurement.root;
+    var content = measurement && measurement.content;
+    if (!root || !content) return false;
+    var width = Number(root.clientWidth) || Number(root.offsetWidth) || 0;
+    var height = Number(root.clientHeight) || Number(root.offsetHeight) || 0;
+    var scrollWidth = Number(content.scrollWidth) || 0;
+    var scrollHeight = Number(content.scrollHeight) || 0;
+    if (!width || !height || !scrollWidth || !scrollHeight) return false;
+    var tolerance = 1;
+    return scrollWidth <= width + tolerance && scrollHeight <= height + tolerance;
   },
   measurementBounds: function(measurement) {
     var content = measurement && measurement.content;
@@ -486,9 +563,28 @@ window.hoshiReader = {
     if (!this.viewportFitTextItems) this.viewportFitTextItems = this.buildTextItems();
     var startRaw = Number(screen.startRawCount) || 0;
     var endRaw = Number(screen.endRawCount) || startRaw;
-    return this.viewportFitTextItems.filter(function(item) {
-      return item.chapterRawStart >= startRaw && item.chapterRawEnd <= endRaw;
-    });
+    var items = this.viewportFitTextItems;
+    var startIndex = this.lowerBoundTextItemsByRawStart(items, startRaw);
+    var result = [];
+    for (var i = startIndex; i < items.length; i++) {
+      var item = items[i];
+      if (item.chapterRawStart >= endRaw) break;
+      if (item.chapterRawEnd <= endRaw) result.push(item);
+    }
+    return result;
+  },
+  lowerBoundTextItemsByRawStart: function(items, targetRaw) {
+    var low = 0;
+    var high = items.length;
+    while (low < high) {
+      var mid = Math.floor((low + high) / 2);
+      if (items[mid].chapterRawStart < targetRaw) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    return low;
   },
   screenFromTextItems: function(items, start, end, baseIds) {
     var slice = items.slice(start, end);
@@ -886,6 +982,8 @@ window.hoshiReader = {
   },
   sourceOrderForTextNode: function(node) {
     var root = this.topLevelSourceNode(node);
+    var order = this.sourceOrderIndexes && this.sourceOrderIndexes.get(root);
+    if (order !== undefined) return order;
     return Array.from(this.sourceRoot.childNodes).indexOf(root);
   },
   topLevelSourceNode: function(node) {
@@ -930,19 +1028,7 @@ window.hoshiReader = {
     return Math.min(12, Math.max(1, Math.floor(parsed)));
   },
   statsForSourceNode: function(root) {
-    var result = { hasText: false, startChar: 0, endChar: 0, startRaw: 0, endRaw: 0 };
-    for (var i = 0; i < this.sourceEntries.length; i++) {
-      var entry = this.sourceEntries[i];
-      if (!this.isDescendantOf(entry.node, root)) continue;
-      if (!result.hasText) {
-        result.hasText = true;
-        result.startChar = entry.startChar;
-        result.startRaw = entry.startRaw;
-      }
-      result.endChar = entry.endChar;
-      result.endRaw = entry.endRaw;
-    }
-    return result;
+    return this.sourceNodeStats.get(root) || { hasText: false, startChar: 0, endChar: 0, startRaw: 0, endRaw: 0 };
   },
   isDescendantOf: function(node, root) {
     var current = node;

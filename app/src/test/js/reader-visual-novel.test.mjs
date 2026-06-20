@@ -306,6 +306,29 @@ class TestElement extends TestNode {
         return { x: 0, y: 0, left: 0, right: 24, top: 0, bottom: 24, width: 24, height: 24 };
     }
 
+    get clientWidth() {
+        return this.getBoundingClientRect().width;
+    }
+
+    get clientHeight() {
+        return this.getBoundingClientRect().height;
+    }
+
+    get scrollWidth() {
+        return this.clientWidth;
+    }
+
+    get scrollHeight() {
+        const layout = this.ownerDocument?._vnLayout;
+        const capacity = layout?.charactersPerScreen;
+        if (!capacity || !this.classList.contains('hoshi-vn-content')) return this.clientHeight;
+        return Math.max(this.clientHeight, this.textContent.length * 24);
+    }
+
+    get innerText() {
+        return this.textContent;
+    }
+
     normalize() {
         const normalized = [];
         this.childNodes.forEach((child) => {
@@ -770,6 +793,92 @@ test('block mode renders one top-level block per screen without cloning the enti
     assert.equal(reader.paginate('forward'), 'scrolled');
     assert.equal(currentScreen(reader).textContent, '第二段落。');
     assert.equal(currentScreen(reader).textContent.includes('第一段落。'), false);
+});
+
+test('block mode builds source positions without scanning every text entry for every block', async () => {
+    const paragraphs = Array.from({ length: 40 }, (_, index) => p(`段落${index}。`));
+    const { reader } = loadReader(bodyWith(...paragraphs), {
+        mode: 'block',
+        revealSpeed: 0,
+        charactersPerScreen: 1000,
+    });
+    const originalIsDescendantOf = reader.isDescendantOf.bind(reader);
+    let descendantChecks = 0;
+    reader.isDescendantOf = (node, root) => {
+        descendantChecks += 1;
+        return originalIsDescendantOf(node, root);
+    };
+
+    await reader.initialize();
+
+    assert.equal(reader.baseScreens.length, paragraphs.length);
+    assert.ok(
+        descendantChecks <= paragraphs.length * 2,
+        `expected source position lookup to avoid block x text-node scans, got ${descendantChecks}`,
+    );
+});
+
+test('viewport text item lookup does not rescan every chapter character for every split screen', () => {
+    const { reader } = loadReader(bodyWith(p('あ'.repeat(240))), {
+        mode: 'block',
+        revealSpeed: 0,
+        charactersPerScreen: 12,
+    });
+    reader.detachChapterSource();
+    reader.ensureStage();
+    reader.buildSourceIndexes();
+    reader.viewportFitTextItems = reader.buildTextItems();
+    const allItems = reader.viewportFitTextItems;
+    let fullArrayFilterScans = 0;
+    allItems.filter = function(predicate) {
+        fullArrayFilterScans += this.length;
+        return Array.prototype.filter.call(this, predicate);
+    };
+
+    for (let index = 0; index < 24; index++) {
+        const items = reader.textItemsForScreen({
+            startRawCount: index * 10,
+            endRawCount: index * 10 + 10,
+        });
+        assert.equal(items.length, 10);
+    }
+
+    assert.ok(
+        fullArrayFilterScans <= allItems.length,
+        `expected range lookup to avoid repeated full-array scans, got ${fullArrayFilterScans}`,
+    );
+});
+
+test('viewport fitting skips precise range layout when scroll bounds already fit', () => {
+    const { reader } = loadReader(bodyWith(p('seed')), {
+        mode: 'block',
+        revealSpeed: 0,
+        charactersPerScreen: 1000,
+    });
+    reader.ensureStage();
+    let preciseRangeChecks = 0;
+    reader.renderedTextFitsBounds = () => {
+        preciseRangeChecks += 1;
+        return true;
+    };
+    const screens = Array.from({ length: 20 }, (_, index) => ({
+        startCharCount: index,
+        endCharCount: index + 1,
+        startRawCount: index,
+        endRawCount: index + 1,
+        ids: new Set(),
+        splittable: true,
+        render: () => {
+            const fragment = new TestFragment();
+            fragment.appendChild(new TestText('短'));
+            return fragment;
+        },
+    }));
+
+    const fitted = reader.fitScreensToViewport(screens);
+
+    assert.equal(fitted.length, screens.length);
+    assert.equal(preciseRangeChecks, 0);
 });
 
 test('block mode splits a chapter wrapper into child block screens', async () => {
@@ -1323,6 +1432,41 @@ test('visual novel Sasayaki merged screens still split when text exceeds the vie
     assert.equal(currentScreen(reader).textContent, '五六。七');
     assert.equal(reader.paginate('forward'), 'scrolled');
     assert.equal(currentScreen(reader).textContent, '八。');
+});
+
+test('visual novel Sasayaki merge finds cross-screen cue intervals without scanning every screen per cue', () => {
+    const { reader } = loadReader(bodyWith(p('seed')), {
+        mergeCrossScreenSasayakiCues: true,
+    });
+    const screens = Array.from({ length: 120 }, (_, index) => ({
+        startCharCount: index * 2,
+        endCharCount: index * 2 + 2,
+        startRawCount: index * 2,
+        endRawCount: index * 2 + 2,
+        ids: new Set(),
+        splittable: true,
+        render: () => new TestFragment(),
+    }));
+    const cues = Array.from({ length: 50 }, (_, index) => ({
+        id: `cue-${index}`,
+        start: index * 4 + 1,
+        length: 2,
+    }));
+    let intersectionChecks = 0;
+    const intersects = reader.sasayakiCueIntersectsScreen.bind(reader);
+    reader.sasayakiCueIntersectsScreen = (cue, screen) => {
+        intersectionChecks += 1;
+        return intersects(cue, screen);
+    };
+    reader.setSasayakiCueData(cues);
+
+    const merged = reader.mergeSasayakiCrossScreenScreens(screens);
+
+    assert.equal(merged.length, 70);
+    assert.ok(
+        intersectionChecks <= screens.length + cues.length * 3,
+        `expected near-linear screen/cue checks, got ${intersectionChecks}`,
+    );
 });
 
 test('visual novel Sasayaki completes reveal before highlighting the active cue', async () => {
