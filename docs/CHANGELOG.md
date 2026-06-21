@@ -23,6 +23,7 @@ Historical release notes before v1.1.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 - Prevent repeated Reader re-entry from accumulating WebViews and causing long Sasayaki blank screens.
 - Prevent Reader from briefly rendering with the global profile appearance before the book's automatic profile is applied.
 - Keep continuous Reader scrolling from queuing expensive progress calculations that delay progress updates and lookup taps.
+- Keep popup nested lookup taps working when popup scale and custom zoom CSS are both enabled.
 
 ## [v1.2.1] - 2026-06-18
 
