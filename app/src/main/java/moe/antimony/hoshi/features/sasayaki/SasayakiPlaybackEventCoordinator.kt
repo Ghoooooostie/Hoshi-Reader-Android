@@ -2,7 +2,6 @@ package moe.antimony.hoshi.features.sasayaki
 
 class SasayakiPlaybackEventCoordinator(
     private val playbackState: SasayakiPlaybackStateCoordinator,
-    private val playbackLifecycle: SasayakiPlaybackLifecycleController,
     private val playbackPersistence: SasayakiPlaybackPersistenceState,
     private val cueNavigation: SasayakiCueNavigationController,
     private val cueDisplay: SasayakiCueDisplayCoordinator,
@@ -15,7 +14,6 @@ class SasayakiPlaybackEventCoordinator(
         autoScroll: Boolean,
         hasPlayedOnce: Boolean,
         startPlayback: () -> Unit,
-        updateMediaSession: () -> Unit,
         applyCueDisplayAction: (SasayakiCueDisplayAction) -> Unit,
     ) {
         val seek = playbackState.completeSeek() ?: return
@@ -46,39 +44,6 @@ class SasayakiPlaybackEventCoordinator(
             )
         }
         if (seek.startPlayback) startPlayback()
-        updateMediaSession()
-    }
-
-    fun tick(
-        hasAudio: Boolean,
-        hasMatch: Boolean,
-        delay: Double,
-        currentChapterIndex: Int,
-        autoScroll: Boolean,
-        hasPlayedOnce: Boolean,
-        pausePlayback: () -> Unit,
-        updateMediaSession: () -> Unit,
-        applyCueDisplayAction: (SasayakiCueDisplayAction) -> Unit,
-    ) {
-        val tick = playbackLifecycle.updateTick() ?: return
-        if (tick.shouldSavePosition) {
-            playbackPersistence.savePosition(playbackState.currentTime)
-        }
-        if (tick.shouldStopPlayback) {
-            pausePlayback()
-        }
-        updateCue(
-            hasAudio = hasAudio,
-            hasMatch = hasMatch,
-            time = playbackState.currentTime,
-            delay = delay,
-            currentChapterIndex = currentChapterIndex,
-            autoScroll = autoScroll,
-            hasPlayedOnce = hasPlayedOnce,
-            forceDisplay = false,
-            applyCueDisplayAction = applyCueDisplayAction,
-        )
-        updateMediaSession()
     }
 
     fun updateCue(

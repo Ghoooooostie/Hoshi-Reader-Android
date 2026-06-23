@@ -17,24 +17,23 @@ class SasayakiPlaybackCommandCoordinator(
 
     fun start(
         rate: Float,
+        beforeStart: () -> Unit,
         markPlayedOnce: () -> Unit,
         afterMarkedPlaying: () -> Unit,
-    ) {
+    ): Boolean =
         playbackLifecycle.start(
             rate = rate,
+            beforeStart = beforeStart,
             markPlayedOnce = markPlayedOnce,
             afterMarkedPlaying = afterMarkedPlaying,
         )
-    }
 
     fun pause(
         restoreTemporaryPosition: Boolean,
-        updateMediaSession: () -> Unit,
         restoreTemporaryPositionIfNeeded: () -> Unit,
     ) {
         playbackLifecycle.pause(
             restoreTemporaryPosition = restoreTemporaryPosition,
-            updateMediaSession = updateMediaSession,
             restoreTemporaryPositionIfNeeded = restoreTemporaryPositionIfNeeded,
         )
     }
@@ -110,12 +109,18 @@ class SasayakiPlaybackCommandCoordinator(
         )
     }
 
-    fun mediaSessionSeek(
-        positionMs: Long,
+    fun seekTo(
+        seconds: Double,
+        duration: Double,
         isPlaying: Boolean,
     ) {
         playbackState.clearStopPlaybackTime()
-        seek(positionMs.toDouble() / 1000.0, startPlayback = isPlaying)
+        val target = if (duration > 0.0) {
+            seconds.coerceIn(0.0, duration)
+        } else {
+            seconds.coerceAtLeast(0.0)
+        }
+        seek(target, startPlayback = isPlaying, revealCue = true)
     }
 
     fun seek(

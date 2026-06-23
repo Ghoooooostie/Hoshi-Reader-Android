@@ -1,6 +1,6 @@
 # Hoshi Android Current Architecture
 
-Date: 2026-06-12
+Date: 2026-06-23
 
 This document describes the current architecture that exists in the Android
 repo. It is not a future plan and should not track task status. Long-lived
@@ -117,8 +117,44 @@ refactor goals belong in `docs/ARCHITECTURE_REFACTORING.md`.
   grouped sync-file discovery, bookdata upload/download, trash, cache clearing,
   and network preflight; Books keeps remote-only Google Drive books as
   `RemoteBookEntry` models rather than local `BookEntry` placeholders.
-- Audio and Sasayaki playback use Media3/ExoPlayer with controller/repository
-  boundaries.
+- Audio playback uses Media3/ExoPlayer with controller/repository boundaries.
+- Sasayaki audiobook playback is owned by a Hilt-backed Media3
+  `MediaSessionService`. The service `onCreate` lifecycle creates the active
+  ExoPlayer and MediaSession, but Reader load paths do not connect to the
+  service or restore media into the player. The first explicit audio control
+  request connects to the `MediaSessionService`, restores the active audio
+  source into the service player, and then runs the requested command so Reader
+  restoration cannot leave a paused system media notification. The service
+  runtime owns the active Sasayaki playback controller and active book id.
+  Reader UI attaches/detaches
+  cue sinks and sends explicit stop on reader exit; Android media controls and
+  notification return actions route through the same service-owned session.
+  Until Reader UI is fully MediaController-based, the runtime keeps one
+  process-local controller connection after entering the MediaSessionService
+  lifecycle, uses Sasayaki's foreground playback request state to distinguish
+  user-paused task removal from ongoing background playback, clears the active
+  service player before stopping paused playback on task removal, and otherwise
+  follows Media3's ongoing-playback service semantics. Playback persistence
+  uses the application scope with the
+  injected IO dispatcher rather than Reader's Compose scope, and saves are
+  serialized with latest-snapshot conflation.
+  Background playback uses Android's `mediaPlayback` foreground-service path
+  inside the Media3 `MediaSessionService`; Media3 owns foreground-service
+  start/stop and Sasayaki does not call `startForegroundService()`,
+  `startForeground()`, `stopForeground()`, `stopSelf()`, or `stopService()`
+  directly for this lifecycle. Sasayaki customizes notification rendering
+  through a Media3 `MediaNotification.Provider` using the service MediaSession
+  token and Media3 player-command PendingIntents for transport controls, and
+  the ExoPlayer uses local wake mode for long-running playback. Explicit
+  Reader exit requests stop playback and clear the service player so a stopped
+  session or notification cannot outlive the user-visible Reader playback
+  session.
+  If Android reports `ActivityManager.isBackgroundRestricted()` for the app,
+  the platform treats background work as user-restricted; this can prevent
+  media foreground-service startup after the Reader activity leaves the
+  foreground, so the app must treat long-running background playback in that
+  state as a device/user restriction rather than an in-process lifecycle
+  guarantee.
 - Update checks use WorkManager unique work, with worker dependencies supplied
   by Hilt's WorkManager integration.
 

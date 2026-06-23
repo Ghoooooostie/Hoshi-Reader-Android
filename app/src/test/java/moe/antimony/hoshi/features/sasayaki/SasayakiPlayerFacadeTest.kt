@@ -17,7 +17,7 @@ class SasayakiPlayerFacadeTest {
     @Test
     fun exposesControllerStateForComposeCallers() {
         val controller = FakeSasayakiPlaybackController()
-        val player = SasayakiPlayer(controller = controller)
+        val player = playerFor(controller)
 
         assertSame(controller.playback, player.playback)
         assertEquals(12.5, player.currentTime, 0.0)
@@ -41,7 +41,7 @@ class SasayakiPlayerFacadeTest {
     @Test
     fun delegatesPlaybackCommandsToControllerFacade() {
         val controller = FakeSasayakiPlaybackController()
-        val player = SasayakiPlayer(controller = controller)
+        val player = playerFor(controller)
 
         player.setDelay(0.5)
         player.setRate(1.5f)
@@ -53,10 +53,10 @@ class SasayakiPlayerFacadeTest {
         player.previousCue()
         player.skipForward(10)
         player.skipBackward(5)
+        player.seekTo(40.0)
         assertSame(cue, player.findCue(chapterIndex = 2, offset = 10))
         player.playCue(cue, stop = true)
         assertEquals(File("cue.m4a"), player.exportCueAudio(cue, "sentence"))
-        player.release()
 
         assertEquals(
             listOf(
@@ -70,13 +70,86 @@ class SasayakiPlayerFacadeTest {
                 "previousCue",
                 "skipForward:10",
                 "skipBackward:5",
+                "seekTo:40.0",
                 "findCue:2:10",
                 "playCue:cue:true",
                 "exportCueAudio:cue:sentence",
-                "release",
             ),
             controller.commands,
         )
+    }
+
+    @Test
+    fun serviceRuntimePlayerReleaseDetachesReaderWithoutReleasingPlayback() {
+        val controller = FakeSasayakiPlaybackController()
+        val runtime = FakeSasayakiPlaybackRuntime(controller)
+        val player = SasayakiPlayer(
+            bookId = "book-id",
+            bookRoot = File("book"),
+            playbackRepository = NoOpPlaybackRepository,
+            bookTitle = "Book",
+            bookCoverFile = null,
+            matchData = null,
+            initialPlayback = null,
+            getCurrentChapterIndex = { 0 },
+            onCue = { _, _ -> },
+            onClearCue = {},
+            onLoadChapter = {},
+            playbackServiceRuntime = runtime,
+        )
+
+        player.release()
+        player.stopPlayback()
+
+        assertEquals(listOf("load", "detachReader", "stopPlayback"), runtime.commands)
+        assertEquals(emptyList<String>(), controller.commands)
+    }
+
+    private fun playerFor(controller: SasayakiPlaybackControllerContract): SasayakiPlayer =
+        SasayakiPlayer(
+            bookId = "book-id",
+            bookRoot = File("book"),
+            playbackRepository = NoOpPlaybackRepository,
+            bookTitle = "Book",
+            bookCoverFile = null,
+            matchData = null,
+            initialPlayback = null,
+            getCurrentChapterIndex = { 0 },
+            onCue = { _, _ -> },
+            onClearCue = {},
+            onLoadChapter = {},
+            playbackServiceRuntime = FakeSasayakiPlaybackRuntime(controller),
+        )
+
+    private object NoOpPlaybackRepository : SasayakiPlaybackRepository {
+        override suspend fun load(): SasayakiPlaybackData? = null
+
+        override suspend fun save(playback: SasayakiPlaybackData) = Unit
+    }
+
+    private class FakeSasayakiPlaybackRuntime(
+        private val controller: SasayakiPlaybackControllerContract,
+    ) : SasayakiPlaybackRuntime {
+        val commands = mutableListOf<String>()
+
+        override fun load(
+            request: SasayakiPlaybackRuntimeLoadRequest,
+            getCurrentChapterIndex: () -> Int,
+            onCue: (SasayakiMatch, Boolean) -> Unit,
+            onClearCue: () -> Unit,
+            onLoadChapter: (Int) -> Unit,
+        ): SasayakiPlaybackControllerContract {
+            commands += "load"
+            return controller
+        }
+
+        override fun detachReader() {
+            commands += "detachReader"
+        }
+
+        override fun stopPlayback() {
+            commands += "stopPlayback"
+        }
     }
 
     private inner class FakeSasayakiPlaybackController : SasayakiPlaybackControllerContract {
@@ -131,6 +204,10 @@ class SasayakiPlayerFacadeTest {
 
         override fun skipBackward(seconds: Int) {
             commands += "skipBackward:$seconds"
+        }
+
+        override fun seekTo(seconds: Double) {
+            commands += "seekTo:$seconds"
         }
 
         override fun findCue(chapterIndex: Int, offset: Int): SasayakiMatch? {
