@@ -22,9 +22,8 @@ class SasayakiPlayer private constructor(
         matchData: SasayakiMatchData?,
         initialPlayback: SasayakiPlaybackData?,
         getCurrentChapterIndex: () -> Int,
-        onCue: (SasayakiMatch, Boolean) -> Unit,
+        onCue: (SasayakiMatch, Boolean, SasayakiCueRevealSource) -> Unit,
         onClearCue: () -> Unit,
-        onLoadChapter: (Int) -> Unit,
         playbackServiceRuntime: SasayakiPlaybackRuntime,
     ) : this(
         createControllerBundle(
@@ -38,7 +37,6 @@ class SasayakiPlayer private constructor(
             getCurrentChapterIndex = getCurrentChapterIndex,
             onCue = onCue,
             onClearCue = onClearCue,
-            onLoadChapter = onLoadChapter,
             playbackServiceRuntime = playbackServiceRuntime,
         ),
     )
@@ -94,6 +92,13 @@ class SasayakiPlayer private constructor(
 
     fun pausePlayback(restoreTemporaryPosition: Boolean = true) {
         controller.pausePlayback(restoreTemporaryPosition = restoreTemporaryPosition)
+    }
+
+    fun pauseForAutoPageHold(): Boolean =
+        controller.pauseForAutoPageHold()
+
+    fun resumeAfterAutoPageHold() {
+        controller.resumeAfterAutoPageHold()
     }
 
     fun nextCue() {
@@ -154,9 +159,8 @@ class SasayakiPlayer private constructor(
             matchData: SasayakiMatchData?,
             initialPlayback: SasayakiPlaybackData?,
             getCurrentChapterIndex: () -> Int,
-            onCue: (SasayakiMatch, Boolean) -> Unit,
+            onCue: (SasayakiMatch, Boolean, SasayakiCueRevealSource) -> Unit,
             onClearCue: () -> Unit,
-            onLoadChapter: (Int) -> Unit,
             playbackServiceRuntime: SasayakiPlaybackRuntime,
         ): SasayakiPlaybackControllerBundle {
             val controller = playbackServiceRuntime.load(
@@ -172,7 +176,6 @@ class SasayakiPlayer private constructor(
                 getCurrentChapterIndex = getCurrentChapterIndex,
                 onCue = onCue,
                 onClearCue = onClearCue,
-                onLoadChapter = onLoadChapter,
             )
             return SasayakiPlaybackControllerBundle(
                 controller = controller,

@@ -175,235 +175,90 @@
     }
     return true;
   },
-  collectSasayakiCueRanges: function(cues) {
-    var cueRanges = new Map();
-    if (!cues.length) return [];
-    var index = 0;
-    var current = cues[0];
-    var start = current.start;
-    var end = start + current.length;
-    var cursor = 0;
-    var segment = null;
-    var flushSegment = function(node) {
-      if (!segment) return;
-      var ranges = cueRanges.get(segment.id) || [];
-      ranges.push({ node: node, start: segment.start, end: segment.end });
-      cueRanges.set(segment.id, ranges);
-      segment = null;
-    };
-    var advanceCue = function() {
-      index += 1;
-      current = cues[index];
-      if (current) {
-        start = current.start;
-        end = start + current.length;
-      }
-    };
-    var walker = this.createWalker();
-    var node;
-    while (current && (node = walker.nextNode())) {
-      var text = node.textContent;
-      var i = 0;
-      while (i < text.length && current) {
-        var char = String.fromCodePoint(text.codePointAt(i));
-        var next = i + char.length;
-        if (this.isMatchableChar(char)) {
-          if (cursor >= start && cursor < end) {
-            if (!segment) {
-              segment = { id: current.id, start: i, end: next };
-            } else {
-              segment.end = next;
-            }
-          } else {
-            flushSegment(node);
-          }
-          cursor += 1;
-          if (cursor === end) {
-            flushSegment(node);
-            advanceCue();
-          }
-        } else if (segment) {
-          segment.end = next;
-        }
-        i = next;
-      }
-      flushSegment(node);
+__HOSHI_READER_SASAYAKI_SCRIPT__
+  sasayakiScrollPosition: function() {
+    var root = document.scrollingElement || document.documentElement;
+    if (this.isVertical()) {
+      var left = window.scrollX;
+      if (left === 0 && root.scrollLeft !== 0) left = root.scrollLeft;
+      return left;
     }
-    return cues.map(function(cue) {
-      return { id: cue.id, ranges: cueRanges.get(cue.id) || [] };
-    });
+    var top = root.scrollTop;
+    if (top === 0 && window.scrollY !== 0) top = window.scrollY;
+    return top;
   },
-   applySasayakiCues: function(cues) {
-     var activeCueId = this.activeCueId;
-     this.resetSasayakiCues();
-     var cueRanges = this.collectSasayakiCueRanges(cues);
-     this.rememberSasayakiCueSources(cueRanges);
-     if (this.isEInkMode()) {
-       this.cueGeometryRanges = this.buildSasayakiGeometryRanges(cueRanges);
-     }
-     this.prepareSasayakiInlineTargets(cueRanges);
-     this.buildNodeOffsets();
-     if (activeCueId && this.hasSasayakiCueTarget(activeCueId)) {
-       this.activeCueId = activeCueId;
-       this.refreshSasayakiCuePresentation();
-     }
-   },
-  wrapSasayakiCue: function(cue) {
+  sasayakiScrollTargetForRect: function(rect) {
+    var current = this.sasayakiScrollPosition();
+    if (this.isVertical()) {
+      return current + rect.right - window.innerWidth;
+    }
+    return current + rect.top;
+  },
+  sasayakiCueScrollTarget: function(cue) {
+    var cueId = typeof cue === 'string' ? cue : cue.id;
+    if (!cueId) return null;
+    var target = null;
     if (this.isEInkMode()) {
       this.ensureSasayakiCueGeometry(cue);
-      return this.cueGeometryRanges.get(cue.id) || [];
-    }
-     var existing = this.sasayakiInlineTargetsForCue(cue.id);
-     if (existing.length) return existing;
-     var cueRanges = this.collectSasayakiCueRanges([cue]);
-     this.rememberSasayakiCueSources(cueRanges);
-     var geometryRanges = this.buildSasayakiGeometryRanges(cueRanges).get(cue.id) || [];
-     if (geometryRanges.length) this.cueGeometryRanges.set(cue.id, geometryRanges);
-     this.prepareSasayakiInlineTargets(cueRanges);
-    this.buildNodeOffsets();
-    return this.sasayakiInlineTargetsForCue(cue.id);
-  },
-  wrapSasayakiCueRanges: function(cueRanges) {
-    var wrapped = new Map();
-    var range = document.createRange();
-    for (var i = cueRanges.length - 1; i >= 0; i--) {
-      var id = cueRanges[i].id;
-      var ranges = cueRanges[i].ranges;
-      if (!ranges.length) continue;
-      var wrappers = [];
-      for (var j = ranges.length - 1; j >= 0; j--) {
-        var segment = ranges[j];
-        range.setStart(segment.node, segment.start);
-        range.setEnd(segment.node, segment.end);
-        var wrapper = document.createElement('span');
-        wrapper.className = 'hoshi-sasayaki-cue';
-        wrapper.appendChild(range.extractContents());
-        range.insertNode(wrapper);
-        wrappers.push(wrapper);
-      }
-      wrappers.reverse();
-       this.cueWrappers.set(id, wrappers);
-       wrapped.set(id, wrappers);
-     }
-     return wrapped;
-   },
-   rememberSasayakiCueSources: function(cueRanges) {
-     for (var i = 0; i < cueRanges.length; i++) {
-       this.cueSourceRanges.set(cueRanges[i].id, cueRanges[i]);
-     }
-   },
-           sasayakiInlineTargetsForCue: function(cueId) {
-             return this.cueWrappers.get(cueId) || [];
-           },
-           hasSasayakiCueTarget: function(cueId) {
-             return (this.cueGeometryRanges.get(cueId) || []).length > 0 ||
-               (this.cueWrappers.get(cueId) || []).length > 0;
-           },
-           ensureSasayakiInlineTargetsForCue: function(cueId) {
-             if (this.isEInkMode()) return;
-             var source = this.cueSourceRanges.get(cueId);
-             if (!source) return;
-             if (!this.sasayakiInlineTargetsForCue(cueId).length) {
-               this.prepareSasayakiInlineTargets([source]);
-             }
-           },
-           prepareSasayakiInlineTargets: function(cueRanges) {
-            if (!this.isEInkMode()) {
-              this.wrapSasayakiCueRanges(cueRanges);
-            }
-          },
-  buildSasayakiGeometryRanges: function(cueRanges) {
-    var geometryRanges = new Map();
-    for (var i = 0; i < cueRanges.length; i++) {
-      var id = cueRanges[i].id;
-      var ranges = cueRanges[i].ranges;
-      if (!ranges.length) continue;
-      var cueGeometryRanges = [];
-      for (var j = 0; j < ranges.length; j++) {
-        var segment = ranges[j];
-        var range = document.createRange();
-        range.setStart(segment.node, segment.start);
-        range.setEnd(segment.node, segment.end);
-        cueGeometryRanges.push(range);
-      }
-      if (cueGeometryRanges.length) geometryRanges.set(id, cueGeometryRanges);
-    }
-    return geometryRanges;
-  },
-  ensureSasayakiCueGeometry: function(cue) {
-    if (!cue) return;
-    var cueId = typeof cue === 'string' ? cue : cue.id;
-    if (!cueId) return;
-    var existing = this.cueGeometryRanges.get(cueId);
-    if (existing && existing.length) return;
-    if (typeof cue === 'string') {
+      target = (this.cueGeometryRanges.get(cueId) || [])[0];
+    } else {
       var targets = this.sasayakiInlineTargetsForCue(cueId);
-      var targetRanges = [];
-      for (var i = 0; i < targets.length; i++) {
-        var targetRange = document.createRange();
-        targetRange.selectNodeContents(targets[i]);
-        targetRanges.push(targetRange);
+      if (!targets.length && typeof cue !== 'string') {
+        this.wrapSasayakiCue(cue);
+        targets = this.sasayakiInlineTargetsForCue(cueId);
       }
-      if (targetRanges.length) this.cueGeometryRanges.set(cueId, targetRanges);
-      return;
+      target = targets[0];
     }
-     var cueRanges = this.collectSasayakiCueRanges([cue]);
-     this.rememberSasayakiCueSources(cueRanges);
-     var geometryRanges = this.buildSasayakiGeometryRanges(cueRanges).get(cueId) || [];
-     if (geometryRanges.length) this.cueGeometryRanges.set(cueId, geometryRanges);
-   },
-  sasayakiOverlayRects: function(cueId) {
-    var ranges = this.cueGeometryRanges.get(cueId) || [];
-    var rects = [];
-    ranges.forEach(function(range) {
-      if (window.hoshiRubyGeometry) {
-        window.hoshiRubyGeometry.rectsForRange(range).forEach(function(rect) { rects.push(rect); });
-      } else {
-        Array.from(range.getClientRects()).forEach(function(rect) {
-          rects.push({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
-        });
+    if (!target) return null;
+    if (target.nodeType === Node.ELEMENT_NODE && target.classList.contains('hoshi-sasayaki-cue')) {
+      var range = document.createRange();
+      range.selectNodeContents(target);
+      var rangeRect = this.getRect(range);
+      if (rangeRect && rangeRect.width > 0 && rangeRect.height > 0) {
+        return this.sasayakiScrollTargetForRect(rangeRect);
       }
-    });
-    return window.hoshiRubyGeometry ? window.hoshiRubyGeometry.mergeInlineRects(rects) : rects;
-  },
-  renderSasayakiOverlay: function() {
-    if (!this.activeCueId || !this.isEInkMode()) {
-      this.clearSasayakiOverlay();
-      return;
     }
-    window.hoshiReaderPopupHost?.renderSasayakiHighlight?.({
-      rects: this.sasayakiOverlayRects(this.activeCueId),
-      eInkMode: true,
-      verticalWriting: this.isVertical()
-    });
-  },
-  clearSasayakiOverlay: function() {
-    window.hoshiReaderPopupHost?.clearSasayakiHighlight?.();
-  },
-  clearInlineSasayakiCue: function(cueId) {
-    var wrappers = this.cueWrappers.get(cueId) || [];
-    wrappers.forEach(function(wrapper) { wrapper.classList.remove('hoshi-sasayaki-active'); });
-  },
-  applyInlineSasayakiCue: function(cueId) {
-    var wrappers = this.cueWrappers.get(cueId) || [];
-    wrappers.forEach(function(wrapper) { wrapper.classList.add('hoshi-sasayaki-active'); });
-    return wrappers.length > 0;
-  },
-  refreshSasayakiCuePresentation: function() {
-    if (!this.activeCueId) {
-      this.clearSasayakiOverlay();
-      return;
+    var rect = this.getRect(target);
+    if (!rect || rect.width <= 0 || rect.height <= 0) {
+      this.ensureSasayakiCueGeometry(cue);
+      var geometryTarget = (this.cueGeometryRanges.get(cueId) || [])[0];
+      if (!geometryTarget) return null;
+      var geometryRect = this.getRect(geometryTarget);
+      if (!geometryRect || geometryRect.width <= 0 || geometryRect.height <= 0) return null;
+      return this.sasayakiScrollTargetForRect(geometryRect);
     }
-    this.clearInlineSasayakiCue(this.activeCueId);
-    if (this.isEInkMode()) {
-      this.ensureSasayakiCueGeometry(this.activeCueId);
-      this.renderSasayakiOverlay();
-     } else {
-       this.clearSasayakiOverlay();
-       this.ensureSasayakiInlineTargetsForCue(this.activeCueId);
-       this.applyInlineSasayakiCue(this.activeCueId);
-     }
-   },
+    return this.sasayakiScrollTargetForRect(rect);
+  },
+  sasayakiMediaScrollForElement: function(element) {
+    var rect = element.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return null;
+    return this.sasayakiScrollTargetForRect(rect);
+  },
+  sasayakiMediaStopsBeforeCue: function(cue) {
+    var targetScroll = this.sasayakiCueScrollTarget(cue);
+    if (targetScroll === null || targetScroll === undefined) return [];
+    return this.sasayakiMediaStopsBetween(this.sasayakiScrollPosition(), targetScroll, true, false);
+  },
+  sasayakiMediaStopsToChapterEnd: function() {
+    var root = document.scrollingElement || document.documentElement;
+    var endScroll = this.isVertical()
+      ? -Math.max(0, root.scrollWidth - window.innerWidth)
+      : Math.max(0, root.scrollHeight - window.innerHeight);
+    return this.sasayakiMediaStopsBetween(this.sasayakiScrollPosition(), endScroll, true, true);
+  },
+  showSasayakiMediaStop: function(stop) {
+    var scroll = Number(stop && stop.scroll);
+    if (!Number.isFinite(scroll)) return null;
+    var root = document.scrollingElement || document.documentElement;
+    if (this.isVertical()) {
+      window.scrollTo({ left: scroll, top: window.scrollY, behavior: 'instant' });
+      root.scrollLeft = scroll;
+    } else {
+      window.scrollTo({ left: window.scrollX, top: scroll, behavior: 'instant' });
+      root.scrollTop = scroll;
+    }
+    return this.calculateProgress();
+  },
   highlightSasayakiCue: function(cue, reveal) {
     this.clearSasayakiCue();
     var cueId = typeof cue === 'string' ? cue : cue.id;
@@ -433,24 +288,6 @@
       return this.calculateProgress();
     }
     return null;
-  },
-  clearSasayakiCue: function() {
-    if (!this.activeCueId) {
-      this.clearSasayakiOverlay();
-      return;
-    }
-    this.clearInlineSasayakiCue(this.activeCueId);
-    this.activeCueId = null;
-    this.clearSasayakiOverlay();
-  },
-  resetSasayakiCues: function() {
-     this.cueSourceRanges.clear();
-    this.cueGeometryRanges.clear();
-    var self = this;
-    this.cueWrappers.forEach(function(wrappers) { self.unwrap(wrappers); });
-    this.cueWrappers.clear();
-    this.activeCueId = null;
-    this.clearSasayakiOverlay();
   },
   unwrap: function(wrappers) {
     var self = this;

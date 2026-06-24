@@ -231,6 +231,7 @@ class ReaderPaginationScriptsTest {
             readerPaginatedJs = "PAGINATED_ASSET",
             readerContinuousJs = "CONTINUOUS_ASSET",
             readerVisualNovelJs = "VN __HOSHI_VISUAL_NOVEL_REVEAL_SPEED__ __HOSHI_VISUAL_NOVEL_SCREEN_MODE_LITERAL__ __HOSHI_VISUAL_NOVEL_SENTENCES_PER_SCREEN__ __HOSHI_VISUAL_NOVEL_PRESERVE_DIALOGUE__ __HOSHI_VISUAL_NOVEL_MERGE_CROSS_SCREEN_SASAYAKI_CUES__ __HOSHI_INITIAL_SASAYAKI_CUES_JSON__ __HOSHI_INITIAL_PROGRESS__ __HOSHI_INITIAL_FRAGMENT_LITERAL__ __HOSHI_INITIAL_HIGHLIGHTS_JSON__ __HOSHI_RESTORE_TOKEN_LITERAL__",
+            readerSasayakiJs = "",
             highlightsJs = "",
             readerCss = "",
         )
@@ -378,6 +379,24 @@ class ReaderPaginationScriptsTest {
         assertEquals(
             """window.hoshiReader.highlightSasayakiCue({id:"cue\"1",start:42,length:7}, true)""",
             command,
+        )
+    }
+
+    @Test
+    fun sasayakiMediaStopCommandsUseReaderPublicApi() {
+        val cue = SasayakiCueRange(id = "cue\"1", start = 42, length = 7)
+
+        assertEquals(
+            """window.hoshiReader.sasayakiMediaStopsBeforeCue({id:"cue\"1",start:42,length:7})""",
+            ReaderPaginationScripts.sasayakiMediaStopsBeforeCueInvocation(cue),
+        )
+        assertEquals(
+            "window.hoshiReader.sasayakiMediaStopsToChapterEnd()",
+            ReaderPaginationScripts.sasayakiMediaStopsToChapterEndInvocation(),
+        )
+        assertEquals(
+            """window.hoshiReader.showSasayakiMediaStop({"scroll":800})""",
+            ReaderPaginationScripts.showSasayakiMediaStopInvocation("""{"scroll":800}"""),
         )
     }
 
