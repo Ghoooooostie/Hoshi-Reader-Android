@@ -6,8 +6,14 @@ Historical release notes before v1.1.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ## [Unreleased]
 
+### Added
+
+- Add a tabbed Sasayaki reader menu with a player-style audiobook header, draggable playback progress, audiobook resources, reader-menu subtitle matching that replaces the old bookshelf match entry, current subtitle match rate, M4B chapter viewing, and chapter jumps.
+- Allow Sasayaki audiobooks to be loaded and played without subtitle match data.
+
 ### Fixed
 
+- Expose Go to and Sasayaki reader-menu tabs with proper selected-tab semantics for accessibility services.
 - Keep Sasayaki playback owned by a service-backed MediaSession so background playback uses Android's media foreground-service path when permitted, system notification controls stay visible and routed through the media session, Reader restore does not leave a paused media notification, skip/seek controls work before first playback, reader exit stops playback without leaving a stale notification, and notification or launcher return opens the active reader.
 - Keep the Sasayaki notification's rewind and fast-forward controls visually consistent and working from system media controls.
 

@@ -49,7 +49,54 @@ class SasayakiPlaybackControllerDeferredCommandTest {
         assertEquals(listOf("seek:10000"), harness.engine.events)
     }
 
-    private fun controllerHarness(matchData: SasayakiMatchData? = null): ControllerHarness {
+    @Test
+    fun nextCueFallsBackToFixedSkipWhenMatchDataIsMissing() {
+        val harness = controllerHarness()
+
+        harness.controller.nextCue()
+
+        assertTrue(harness.preparer.prepared)
+        assertEquals(listOf("seek:18500"), harness.engine.events)
+    }
+
+    @Test
+    fun updatingMatchDataChangesCueNavigationWithoutRestoringInitialPlaybackPosition() {
+        val harness = controllerHarness(initialPosition = 3.5)
+
+        harness.controller.seekTo(21.0)
+        assertTrue(harness.preparer.prepared)
+        harness.engine.events.clear()
+
+        harness.controller.updateMatchData(
+            SasayakiMatchData(
+                matches = listOf(
+                    SasayakiMatch("new", 24.0, 26.0, "new", 0, 0, 3),
+                ),
+                unmatched = 0,
+            ),
+        )
+        harness.controller.nextCue()
+
+        assertTrue(harness.preparer.prepared)
+        assertEquals(listOf("seek:24000"), harness.engine.events)
+    }
+
+    @Test
+    fun previousCueFallsBackToFixedSkipWhenMatchDataIsMissing() {
+        val harness = controllerHarness(
+            initialPosition = 20.0,
+        )
+
+        harness.controller.previousCue()
+
+        assertTrue(harness.preparer.prepared)
+        assertEquals(listOf("seek:5000"), harness.engine.events)
+    }
+
+    private fun controllerHarness(
+        matchData: SasayakiMatchData? = null,
+        initialPosition: Double = 3.5,
+    ): ControllerHarness {
         val bookRoot = temporaryFolder.newFolder("book")
         val audioFile = bookRoot.resolve("Sasayaki/sasayaki_audio.m4b").also { file ->
             file.parentFile?.mkdirs()
@@ -65,7 +112,7 @@ class SasayakiPlaybackControllerDeferredCommandTest {
             bookCoverFile = null,
             matchData = matchData,
             initialPlayback = SasayakiPlaybackData(
-                lastPosition = 3.5,
+                lastPosition = initialPosition,
                 audioFileName = audioFile.name,
             ),
             persistenceScope = CoroutineScope(Dispatchers.Unconfined),

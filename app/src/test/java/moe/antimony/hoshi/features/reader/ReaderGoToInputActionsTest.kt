@@ -1,11 +1,24 @@
 package moe.antimony.hoshi.features.reader
 
+import androidx.compose.ui.semantics.Role
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ReaderGoToInputActionsTest {
+    @Test
+    fun tabsUseTabSelectionSemantics() {
+        assertEquals(Role.Tab, ReaderGoToTabRole)
+    }
+
+    @Test
+    fun bookHeaderCoverUsesSquareArtworkFrame() {
+        val metrics = readerSheetDensityMetrics()
+
+        assertEquals(metrics.chapterHeaderCoverWidthDp, metrics.chapterHeaderCoverHeightDp)
+    }
+
     @Test
     fun searchImeActionSubmitsAndDismissesKeyboard() {
         val events = mutableListOf<String>()
