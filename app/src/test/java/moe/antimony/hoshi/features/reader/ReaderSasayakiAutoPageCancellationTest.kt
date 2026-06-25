@@ -79,6 +79,7 @@ class ReaderSasayakiAutoPageCancellationTest {
                 currentChapterIndex = 2,
                 cueChapterIndex = 2,
                 source = SasayakiCueRevealSource.NaturalPlayback,
+                imageHoldMillis = 1_000L,
             ),
         )
     }
@@ -90,6 +91,28 @@ class ReaderSasayakiAutoPageCancellationTest {
                 currentChapterIndex = 2,
                 cueChapterIndex = 2,
                 source = SasayakiCueRevealSource.DirectJump,
+                imageHoldMillis = 1_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun disabledImageHoldSkipsMediaStops() {
+        assertFalse(
+            readerSasayakiShouldHoldMediaStopsBeforeCue(
+                currentChapterIndex = 2,
+                cueChapterIndex = 2,
+                source = SasayakiCueRevealSource.NaturalPlayback,
+                imageHoldMillis = 0L,
+            ),
+        )
+        assertEquals(
+            ReaderSasayakiTargetChapterMediaPolicy.DirectRestore,
+            readerSasayakiTargetChapterMediaPolicy(
+                currentChapterIndex = 2,
+                cueChapterIndex = 3,
+                source = SasayakiCueRevealSource.NaturalPlayback,
+                imageHoldMillis = 0L,
             ),
         )
     }
@@ -102,6 +125,7 @@ class ReaderSasayakiAutoPageCancellationTest {
                 currentChapterIndex = 2,
                 cueChapterIndex = 3,
                 source = SasayakiCueRevealSource.NaturalPlayback,
+                imageHoldMillis = 1_000L,
             ),
         )
         assertEquals(
@@ -110,6 +134,7 @@ class ReaderSasayakiAutoPageCancellationTest {
                 currentChapterIndex = 2,
                 cueChapterIndex = 3,
                 source = SasayakiCueRevealSource.DirectJump,
+                imageHoldMillis = 1_000L,
             ),
         )
         assertEquals(
@@ -118,6 +143,7 @@ class ReaderSasayakiAutoPageCancellationTest {
                 currentChapterIndex = 3,
                 cueChapterIndex = 2,
                 source = SasayakiCueRevealSource.NaturalPlayback,
+                imageHoldMillis = 1_000L,
             ),
         )
     }

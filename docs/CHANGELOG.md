@@ -10,6 +10,7 @@ Historical release notes before v1.1.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 - Add a tabbed Sasayaki reader menu with a player-style audiobook header, draggable playback progress, audiobook resources, reader-menu subtitle matching that replaces the old bookshelf match entry, current subtitle match rate, M4B chapter viewing, and chapter jumps.
 - Allow Sasayaki audiobooks to be loaded and played without subtitle match data.
+- Add a Sasayaki image hold slider with 0.5-second steps from off to five seconds, defaulting to one second.
 
 ### Fixed
 
@@ -17,7 +18,7 @@ Historical release notes before v1.1.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 - Show Hoshi as an EPUB open target for file managers that send the non-standard `application/epub` MIME type.
 - Keep Sasayaki playback owned by a service-backed MediaSession so background playback uses Android's media foreground-service path when permitted, system notification controls stay visible and routed through the media session, Reader restore does not leave a paused media notification, skip/seek controls work before first playback, reader exit stops playback without leaving a stale notification, and notification or launcher return opens the active reader.
 - Keep the Sasayaki notification's rewind and fast-forward controls visually consistent and working from system media controls.
-- Pause Sasayaki auto-scroll during natural playback on skipped image pages for one second, including multiple image pages, image-only chapters, vertical continuous reading, and fullscreen image interruptions, while cue or progress seeks jump directly without leaving playback paused.
+- Pause Sasayaki auto-scroll during natural playback on skipped image pages for the configured image hold duration, including multiple image pages, image-only chapters, vertical continuous reading, and fullscreen image interruptions, while cue or progress seeks jump directly without leaving playback paused.
 - Keep Sasayaki cross-chapter cue jumps from briefly showing the chapter start, counting the hidden restore landing in reading statistics, or applying cue jumps before slow chapter restores finish.
 - Keep Sasayaki cue highlights from dropping punctuation split across EPUB text nodes.
 - Show a static lightweight loading spinner while Reader opens or restores chapters without blocking Reader chrome during restore.

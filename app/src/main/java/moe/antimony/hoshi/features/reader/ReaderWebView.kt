@@ -86,6 +86,7 @@ import moe.antimony.hoshi.features.sasayaki.SasayakiPlayer
 import moe.antimony.hoshi.features.sasayaki.SasayakiSettings
 import moe.antimony.hoshi.features.sasayaki.SasayakiSheet
 import moe.antimony.hoshi.features.sasayaki.SasayakiMatchDependencies
+import moe.antimony.hoshi.features.sasayaki.sasayakiImageHoldMillis
 import kotlin.coroutines.resume
 import kotlin.math.roundToInt
 
@@ -1182,6 +1183,7 @@ fun ReaderWebView(
         }
         var holdStarted = false
         var shouldResume = false
+        val imageHoldMillis = sasayakiImageHoldMillis(sasayakiSettings.imageHoldSeconds)
         fun startHoldIfNeeded() {
             if (!holdStarted) {
                 holdStarted = true
@@ -1191,14 +1193,14 @@ fun ReaderWebView(
         suspend fun holdVisibleStop(progress: Double?) {
             progress?.let { recordSasayakiDisplayedProgress(it, countStatistics = false) }
             startHoldIfNeeded()
-            delay(SasayakiMediaHoldMillis)
+            delay(imageHoldMillis)
         }
         suspend fun showStops(stops: List<ReaderSasayakiMediaStop>, countStatistics: Boolean = true) {
             if (stops.isEmpty()) return
             startHoldIfNeeded()
             stops.forEach { stop ->
                 showSasayakiMediaStop(stop, countStatistics = countStatistics)
-                delay(SasayakiMediaHoldMillis)
+                delay(imageHoldMillis)
             }
         }
         return try {
@@ -1210,6 +1212,7 @@ fun ReaderWebView(
                         currentChapterIndex = currentChapterIndex,
                         cueChapterIndex = cue.chapterIndex,
                         source = source,
+                        imageHoldMillis = imageHoldMillis,
                     )
                 ) {
                     showStops(sasayakiMediaStopsBeforeCue(cue))
@@ -1221,13 +1224,16 @@ fun ReaderWebView(
                 }
                 pendingSasayakiRestoreCue = null
                 countFinalStatistics = false
-                showStops(sasayakiMediaStopsBeforeCue(cue), countStatistics = false)
+                if (imageHoldMillis > 0L) {
+                    showStops(sasayakiMediaStopsBeforeCue(cue), countStatistics = false)
+                }
             } else {
                 when (
                     readerSasayakiTargetChapterMediaPolicy(
                         currentChapterIndex = currentChapterIndex,
                         cueChapterIndex = cue.chapterIndex,
                         source = source,
+                        imageHoldMillis = imageHoldMillis,
                     )
                 ) {
                     ReaderSasayakiTargetChapterMediaPolicy.InspectStopsWithoutPreHold -> {
@@ -1969,8 +1975,6 @@ private data class SasayakiCueRevealResult(
     val progress: Double?,
     val countStatistics: Boolean,
 )
-
-private const val SasayakiMediaHoldMillis = 1_000L
 
 private fun SasayakiPlaybackData?.hasStoredAudioSource(): Boolean =
     this?.audioUri?.isNotBlank() == true || this?.audioFileName?.isNotBlank() == true

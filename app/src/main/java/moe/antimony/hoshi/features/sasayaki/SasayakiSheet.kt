@@ -769,6 +769,16 @@ private fun SasayakiSettingsTab(
             checked = settings.autoScroll,
             onCheckedChange = { onSettingsChange(settings.copy(autoScroll = it)) },
         )
+        SliderRow(
+            label = stringResource(R.string.sasayaki_image_hold),
+            valueText = sasayakiImageHoldText(settings.imageHoldSeconds),
+            value = normalizeSasayakiImageHoldSeconds(settings.imageHoldSeconds),
+            range = SasayakiImageHoldMinSeconds..SasayakiImageHoldMaxSeconds,
+            steps = SasayakiImageHoldSliderSteps,
+            onValueChange = {
+                onSettingsChange(settings.copy(imageHoldSeconds = normalizeSasayakiImageHoldSeconds(it)))
+            },
+        )
         SasayakiSettingsSwitchRow(
             label = stringResource(R.string.sasayaki_auto_pause_on_lookup),
             checked = settings.autoPause,

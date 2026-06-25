@@ -46,8 +46,10 @@ internal fun readerSasayakiShouldHoldMediaStopsBeforeCue(
     currentChapterIndex: Int,
     cueChapterIndex: Int,
     source: SasayakiCueRevealSource,
+    imageHoldMillis: Long,
 ): Boolean =
-    source == SasayakiCueRevealSource.NaturalPlayback &&
+    imageHoldMillis > 0L &&
+        source == SasayakiCueRevealSource.NaturalPlayback &&
         currentChapterIndex == cueChapterIndex
 
 internal enum class ReaderSasayakiTargetChapterMediaPolicy {
@@ -59,8 +61,10 @@ internal fun readerSasayakiTargetChapterMediaPolicy(
     currentChapterIndex: Int,
     cueChapterIndex: Int,
     source: SasayakiCueRevealSource,
+    imageHoldMillis: Long,
 ): ReaderSasayakiTargetChapterMediaPolicy =
     if (
+        imageHoldMillis > 0L &&
         source == SasayakiCueRevealSource.NaturalPlayback &&
         cueChapterIndex > currentChapterIndex
     ) {
