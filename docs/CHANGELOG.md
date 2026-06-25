@@ -6,29 +6,29 @@ Historical release notes before v1.1.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ## [Unreleased]
 
+## [v1.2.3] - 2026-06-25
+
 ### Added
 
-- Add a tabbed Sasayaki reader menu with a player-style audiobook header, draggable playback progress, audiobook resources, reader-menu subtitle matching that replaces the old bookshelf match entry, current subtitle match rate, M4B chapter viewing, and chapter jumps.
-- Allow Sasayaki audiobooks to be loaded and played without subtitle match data.
-- Add a Sasayaki image hold slider with 0.5-second steps from off to five seconds, defaulting to one second.
-- Add a Reader Appearance setting for bottom safe-area height so bottom progress, Sasayaki controls, and the reader text area can be adjusted together.
+- Add a Sasayaki reader menu with player controls, audiobook resources, subtitle matching, match rate, and M4B chapter navigation.
+- Allow Sasayaki audiobooks to play without subtitle match data.
+- Add a Sasayaki image hold delay for skipped image pages, configurable from off to five seconds.
+- Add a Reader Appearance bottom safe-area height setting.
 
 ### Fixed
 
-- Expose Go to and Sasayaki reader-menu tabs with proper selected-tab semantics for accessibility services.
+- Expose Reader menu tabs correctly to accessibility services.
 - Show Hoshi as an EPUB open target for file managers that send the non-standard `application/epub` MIME type.
-- Keep Sasayaki playback owned by a service-backed MediaSession so background playback uses Android's media foreground-service path when permitted, system notification controls stay visible and routed through the media session, Reader restore does not leave a paused media notification, skip/seek controls work before first playback, reader exit stops playback without leaving a stale notification, and notification or launcher return opens the active reader.
-- Keep the Sasayaki notification's rewind and fast-forward controls visually consistent and working from system media controls.
-- Pause Sasayaki auto-scroll during natural playback on skipped image pages for the configured image hold duration, including multiple image pages, image-only chapters, vertical continuous reading, and fullscreen image interruptions, while cue or progress seeks jump directly without leaving playback paused.
-- Keep Sasayaki cross-chapter cue jumps from briefly showing the chapter start, counting the hidden restore landing in reading statistics, or applying cue jumps before slow chapter restores finish.
-- Keep Sasayaki cue highlights from dropping punctuation split across EPUB text nodes.
-- Show a static lightweight loading spinner while Reader opens or restores chapters without blocking Reader chrome during restore.
-- Speed up VN restore for ruby-heavy chapters by avoiding repeated full source-tree scans while fitting split screens.
+- Keep Sasayaki background playback, notification controls, and return-to-reader behavior stable.
+- Keep Sasayaki cross-chapter jumps from flashing chapter starts or counting hidden restore landings.
+- Keep Sasayaki cue highlights from dropping punctuation across EPUB text nodes.
+- Show a lightweight loading spinner while Reader opens or restores chapters.
+- Speed up VN restore for ruby-heavy chapters.
 - Keep VN screens from dropping ruby/furigana annotations.
-- Keep VN vertical text screens from clipping the leftmost line when EPUB styling makes the rendered text wider than the VN content box.
-- Keep VN text blocks with small inline images from being treated as unsplittable media screens, preventing vertical text from overflowing off-screen.
-- Keep consecutive media-only images in VN from collapsing into one screen or being skipped when reverse-turning into an image-only chapter.
-- Clean EPUB `.calibre_12`-style publisher CSS classes so layout-breaking writing mode, line height, height, and positive indentation rules cannot bypass reader CSS sanitization.
+- Keep VN vertical text screens from clipping the leftmost line.
+- Keep VN text blocks with small inline images from overflowing off-screen.
+- Keep consecutive media-only VN images from collapsing into one screen or being skipped when turning backward.
+- Clean Calibre-generated EPUB CSS classes that could bypass reader CSS sanitization.
 
 ## [v1.2.2] - 2026-06-21
 
