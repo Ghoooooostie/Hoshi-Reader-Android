@@ -16,6 +16,7 @@ Historical release notes before v1.1.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ### Fixed
 
+- Improve e-ink contrast for the Statistics calendar selected-range summary.
 - Prefer exact expression-and-reading local audio matches before falling back to reading-only or expression-only entries.
 - Read Sasayaki M4B title, author, and cover metadata from MP4 atoms when Android's platform metadata reader returns empty.
 - Keep singleton media VN screens from cloning surrounding chapter text and hijacking Sasayaki playback jumps.

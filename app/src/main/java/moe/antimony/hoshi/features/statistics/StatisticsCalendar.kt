@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowDropDown
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -56,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import moe.antimony.hoshi.R
+import moe.antimony.hoshi.ui.theme.LocalHoshiEInkMode
 
 @Composable
 internal fun StatisticsCalendarSection(
@@ -92,11 +94,15 @@ internal fun StatisticsCalendarSection(
             onDateClick = { date -> onEvent(StatisticsEvent.SelectCalendarDate(date)) },
         )
         Spacer(Modifier.height(12.dp))
+        val selectedRangeSummaryColors = statisticsSelectedRangeSummaryColors(
+            colorScheme = MaterialTheme.colorScheme,
+            eInkMode = LocalHoshiEInkMode.current,
+        )
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+            color = selectedRangeSummaryColors.container,
+            border = BorderStroke(1.dp, selectedRangeSummaryColors.border),
         ) {
             Row(
                 modifier = Modifier
@@ -108,7 +114,7 @@ internal fun StatisticsCalendarSection(
                 Text(
                     text = stringResource(R.string.statistics_selected_range_format, rangeTitle(calendar)),
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = selectedRangeSummaryColors.content,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -117,13 +123,37 @@ internal fun StatisticsCalendarSection(
                 Text(
                     text = formatStatisticsDays(calendar.selectedRange.dayCount),
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = selectedRangeSummaryColors.content,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
         }
     }
 }
+
+internal data class StatisticsSelectedRangeSummaryColors(
+    val container: Color,
+    val content: Color,
+    val border: Color,
+)
+
+internal fun statisticsSelectedRangeSummaryColors(
+    colorScheme: ColorScheme,
+    eInkMode: Boolean,
+): StatisticsSelectedRangeSummaryColors =
+    if (eInkMode) {
+        StatisticsSelectedRangeSummaryColors(
+            container = colorScheme.primaryContainer,
+            content = colorScheme.onPrimaryContainer,
+            border = colorScheme.primary,
+        )
+    } else {
+        StatisticsSelectedRangeSummaryColors(
+            container = colorScheme.primaryContainer.copy(alpha = 0.28f),
+            content = colorScheme.onPrimaryContainer,
+            border = colorScheme.primary.copy(alpha = 0.14f),
+        )
+    }
 
 @Composable
 private fun CalendarWindowDropdown(
