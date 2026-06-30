@@ -595,7 +595,6 @@ fun ReaderWebView(
             sourceUrl = sourceUrl,
             imageResourceForUrl = readerImageResourceBridge::imageResourceForUrl,
             closeLookupPopupsAndSelection = ::closeLookupPopupsAndSelection,
-            cancelAutoPage = ::cancelSasayakiAutoPage,
             showFullscreenImage = { fullscreenImage = it },
         )
     }
@@ -1190,17 +1189,23 @@ fun ReaderWebView(
                 shouldResume = sasayakiPlayer?.pauseForAutoPageHold() == true
             }
         }
+        suspend fun awaitImageHold() {
+            awaitReaderSasayakiImageHold(
+                imageHoldMillis = imageHoldMillis,
+                isFullscreenImageVisible = { fullscreenImage != null },
+            )
+        }
         suspend fun holdVisibleStop(progress: Double?) {
             progress?.let { recordSasayakiDisplayedProgress(it, countStatistics = false) }
             startHoldIfNeeded()
-            delay(imageHoldMillis)
+            awaitImageHold()
         }
         suspend fun showStops(stops: List<ReaderSasayakiMediaStop>, countStatistics: Boolean = true) {
             if (stops.isEmpty()) return
             startHoldIfNeeded()
             stops.forEach { stop ->
                 showSasayakiMediaStop(stop, countStatistics = countStatistics)
-                delay(imageHoldMillis)
+                awaitImageHold()
             }
         }
         return try {
