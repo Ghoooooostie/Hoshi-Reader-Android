@@ -1,12 +1,16 @@
 package moe.antimony.hoshi.navigation
 
+import androidx.compose.runtime.Composable
+import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.scene.Scene
 import kotlinx.coroutines.runBlocking
 import moe.antimony.hoshi.features.bookshelf.MainTab
 import moe.antimony.hoshi.features.dictionary.DictionarySettings
 import moe.antimony.hoshi.features.reader.ReaderSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -29,6 +33,12 @@ class AppShellCoordinatorTest {
                 ReaderSettings(enableStatistics = true, showStatisticsTab = true),
             ).contains(MainTab.Statistics),
         )
+        assertEquals(
+            MainTab.entries,
+            appShellVisibleMainTabs(
+                ReaderSettings(enableStatistics = true, showStatisticsTab = true),
+            ),
+        )
     }
 
     @Test
@@ -42,6 +52,109 @@ class AppShellCoordinatorTest {
                 ),
             ),
         )
+    }
+
+    @Test
+    fun mainShellPolicyAppliesOnlyToTopLevelRootRoutes() {
+        assertTrue(appRouteUsesMainShell(AppRoute.MainRoute))
+        assertTrue(appRouteUsesMainShell(AppRoute.BooksRoute))
+        assertTrue(appRouteUsesMainShell(AppRoute.DictionaryRoute))
+        assertTrue(appRouteUsesMainShell(AppRoute.StatisticsRoute))
+        assertTrue(appRouteUsesMainShell(AppRoute.SettingsRoute))
+        assertFalse(appRouteUsesMainShell(AppRoute.ReaderRoute("book-a")))
+        assertFalse(appRouteUsesMainShell(AppRoute.SettingsDetailRoute(SettingsDetailSection.About)))
+    }
+
+    @Test
+    fun mainShellRouteUsesOnlyCurrentSceneTopRoute() {
+        assertEquals(
+            AppRoute.StatisticsRoute,
+            appShellMainShellRoute(
+                listOf(
+                    testNavEntry(AppRoute.StatisticsRoute),
+                ),
+            ),
+        )
+        assertEquals(
+            AppRoute.SettingsRoute,
+            appShellMainShellRoute(
+                listOf(
+                    testNavEntry(AppRoute.SettingsRoute),
+                ),
+            ),
+        )
+        assertNull(
+            appShellMainShellRoute(
+                listOf(
+                    testNavEntry(AppRoute.SettingsRoute),
+                    testNavEntry(AppRoute.SettingsDetailRoute(SettingsDetailSection.About)),
+                ),
+            ),
+        )
+        assertNull(
+            appShellMainShellRoute(
+                listOf(
+                    testNavEntry(AppRoute.BooksRoute),
+                    testNavEntry(AppRoute.ReaderRoute("book-a")),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun mainShellRouteMetadataKeepsContentKeySaveable() {
+        val entry = testNavEntry(AppRoute.StatisticsRoute)
+
+        assertTrue(entry.contentKey is String)
+        assertEquals(AppRoute.StatisticsRoute, entry.metadata[AppShellRouteMetadataKey])
+        assertEquals(AppRoute.StatisticsRoute, appShellMainShellRoute(listOf(entry)))
+    }
+
+    @Test
+    fun mainShellSceneKeyIncludesDelegateSceneClass() {
+        val firstScene = FirstTestScene(key = "same")
+        val secondScene = SecondTestScene(key = "same")
+
+        assertNotEquals(
+            appShellMainShellSceneKey(firstScene),
+            appShellMainShellSceneKey(secondScene),
+        )
+    }
+
+    @Test
+    fun hiddenStatisticsTabClearsStatisticsReaderRoutes() {
+        val backStack = mutableListOf<NavKey>(
+            AppRoute.StatisticsRoute,
+            AppRoute.ReaderRoute("book-a"),
+        )
+        var readerRouteRemoved = false
+
+        normalizeStatisticsBackStackForVisibleTabs(
+            visibleTabs = listOf(MainTab.Books, MainTab.Dictionary, MainTab.Settings),
+            statisticsBackStack = backStack,
+            onReaderRouteRemoved = { readerRouteRemoved = true },
+        )
+
+        assertEquals(listOf(AppRoute.StatisticsRoute), backStack)
+        assertTrue(readerRouteRemoved)
+    }
+
+    @Test
+    fun visibleStatisticsTabKeepsStatisticsReaderRoutes() {
+        val backStack = mutableListOf<NavKey>(
+            AppRoute.StatisticsRoute,
+            AppRoute.ReaderRoute("book-a"),
+        )
+        var readerRouteRemoved = false
+
+        normalizeStatisticsBackStackForVisibleTabs(
+            visibleTabs = MainTab.entries,
+            statisticsBackStack = backStack,
+            onReaderRouteRemoved = { readerRouteRemoved = true },
+        )
+
+        assertEquals(listOf(AppRoute.StatisticsRoute, AppRoute.ReaderRoute("book-a")), backStack)
+        assertFalse(readerRouteRemoved)
     }
 
     @Test
@@ -203,4 +316,23 @@ class AppShellCoordinatorTest {
         assertEquals(1, readerRouteRemovedCount)
     }
 
+}
+
+private fun testNavEntry(route: AppRoute): NavEntry<NavKey> =
+    NavEntry(route, metadata = appShellNavEntryMetadata(route)) {}
+
+private class FirstTestScene(
+    override val key: Any,
+) : Scene<NavKey> {
+    override val entries: List<NavEntry<NavKey>> = listOf(testNavEntry(AppRoute.BooksRoute))
+    override val previousEntries: List<NavEntry<NavKey>> = emptyList()
+    override val content: @Composable () -> Unit = {}
+}
+
+private class SecondTestScene(
+    override val key: Any,
+) : Scene<NavKey> {
+    override val entries: List<NavEntry<NavKey>> = listOf(testNavEntry(AppRoute.BooksRoute))
+    override val previousEntries: List<NavEntry<NavKey>> = emptyList()
+    override val content: @Composable () -> Unit = {}
 }

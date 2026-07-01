@@ -34,7 +34,6 @@ import moe.antimony.hoshi.LocalHoshiUiDependencies
 import moe.antimony.hoshi.epub.BookSortOption
 import moe.antimony.hoshi.features.anki.AnkiView
 import moe.antimony.hoshi.features.bookshelf.BookshelfView
-import moe.antimony.hoshi.features.bookshelf.HoshiMainShell
 import moe.antimony.hoshi.features.bookshelf.MainTab
 import moe.antimony.hoshi.features.bookshelf.SettingsDestination
 import moe.antimony.hoshi.features.bookshelf.SettingsTab
@@ -163,6 +162,14 @@ fun AppShell(
         statisticsBackStack.removeReaderRoutes(onReaderRouteRemoved = ::clearLoadedReaderProfile)
     }
 
+    LaunchedEffect(visibleMainTabs) {
+        normalizeStatisticsBackStackForVisibleTabs(
+            visibleTabs = visibleMainTabs,
+            statisticsBackStack = statisticsBackStack,
+            onReaderRouteRemoved = ::clearLoadedReaderProfile,
+        )
+    }
+
     LaunchedEffect(dictionarySettingsRepository) {
         dictionarySettingsRepository.settings.collect { settings ->
             launchRouteStateHolder.defaultRouteAfterSettingsLoad(
@@ -246,7 +253,7 @@ fun AppShell(
 
     val entryProvider: (NavKey) -> NavEntry<NavKey> = { key ->
         val route = key as AppRoute
-        NavEntry(route) {
+        NavEntry(route, metadata = appShellNavEntryMetadata(route)) {
             when (route) {
                 AppRoute.BooksRoute -> TopLevelRouteContent(
                     selectedTab = MainTab.Books,
@@ -257,8 +264,6 @@ fun AppShell(
                     onOpenReader = ::openReader,
                     bookshelfRefreshKey = bookshelfRefreshKey,
                     dictionaryFocusRequestKey = dictionaryFocusRequestKey,
-                    visibleTabs = visibleMainTabs,
-                    onSelectedTabChange = ::selectMainTab,
                 )
                 AppRoute.DictionaryRoute -> TopLevelRouteContent(
                     selectedTab = MainTab.Dictionary,
@@ -269,8 +274,6 @@ fun AppShell(
                     onOpenReader = ::openReader,
                     bookshelfRefreshKey = bookshelfRefreshKey,
                     dictionaryFocusRequestKey = dictionaryFocusRequestKey,
-                    visibleTabs = visibleMainTabs,
-                    onSelectedTabChange = ::selectMainTab,
                 )
                 AppRoute.StatisticsRoute -> TopLevelRouteContent(
                     selectedTab = MainTab.Statistics,
@@ -281,8 +284,6 @@ fun AppShell(
                     onOpenReader = ::openReader,
                     bookshelfRefreshKey = bookshelfRefreshKey,
                     dictionaryFocusRequestKey = dictionaryFocusRequestKey,
-                    visibleTabs = visibleMainTabs,
-                    onSelectedTabChange = ::selectMainTab,
                 )
                 AppRoute.SettingsRoute -> TopLevelRouteContent(
                     selectedTab = MainTab.Settings,
@@ -293,8 +294,6 @@ fun AppShell(
                     onOpenReader = ::openReader,
                     bookshelfRefreshKey = bookshelfRefreshKey,
                     dictionaryFocusRequestKey = dictionaryFocusRequestKey,
-                    visibleTabs = visibleMainTabs,
-                    onSelectedTabChange = ::selectMainTab,
                     onSettingsDestination = { destination ->
                         when (destination) {
                             SettingsDestination.Anki -> openSettingsDetail(destination.toSection())
@@ -340,12 +339,15 @@ fun AppShell(
                     onOpenReader = ::openReader,
                     bookshelfRefreshKey = bookshelfRefreshKey,
                     dictionaryFocusRequestKey = dictionaryFocusRequestKey,
-                    visibleTabs = visibleMainTabs,
-                    onSelectedTabChange = ::selectMainTab,
                 )
             }
         }
     }
+    val mainShellSceneDecorator = rememberMainShellSceneDecoratorStrategy(
+        selectedTab = effectiveSelectedTab,
+        visibleTabs = visibleMainTabs,
+        onSelectedTabChange = ::selectMainTab,
+    )
     val booksEntries = rememberDecoratedNavEntries(
         backStack = booksBackStack,
         entryDecorators = rememberAppNavEntryDecorators(),
@@ -377,6 +379,7 @@ fun AppShell(
         entries = currentEntries,
         modifier = modifier,
         onBack = ::popRoute,
+        sceneDecoratorStrategies = listOf(mainShellSceneDecorator),
         transitionSpec = NoNavContentTransition,
         popTransitionSpec = NoNavContentTransition,
         predictivePopTransitionSpec = NoPredictiveNavContentTransition,
@@ -413,39 +416,32 @@ private fun TopLevelRouteContent(
     onOpenReader: (String) -> Unit,
     bookshelfRefreshKey: Int,
     dictionaryFocusRequestKey: Int,
-    visibleTabs: List<MainTab>,
-    onSelectedTabChange: (MainTab) -> Unit,
     onSettingsDestination: (SettingsDestination) -> Unit = {},
 ) {
-    HoshiMainShell(
-        selectedTab = selectedTab,
-        onSelectedTabChange = onSelectedTabChange,
-        visibleTabs = visibleTabs,
-    ) { contentModifier, layoutSpec ->
-        when (selectedTab) {
-            MainTab.Books -> BookshelfView(
-                pendingImportUri = pendingImportUri,
-                onPendingImportConsumed = onPendingImportConsumed,
-                onOpenReader = onOpenReader,
-                refreshKey = bookshelfRefreshKey,
-                layoutSpec = layoutSpec,
-                modifier = contentModifier,
-            )
-            MainTab.Dictionary -> DictionarySearchView(
-                readerSettings = readerSettings,
-                focusRequestKey = dictionaryFocusRequestKey,
-                modifier = contentModifier.fillMaxSize(),
-            )
-            MainTab.Statistics -> StatisticsView(
-                layoutSpec = layoutSpec,
-                modifier = contentModifier,
-            )
-            MainTab.Settings -> SettingsTab(
-                modifier = contentModifier,
-                layoutSpec = layoutSpec,
-                onDestination = onSettingsDestination,
-            )
-        }
+    val layoutSpec = currentMainShellLayoutSpec()
+    when (selectedTab) {
+        MainTab.Books -> BookshelfView(
+            pendingImportUri = pendingImportUri,
+            onPendingImportConsumed = onPendingImportConsumed,
+            onOpenReader = onOpenReader,
+            refreshKey = bookshelfRefreshKey,
+            layoutSpec = layoutSpec,
+            modifier = Modifier.fillMaxSize(),
+        )
+        MainTab.Dictionary -> DictionarySearchView(
+            readerSettings = readerSettings,
+            focusRequestKey = dictionaryFocusRequestKey,
+            modifier = Modifier.fillMaxSize(),
+        )
+        MainTab.Statistics -> StatisticsView(
+            layoutSpec = layoutSpec,
+            modifier = Modifier.fillMaxSize(),
+        )
+        MainTab.Settings -> SettingsTab(
+            modifier = Modifier.fillMaxSize(),
+            layoutSpec = layoutSpec,
+            onDestination = onSettingsDestination,
+        )
     }
 }
 
@@ -539,6 +535,16 @@ internal fun coerceAvailableMainTab(
     } else {
         MainTab.Books
     }
+
+internal fun normalizeStatisticsBackStackForVisibleTabs(
+    visibleTabs: List<MainTab>,
+    statisticsBackStack: MutableList<NavKey>,
+    onReaderRouteRemoved: () -> Unit = {},
+) {
+    if (MainTab.Statistics !in visibleTabs) {
+        statisticsBackStack.removeReaderRoutes(onReaderRouteRemoved = onReaderRouteRemoved)
+    }
+}
 
 private fun AppRoute.toMainTab(): MainTab = when (this) {
     AppRoute.MainRoute, AppRoute.BooksRoute -> MainTab.Books

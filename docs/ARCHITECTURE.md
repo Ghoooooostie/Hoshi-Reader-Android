@@ -1,6 +1,6 @@
 # Hoshi Android Current Architecture
 
-Date: 2026-06-30
+Date: 2026-07-01
 
 This document describes the current architecture that exists in the Android
 repo. It is not a future plan and should not track task status. Long-lived
@@ -13,7 +13,9 @@ refactor goals belong in `docs/ARCHITECTURE_REFACTORING.md`.
 - Navigation uses Navigation3 typed route keys, `AppShell`, and `NavDisplay`.
   Top-level Books, Dictionary, Statistics, and Settings tabs each own an
   independent Nav3 back stack with its own saveable entry state and per-entry
-  ViewModel stores.
+  ViewModel stores. The shared main navigation chrome is owned by a Nav3 scene
+  decorator around top-level root scenes, while Reader and Settings detail
+  routes remain full-screen outside that shell.
 - Production dependency injection is Hilt-backed. `HoshiApplication` owns the
   app component through `@HiltAndroidApp`, and Android entry points receive
   dependencies from the Hilt graph.
