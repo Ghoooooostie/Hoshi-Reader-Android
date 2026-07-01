@@ -6,6 +6,10 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ## [Unreleased]
 
+### Changed
+
+- Raise Statistics daily goal limits to 200,000 characters and 12 hours.
+
 ### Fixed
 
 - Keep the Statistics tab visible after enabling it and switching away from Settings.

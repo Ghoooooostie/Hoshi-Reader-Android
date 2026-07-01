@@ -74,8 +74,28 @@ class StatisticsSettingsRepositoryTest {
                 StatisticsTargetSettings(
                     dailyTargetType = DailyTargetType.Duration,
                     dailyCharacterTarget = 500,
-                    dailyDurationTargetMinutes = 240,
+                    dailyDurationTargetMinutes = 720,
                     weeklyTargetDays = 7,
+                ),
+                repository.settings.first(),
+            )
+        }
+    }
+
+    @Test
+    fun clampsDailyTargetsAtExpandedCeilings() = runBlocking {
+        repository().use { repository ->
+            repository.update {
+                it.copy(
+                    dailyCharacterTarget = 250_000,
+                    dailyDurationTargetMinutes = 999,
+                )
+            }
+
+            assertEquals(
+                StatisticsTargetSettings(
+                    dailyCharacterTarget = 200_000,
+                    dailyDurationTargetMinutes = 720,
                 ),
                 repository.settings.first(),
             )

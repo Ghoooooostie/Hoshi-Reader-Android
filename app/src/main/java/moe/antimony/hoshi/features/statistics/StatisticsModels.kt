@@ -66,11 +66,11 @@ internal data class StatisticsTargetSettings(
 internal object StatisticsTargetDefaults {
     const val DailyCharacterTarget = 5_000
     const val MinDailyCharacterTarget = 500
-    const val MaxDailyCharacterTarget = 20_000
+    const val MaxDailyCharacterTarget = 200_000
     const val DailyCharacterTargetStep = 500
     const val DailyDurationTargetMinutes = 30
     const val MinDailyDurationTargetMinutes = 5
-    const val MaxDailyDurationTargetMinutes = 240
+    const val MaxDailyDurationTargetMinutes = 720
     const val DailyDurationTargetStepMinutes = 5
     const val WeeklyTargetDays = 4
     const val MinWeeklyTargetDays = 1
