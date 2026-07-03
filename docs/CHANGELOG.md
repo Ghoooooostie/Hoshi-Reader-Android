@@ -8,6 +8,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ### Changed
 
+- Improve dictionary lookup and import behavior by honoring Yomitan term scores
+  and normalizing Japanese iteration marks, full-width numbers, and emphatic
+  sequences.
 - Raise Statistics daily goal limits to 200,000 characters and 12 hours.
 
 ### Fixed
