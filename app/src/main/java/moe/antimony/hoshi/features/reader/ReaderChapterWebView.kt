@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.SystemClock
 import android.view.ActionMode
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.Menu
 import android.view.MenuItem
 import android.view.MotionEvent
@@ -84,6 +85,7 @@ internal fun ChapterWebView(
     sasayakiTextColor: Long,
     sasayakiBackgroundColor: Long,
     onTextSelected: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit,
+    onSentenceLongPressed: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit,
     onClearLookupPopup: () -> Unit,
     onReaderTapOutside: () -> Unit,
     onReaderInteraction: () -> Unit,
@@ -98,6 +100,7 @@ internal fun ChapterWebView(
     modifier: Modifier = Modifier,
 ) {
     val currentOnTextSelected = rememberUpdatedState(onTextSelected)
+    val currentOnSentenceLongPressed = rememberUpdatedState(onSentenceLongPressed)
     val currentOnSaveBookmark = rememberUpdatedState(onSaveBookmark)
     val currentOnDisplayProgress = rememberUpdatedState(onDisplayProgress)
     val currentOnContinuousScrollDisplayProgress = rememberUpdatedState(onContinuousScrollDisplayProgress)
@@ -234,8 +237,18 @@ internal fun ChapterWebView(
                 this.onHighlightCreated = { color, id, creation ->
                     currentOnHighlightCreated.value(color, id, creation)
                 }
+                this.onSentenceLongPressed = { selection, selectionRects ->
+                    currentOnSentenceLongPressed.value(selection, selectionRects)
+                }
                 hideForReaderRestore()
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                setOnLongClickListener {
+                    val handled = handleSentenceLongPress()
+                    if (handled) {
+                        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    }
+                    handled
+                }
                 addJavascriptInterface(
                     ReaderSelectionBridge(this) { selection, selectionRects ->
                         currentOnTextSelected.value(selection, selectionRects)
@@ -575,10 +588,14 @@ internal fun readerSelectionMaxLength(settings: DictionarySettings): Int =
 
 private class HoshiReaderWebView(context: Context) : WebView(context) {
     var onHighlightCreated: (HighlightColor, String, ReaderHighlightCreationResult) -> Unit = { _, _, _ -> }
+    var onSentenceLongPressed: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit =
+        { _, _ -> }
     private var nativeSelectionActionModeActive = false
     private var nativeSelectionActionMode: ActionMode? = null
     private var nativeSelectionContentRect: Rect? = null
     private var highlightColorPopup: PopupWindow? = null
+    private var lastTouchX = 0f
+    private var lastTouchY = 0f
 
     fun isNativeSelectionActionModeActive(): Boolean = nativeSelectionActionModeActive
     fun setNativeSelectionActionMode(mode: ActionMode?) {
@@ -707,6 +724,41 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         highlightColorPopup = null
     }
 
+    fun handleSentenceLongPress(): Boolean {
+        val density = resources.displayMetrics.density
+        evaluateJavascript(
+            ReaderSelectionCommand.SelectSentence(
+                x = androidPixelsToCssPixels(lastTouchX, density),
+                y = androidPixelsToCssPixels(lastTouchY, density),
+            ).source,
+        ) { result ->
+            val selectionResult = ReaderSelectionResult.fromWebViewResult(result)
+            if (selectionResult.selectedNothing || selectionResult.isImageTap || selectionResult.isLinkTap) {
+                return@evaluateJavascript
+            }
+            val selection = ReaderSelectionBridgePayload.fromJson(result) ?: return@evaluateJavascript
+            onSentenceLongPressed(selection) { highlightCount, onRectsLoaded ->
+                evaluateJavascript(ReaderSelectionCommand.SelectionRects(highlightCount).source) { rectsResult ->
+                    onRectsLoaded(ReaderSelectionBridgePayload.rectsFromJavascriptResult(rectsResult))
+                }
+            }
+        }
+        return true
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN,
+            MotionEvent.ACTION_MOVE,
+            MotionEvent.ACTION_UP,
+            -> {
+                lastTouchX = event.x
+                lastTouchY = event.y
+            }
+        }
+        return super.onTouchEvent(event)
+    }
+
     override fun startActionMode(callback: ActionMode.Callback): ActionMode? =
         super.startActionMode(ReaderHighlightActionModeCallback(this, callback))
 
@@ -717,6 +769,7 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         dismissHighlightColorPopup()
         setNativeSelectionActionMode(null)
         onHighlightCreated = { _, _, _ -> }
+        onSentenceLongPressed = { _, _ -> }
     }
 }
 

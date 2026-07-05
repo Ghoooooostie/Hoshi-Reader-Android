@@ -10,6 +10,8 @@ import moe.antimony.hoshi.epub.BookRepository
 import moe.antimony.hoshi.epub.EpubBookParser
 import moe.antimony.hoshi.features.audio.AudioSettingsRepository
 import moe.antimony.hoshi.features.audio.LocalAudioRepository
+import moe.antimony.hoshi.features.advancedai.AdvancedAiClient
+import moe.antimony.hoshi.features.advancedai.AdvancedAiSettingsRepository
 import moe.antimony.hoshi.features.backup.HoshiBackupRepository
 import moe.antimony.hoshi.features.dictionary.DictionarySettingsRepository
 import moe.antimony.hoshi.features.reader.ReaderFontManager
@@ -36,6 +38,8 @@ internal class HoshiUiDependencies @Inject constructor(
     private val readerSettingsRepositoryProvider: Lazy<ReaderSettingsRepository>,
     private val dictionarySettingsRepositoryProvider: Lazy<DictionarySettingsRepository>,
     private val audioSettingsRepositoryProvider: Lazy<AudioSettingsRepository>,
+    private val advancedAiSettingsRepositoryProvider: Lazy<AdvancedAiSettingsRepository>,
+    private val advancedAiClientProvider: Lazy<AdvancedAiClient>,
     private val sasayakiSettingsRepositoryProvider: Lazy<SasayakiSettingsRepository>,
     private val sasayakiPlaybackServiceRuntimeProvider: Lazy<SasayakiPlaybackServiceRuntime>,
     private val syncSettingsRepositoryProvider: Lazy<SyncSettingsRepository>,
@@ -61,6 +65,8 @@ internal class HoshiUiDependencies @Inject constructor(
     val readerSettingsRepository: ReaderSettingsRepository get() = readerSettingsRepositoryProvider.get()
     val dictionarySettingsRepository: DictionarySettingsRepository get() = dictionarySettingsRepositoryProvider.get()
     val audioSettingsRepository: AudioSettingsRepository get() = audioSettingsRepositoryProvider.get()
+    val advancedAiSettingsRepository: AdvancedAiSettingsRepository get() = advancedAiSettingsRepositoryProvider.get()
+    val advancedAiClient: AdvancedAiClient get() = advancedAiClientProvider.get()
     val sasayakiSettingsRepository: SasayakiSettingsRepository get() = sasayakiSettingsRepositoryProvider.get()
     val sasayakiPlaybackServiceRuntime: SasayakiPlaybackServiceRuntime get() = sasayakiPlaybackServiceRuntimeProvider.get()
     val syncSettingsRepository: SyncSettingsRepository get() = syncSettingsRepositoryProvider.get()

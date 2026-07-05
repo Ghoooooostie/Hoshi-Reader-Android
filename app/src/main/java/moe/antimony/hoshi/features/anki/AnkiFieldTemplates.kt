@@ -1,6 +1,15 @@
 package moe.antimony.hoshi.features.anki
 
 object AnkiFieldTemplates {
+    private val exactFieldDefaults = mapOf(
+        "Sentence_CN" to "{sentence-cn}",
+        "Sentence_Analyze" to "{sentence-analyze}",
+        "Word_Analyze" to "{word-analyze}",
+        "SentenceCN" to "{sentence-cn}",
+        "SentenceAnalyze" to "{sentence-analyze}",
+        "WordAnalyze" to "{word-analyze}",
+    )
+
     private val templates = mapOf(
         "Lapis" to mapOf(
             "Expression" to "{expression}",
@@ -61,7 +70,7 @@ object AnkiFieldTemplates {
         templates.containsKey(noteType.name)
 
     fun defaultMappings(noteType: AnkiNoteType): Map<String, String> {
-        val defaults = templates[noteType.name].orEmpty()
+        val defaults = templates[noteType.name].orEmpty() + exactFieldDefaults
         return noteType.fields.mapNotNull { field ->
             defaults[field]?.let { field to it }
         }.toMap()
@@ -71,8 +80,9 @@ object AnkiFieldTemplates {
         noteType: AnkiNoteType,
         currentMappings: Map<String, String>,
     ): Map<String, String> {
-        if (!matches(noteType)) return currentMappings
+        val defaults = defaultMappings(noteType)
+        if (defaults.isEmpty()) return currentMappings
         if (noteType.fields.any { field -> currentMappings[field] != null }) return currentMappings
-        return defaultMappings(noteType)
+        return defaults
     }
 }

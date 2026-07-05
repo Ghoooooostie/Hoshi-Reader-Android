@@ -196,6 +196,14 @@ class LookupPopupHtmlTest {
     }
 
     @Test
+    fun iframePopupShellInitializesAdvancedAiGlobals() {
+        val html = LookupPopupHtml.renderIframeDocument()
+
+        assertTrue(html.contains("""window.popupAdvancedAi = null;"""))
+        assertTrue(html.contains("""window.popupAdvancedAi = message.advancedAi || null;"""))
+    }
+
+    @Test
     fun eInkPopupCssTargetsPopupControlsAndStructuredRows() {
         val html = LookupPopupHtml.renderIframeDocument(eInkMode = true)
 

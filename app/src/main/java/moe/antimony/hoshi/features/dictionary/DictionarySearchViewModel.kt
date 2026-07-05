@@ -12,10 +12,18 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.antimony.hoshi.dictionary.DictionaryRepository
+import moe.antimony.hoshi.features.advancedai.AdvancedAiAvailability
+import moe.antimony.hoshi.features.advancedai.AdvancedAiCardKind
+import moe.antimony.hoshi.features.advancedai.AdvancedAiClient
+import moe.antimony.hoshi.features.advancedai.AdvancedAiSettingsRepository
+import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiState
+import moe.antimony.hoshi.features.advancedai.updateAdvancedAiState
+import moe.antimony.hoshi.features.advancedai.wordAvailability
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.audio.AudioSettingsRepository
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
@@ -54,6 +62,8 @@ internal class AndroidDictionarySearchRepository @Inject constructor(
 @HiltViewModel
 internal class DictionarySearchViewModel : ViewModel {
     private val repository: DictionarySearchRepository
+    private val advancedAiSettingsRepository: AdvancedAiSettingsRepository?
+    private val advancedAiClient: AdvancedAiClient?
     private val ioDispatcher: CoroutineDispatcher
     private val injectedScope: CoroutineScope?
     private val scope: CoroutineScope
@@ -62,11 +72,15 @@ internal class DictionarySearchViewModel : ViewModel {
     @Inject
     constructor(
         repository: DictionarySearchRepository,
+        advancedAiSettingsRepository: AdvancedAiSettingsRepository,
+        advancedAiClient: AdvancedAiClient,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ) : this(
         repository = repository,
         coroutineScope = null,
         ioDispatcher = ioDispatcher,
+        advancedAiSettingsRepository = advancedAiSettingsRepository,
+        advancedAiClient = advancedAiClient,
         marker = Unit,
     )
 
@@ -74,10 +88,14 @@ internal class DictionarySearchViewModel : ViewModel {
         repository: DictionarySearchRepository,
         coroutineScope: CoroutineScope,
         ioDispatcher: CoroutineDispatcher,
+        advancedAiSettingsRepository: AdvancedAiSettingsRepository? = null,
+        advancedAiClient: AdvancedAiClient? = null,
     ) : this(
         repository = repository,
         coroutineScope = coroutineScope,
         ioDispatcher = ioDispatcher,
+        advancedAiSettingsRepository = advancedAiSettingsRepository,
+        advancedAiClient = advancedAiClient,
         marker = Unit,
     )
 
@@ -85,15 +103,20 @@ internal class DictionarySearchViewModel : ViewModel {
         repository: DictionarySearchRepository,
         coroutineScope: CoroutineScope?,
         ioDispatcher: CoroutineDispatcher,
+        advancedAiSettingsRepository: AdvancedAiSettingsRepository?,
+        advancedAiClient: AdvancedAiClient?,
         @Suppress("UNUSED_PARAMETER") marker: Unit,
     ) : super() {
         this.repository = repository
+        this.advancedAiSettingsRepository = advancedAiSettingsRepository
+        this.advancedAiClient = advancedAiClient
         this.ioDispatcher = ioDispatcher
         injectedScope = coroutineScope
         collectInitialState()
     }
 
     private val _uiState = MutableStateFlow(DictionarySearchUiState())
+    private val popupAnalysisVersions = mutableMapOf<String, Int>()
 
     val uiState: StateFlow<DictionarySearchUiState> = _uiState.asStateFlow()
 
@@ -313,6 +336,7 @@ internal class DictionarySearchViewModel : ViewModel {
             return null
         }
         _uiState.update { it.copy(popups = listOf(popup)) }
+        requestPopupWordAnalysis(popup.id, selection)
         return highlightCount
     }
 
@@ -329,6 +353,50 @@ internal class DictionarySearchViewModel : ViewModel {
 
     fun setPopups(popups: List<LookupPopupItem>) {
         _uiState.update { it.copy(popups = popups) }
+    }
+
+    fun requestPopupWordAnalysis(
+        popupId: String,
+        selection: ReaderSelectionData,
+    ) {
+        val settingsRepository = advancedAiSettingsRepository ?: return
+        val client = advancedAiClient ?: return
+        scope.launch {
+            val ready = settingsRepository.settings.first().wordAvailability() as? AdvancedAiAvailability.Ready
+                ?: return@launch
+            val version = (popupAnalysisVersions[popupId] ?: 0) + 1
+            popupAnalysisVersions[popupId] = version
+            _uiState.update { state ->
+                state.copy(
+                    popups = state.popups.updateAdvancedAiState(
+                        popupId = popupId,
+                        nextState = LookupPopupAdvancedAiState.Loading(AdvancedAiCardKind.Word),
+                    ),
+                )
+            }
+            val result = runCatching {
+                withContext(ioDispatcher) {
+                    client.analyzeWordInSentence(ready.settings, selection)
+                }
+            }
+            if (popupAnalysisVersions[popupId] != version) return@launch
+            _uiState.update { state ->
+                state.copy(
+                    popups = state.popups.updateAdvancedAiState(
+                        popupId = popupId,
+                        nextState = result.fold(
+                            onSuccess = { LookupPopupAdvancedAiState.Success(AdvancedAiCardKind.Word, it) },
+                            onFailure = {
+                                LookupPopupAdvancedAiState.Error(
+                                    kind = AdvancedAiCardKind.Word,
+                                    message = UiText.Resource(R.string.advanced_ai_request_failed),
+                                )
+                            },
+                        ),
+                    ),
+                )
+            }
+        }
     }
 
     fun closePopups() {

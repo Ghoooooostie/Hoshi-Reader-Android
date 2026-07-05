@@ -5,6 +5,7 @@ import de.manhhao.hoshi.GlossaryEntry
 import de.manhhao.hoshi.LookupResult
 import de.manhhao.hoshi.PitchEntry
 import de.manhhao.hoshi.TermResult
+import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiPayload
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupViewport
 import moe.antimony.hoshi.features.reader.ReaderPopupHistoryCounts
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
@@ -111,6 +112,40 @@ class DictionarySearchIframeTest {
             darkMode = false,
             eInkMode = false,
             iframeUrl = "https://appassets.androidplatform.net/popup/iframe.html",
+        )
+
+        assertNotEquals(firstPayload.contentKey, secondPayload.contentKey)
+    }
+
+    @Test
+    fun rootPayloadContentKeyChangesWhenAdvancedAiPayloadChanges() {
+        val results = listOf(lookupResult("猫"))
+
+        val firstPayload = dictionarySearchRootFramePayload(
+            results = results,
+            viewport = ReaderLookupPopupViewport(width = 390.0, height = 700.0),
+            searchBarBottomDp = 86.0,
+            darkMode = false,
+            eInkMode = false,
+            iframeUrl = "https://appassets.androidplatform.net/popup/iframe.html",
+            advancedAi = LookupPopupAdvancedAiPayload(
+                title = "AI 词语分析",
+                status = "loading",
+                body = "分析中",
+            ),
+        )
+        val secondPayload = dictionarySearchRootFramePayload(
+            results = results,
+            viewport = ReaderLookupPopupViewport(width = 390.0, height = 700.0),
+            searchBarBottomDp = 86.0,
+            darkMode = false,
+            eInkMode = false,
+            iframeUrl = "https://appassets.androidplatform.net/popup/iframe.html",
+            advancedAi = LookupPopupAdvancedAiPayload(
+                title = "AI 词语分析",
+                status = "success",
+                body = "这里是句中的主语。",
+            ),
         )
 
         assertNotEquals(firstPayload.contentKey, secondPayload.contentKey)

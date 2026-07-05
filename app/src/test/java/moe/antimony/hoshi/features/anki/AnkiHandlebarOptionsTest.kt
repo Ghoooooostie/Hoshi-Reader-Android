@@ -15,6 +15,9 @@ class AnkiHandlebarOptionsTest {
         assertTrue(options.contains("{glossary-brief}"))
         assertTrue(options.contains("{phonetic-transcriptions}"))
         assertTrue(options.contains("{selected-glossary-fallback}"))
+        assertTrue(options.contains("{sentence-cn}"))
+        assertTrue(options.contains("{sentence-analyze}"))
+        assertTrue(options.contains("{word-analyze}"))
         assertEquals(
             listOf("{single-glossary-JMdict}", "{single-glossary-明鏡国語辞典 第三版}"),
             options.takeLast(2),

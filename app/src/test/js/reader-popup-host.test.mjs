@@ -361,12 +361,14 @@ test('active iframe rerenders when same popup id receives new entry payload', ()
                 popupId: 'root',
                 entriesCount: 1,
                 initialEntryJson: '{"expression":"食べる"}',
+                advancedAi: null,
             },
             {
                 type: 'renderPopup',
                 popupId: 'root',
                 entriesCount: 1,
                 initialEntryJson: '{"expression":"飲む"}',
+                advancedAi: null,
             },
         ],
     );
@@ -407,12 +409,156 @@ test('active iframe rerenders when content key changes behind same first entry a
                 popupId: 'root',
                 entriesCount: 2,
                 initialEntryJson: '{"expression":"猫"}',
+                advancedAi: null,
             },
             {
                 type: 'renderPopup',
                 popupId: 'root',
                 entriesCount: 2,
                 initialEntryJson: '{"expression":"猫"}',
+                advancedAi: null,
+            },
+        ],
+    );
+});
+
+test('active iframe render message includes advanced ai payload and rerenders when it changes', () => {
+    const scene = popupHost();
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            entriesCount: 1,
+            initialEntryJson: '{"expression":"猫"}',
+            contentKey: '猫/loading',
+            advancedAi: {
+                title: 'AI 词语分析',
+                status: 'loading',
+                body: '分析中',
+            },
+        }],
+    });
+    const shell = scene.document.getElementById('hoshi-reader-popup-layer').children[0];
+    const iframe = shell.querySelector('.hoshi-reader-popup-iframe');
+    const iframeMessages = [];
+    iframe.contentWindow.postMessage = (message) => iframeMessages.push(message);
+    iframe.dispatchEvent('load');
+
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            entriesCount: 1,
+            initialEntryJson: '{"expression":"猫"}',
+            contentKey: '猫/success',
+            advancedAi: {
+                title: 'AI 词语分析',
+                status: 'success',
+                body: '这里是句中的主语。',
+            },
+        }],
+    });
+
+    assert.deepEqual(
+        iframeMessages
+            .filter((message) => message.type === 'renderPopup')
+            .map((message) => JSON.parse(JSON.stringify(message))),
+        [
+            {
+                type: 'renderPopup',
+                popupId: 'root',
+                entriesCount: 1,
+                initialEntryJson: '{"expression":"猫"}',
+                advancedAi: {
+                    title: 'AI 词语分析',
+                    status: 'loading',
+                    body: '分析中',
+                },
+            },
+            {
+                type: 'renderPopup',
+                popupId: 'root',
+                entriesCount: 1,
+                initialEntryJson: '{"expression":"猫"}',
+                advancedAi: {
+                    title: 'AI 词语分析',
+                    status: 'success',
+                    body: '这里是句中的主语。',
+                },
+            },
+        ],
+    );
+});
+
+test('root popup rerenders advanced ai updates after highlight-only frame updates drop initial entry json', () => {
+    const scene = popupHost();
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            entriesCount: 1,
+            initialEntryJson: '{"expression":"猫"}',
+            contentKey: '猫/loading',
+            advancedAi: {
+                title: 'AI 词语分析',
+                status: 'loading',
+                body: '分析中',
+            },
+        }],
+        rootHighlight: {
+            popupId: 'root',
+            pending: true,
+            rects: [],
+        },
+    });
+    const shell = scene.document.getElementById('hoshi-reader-popup-layer').children[0];
+    const iframe = shell.querySelector('.hoshi-reader-popup-iframe');
+    const iframeMessages = [];
+    iframe.contentWindow.postMessage = (message) => iframeMessages.push(message);
+    iframe.dispatchEvent('load');
+
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            entriesCount: 1,
+            initialEntryJson: null,
+            contentKey: '猫/success',
+            advancedAi: {
+                title: 'AI 词语分析',
+                status: 'success',
+                body: '这里是句中的主语。',
+            },
+        }],
+        rootHighlight: {
+            popupId: 'root',
+            pending: false,
+            rects: [{ x: 10, y: 20, width: 30, height: 12 }],
+        },
+    });
+
+    assert.deepEqual(
+        iframeMessages
+            .filter((message) => message.type === 'renderPopup')
+            .map((message) => JSON.parse(JSON.stringify(message))),
+        [
+            {
+                type: 'renderPopup',
+                popupId: 'root',
+                entriesCount: 1,
+                initialEntryJson: '{"expression":"猫"}',
+                advancedAi: {
+                    title: 'AI 词语分析',
+                    status: 'loading',
+                    body: '分析中',
+                },
+            },
+            {
+                type: 'renderPopup',
+                popupId: 'root',
+                entriesCount: 1,
+                initialEntryJson: null,
+                advancedAi: {
+                    title: 'AI 词语分析',
+                    status: 'success',
+                    body: '这里是句中的主语。',
+                },
             },
         ],
     );
@@ -452,6 +598,7 @@ test('history updates do not replace iframe content handled by popup redirect', 
                 popupId: 'root',
                 entriesCount: 1,
                 initialEntryJson: '{"expression":"食べる"}',
+                advancedAi: null,
             },
         ],
     );
@@ -500,6 +647,7 @@ test('reader highlight updates can omit initial entry without replacing iframe c
                 popupId: 'root',
                 entriesCount: 1,
                 initialEntryJson: '{"expression":"読む"}',
+                advancedAi: null,
             },
         ],
     );

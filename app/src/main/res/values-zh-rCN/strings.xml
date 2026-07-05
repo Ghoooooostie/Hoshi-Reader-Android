@@ -505,6 +505,31 @@
     <string name="advanced_statistics_subtitle">跟踪每本书的阅读时间、速度和已读字符数</string>
     <string name="advanced_sasayaki_audiobooks">有声书</string>
     <string name="advanced_sasayaki_subtitle">配合已匹配的有声书字幕阅读</string>
+    <string name="advanced_ai">高级 AI</string>
+    <string name="advanced_ai_subtitle">AI 词语和句子分析</string>
+    <string name="advanced_ai_enable">启用高级 AI</string>
+    <string name="advanced_ai_connection" comment="Advanced AI settings section label, intentionally matching the Anki connection label.">连接</string>
+    <string name="advanced_ai_not_tested">未测试</string>
+    <string name="advanced_ai_testing">测试中</string>
+    <string name="advanced_ai_section_api">API</string>
+    <string name="advanced_ai_section_prompts">提示词</string>
+    <string name="advanced_ai_base_url">API Base URL</string>
+    <string name="advanced_ai_api_key">API 密钥</string>
+    <string name="advanced_ai_api_key_configured" comment="Advanced AI API key state label, intentionally matching the Anki configured state label.">已配置</string>
+    <string name="advanced_ai_model" comment="Advanced AI model field label, intentionally matching the Anki note model label.">模型</string>
+    <string name="advanced_ai_word_prompt">词语分析提示词</string>
+    <string name="advanced_ai_sentence_translation_prompt">整句翻译提示词</string>
+    <string name="advanced_ai_sentence_prompt">长难句分析提示词</string>
+    <string name="advanced_ai_test_connection">测试 API</string>
+    <string name="advanced_ai_test_success">API 连接成功。</string>
+    <string name="advanced_ai_test_failed">API 连接失败。</string>
+    <string name="advanced_ai_word_analysis_title">AI 词语分析</string>
+    <string name="advanced_ai_sentence_analysis_title">长难句分析</string>
+    <string name="advanced_ai_loading">分析中</string>
+    <string name="advanced_ai_request_failed">AI 分析加载失败。</string>
+    <string name="advanced_ai_default_word_prompt">请用简洁中文分析所选词在句中的作用。只输出纯文本，不要 Markdown、星号、编号或引号。固定三行：词性：... 作用：... 补充：...</string>
+    <string name="advanced_ai_default_sentence_translation_prompt">只输出一句自然流畅的中文译文，不要解释、前言、引号或换行。</string>
+    <string name="advanced_ai_default_sentence_prompt">请用简洁中文分析句子结构和难点。只输出纯文本，不要 Markdown、星号、编号或引号。固定三行：结构：... 难点：... 补充：...</string>
     <string name="audio_sources">来源</string>
     <string name="audio_add_source">添加来源</string>
     <string name="audio_name">名称</string>
@@ -535,7 +560,7 @@
     <string name="anki_open_app_settings">打开应用设置</string>
     <string name="anki_fetching">正在获取</string>
     <string name="anki_deck" comment="Anki deck selector label, intentionally matching duplicate scope deck label.">牌组</string>
-    <string name="anki_model">模板</string>
+    <string name="anki_model" comment="Anki note type label, intentionally matching the Advanced AI model label.">模板</string>
     <string name="anki_allow_duplicates">允许重复</string>
     <string name="anki_check_duplicates_all_models">跨所有模板检查重复</string>
     <string name="anki_duplicate_check_scope">重复检查范围</string>
@@ -551,11 +576,11 @@
     <string name="anki_connect_address">地址</string>
     <string name="anki_connect_url">AnkiConnect URL</string>
     <string name="anki_connect_api_key">API 密钥（可选）</string>
-    <string name="anki_connect_api_key_configured">已配置</string>
+    <string name="anki_connect_api_key_configured" comment="AnkiConnect API key state label, intentionally matching the Advanced AI configured state label.">已配置</string>
     <string name="anki_connect_use">使用 AnkiConnect</string>
     <string name="anki_connect_use_description">这会用 AnkiConnect JSON 请求替代 AnkiDroid 请求。</string>
     <string name="anki_connect_address_help">互联网主机请使用 HTTPS。HTTP 仅允许 localhost 和私有网络地址。</string>
-    <string name="anki_connect_connection">连接</string>
+    <string name="anki_connect_connection" comment="AnkiConnect section label, intentionally matching the Advanced AI connection label.">连接</string>
     <string name="anki_connect_connected" comment="AnkiConnect connection state, intentionally matching sync connection state.">已连接</string>
     <string name="anki_connect_not_connected" comment="AnkiConnect connection state, intentionally matching sync connection state.">未连接</string>
     <string name="anki_connect_connecting">正在连接</string>

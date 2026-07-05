@@ -507,6 +507,31 @@
     <string name="advanced_statistics_subtitle">Track per-book reading time, speed, and characters read</string>
     <string name="advanced_sasayaki_audiobooks">Sasayaki (Audiobooks)</string>
     <string name="advanced_sasayaki_subtitle">Read along with matched audiobook subtitles</string>
+    <string name="advanced_ai">Advanced AI</string>
+    <string name="advanced_ai_subtitle">AI word and sentence analysis</string>
+    <string name="advanced_ai_enable">Enable Advanced AI</string>
+    <string name="advanced_ai_connection" comment="Advanced AI settings section label, intentionally matching the Anki connection label.">Connection</string>
+    <string name="advanced_ai_not_tested">Not tested</string>
+    <string name="advanced_ai_testing">Testing</string>
+    <string name="advanced_ai_section_api">API</string>
+    <string name="advanced_ai_section_prompts">Prompts</string>
+    <string name="advanced_ai_base_url">API Base URL</string>
+    <string name="advanced_ai_api_key">API Key</string>
+    <string name="advanced_ai_api_key_configured" comment="Advanced AI API key state label, intentionally matching the Anki configured state label.">Configured</string>
+    <string name="advanced_ai_model" comment="Advanced AI model field label, intentionally matching the Anki note model label.">Model</string>
+    <string name="advanced_ai_word_prompt">Word analysis prompt</string>
+    <string name="advanced_ai_sentence_translation_prompt">Sentence translation prompt</string>
+    <string name="advanced_ai_sentence_prompt">Sentence analysis prompt</string>
+    <string name="advanced_ai_test_connection">Test API</string>
+    <string name="advanced_ai_test_success">API connection succeeded.</string>
+    <string name="advanced_ai_test_failed">API connection failed.</string>
+    <string name="advanced_ai_word_analysis_title">AI Word Analysis</string>
+    <string name="advanced_ai_sentence_analysis_title">Sentence Analysis</string>
+    <string name="advanced_ai_loading">Loading analysis…</string>
+    <string name="advanced_ai_request_failed">Unable to load AI analysis.</string>
+    <string name="advanced_ai_default_word_prompt">Explain the selected word\'s role inside the sentence in concise Chinese. Output plain Chinese text only with exactly three lines: 词性：... 作用：... 补充：... Do not use Markdown, bullets, numbering, or quotes.</string>
+    <string name="advanced_ai_default_sentence_translation_prompt">Output only the final natural Chinese translation. Do not add explanations, labels, quotes, or line breaks.</string>
+    <string name="advanced_ai_default_sentence_prompt">Analyze the sentence structure and difficult points in concise Chinese. Output plain Chinese text only with exactly three lines: 结构：... 难点：... 补充：... Do not use Markdown, bullets, numbering, or quotes.</string>
     <string name="audio_sources">Sources</string>
     <string name="audio_add_source">Add Source</string>
     <string name="audio_name">Name</string>
@@ -537,7 +562,7 @@
     <string name="anki_open_app_settings">Open App Settings</string>
     <string name="anki_fetching">Fetching</string>
     <string name="anki_deck" comment="Anki deck selector label, intentionally matching duplicate scope deck label.">Deck</string>
-    <string name="anki_model">Model</string>
+    <string name="anki_model" comment="Anki note type label, intentionally matching the Advanced AI model label.">Model</string>
     <string name="anki_allow_duplicates">Allow Duplicates</string>
     <string name="anki_check_duplicates_all_models">Check for duplicates across all models</string>
     <string name="anki_duplicate_check_scope">Duplicate Check Scope</string>
@@ -553,11 +578,11 @@
     <string name="anki_connect_address">Address</string>
     <string name="anki_connect_url">AnkiConnect URL</string>
     <string name="anki_connect_api_key">API Key (optional)</string>
-    <string name="anki_connect_api_key_configured">Configured</string>
+    <string name="anki_connect_api_key_configured" comment="AnkiConnect API key state label, intentionally matching the Advanced AI configured state label.">Configured</string>
     <string name="anki_connect_use">Use AnkiConnect</string>
     <string name="anki_connect_use_description">This replaces AnkiDroid requests with AnkiConnect JSON requests.</string>
     <string name="anki_connect_address_help">Use HTTPS for internet hosts. HTTP is accepted only for localhost and private network addresses.</string>
-    <string name="anki_connect_connection">Connection</string>
+    <string name="anki_connect_connection" comment="AnkiConnect section label, intentionally matching the Advanced AI connection label.">Connection</string>
     <string name="anki_connect_connected" comment="AnkiConnect connection state, intentionally matching sync connection state.">Connected</string>
     <string name="anki_connect_not_connected" comment="AnkiConnect connection state, intentionally matching sync connection state.">Not connected</string>
     <string name="anki_connect_connecting">Connecting</string>

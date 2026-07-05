@@ -13,17 +13,24 @@ class AdvancedSettingsRowsTest {
 
         assertEquals(
             listOf(
-                listOf(R.string.advanced_audio, R.string.advanced_statistics, R.string.advanced_sasayaki_audiobooks),
+                listOf(
+                    R.string.advanced_audio,
+                    R.string.advanced_statistics,
+                    R.string.advanced_sasayaki_audiobooks,
+                    R.string.advanced_ai,
+                ),
                 listOf(R.string.sync_ttu_sync, R.string.anki_connect_use),
                 listOf(R.string.settings_backup),
             ),
             sections.map { section -> section.rows.map { it.titleRes } },
         )
 
+        val advancedAiRow = sections.flatMap { it.rows }.single { it.destination == AdvancedDestination.AdvancedAi }
         val syncRow = sections.flatMap { it.rows }.single { it.destination == AdvancedDestination.Syncing }
         val ankiConnectRow = sections.flatMap { it.rows }.single { it.destination == AdvancedDestination.AnkiConnect }
         val backupRow = sections.flatMap { it.rows }.single { it.destination == AdvancedDestination.Backup }
 
+        assertEquals(AdvancedSettingsIcon.Spark, advancedAiRow.icon)
         assertEquals(AdvancedSettingsIcon.Cloud, syncRow.icon)
         assertEquals(AdvancedSettingsIcon.AnkiConnect, ankiConnectRow.icon)
         assertEquals(AdvancedSettingsIcon.ExternalDrive, backupRow.icon)

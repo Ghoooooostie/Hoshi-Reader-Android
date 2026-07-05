@@ -8,9 +8,17 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import moe.antimony.hoshi.R
 import moe.antimony.hoshi.dictionary.DictionaryRepository
+import moe.antimony.hoshi.features.advancedai.AdvancedAiAvailability
+import moe.antimony.hoshi.features.advancedai.AdvancedAiClient
+import moe.antimony.hoshi.features.advancedai.AdvancedAiSettingsRepository
+import moe.antimony.hoshi.features.advancedai.sentenceAvailability
+import moe.antimony.hoshi.features.advancedai.sentenceTranslationAvailability
+import moe.antimony.hoshi.features.advancedai.wordAvailability
 import moe.antimony.hoshi.features.audio.LocalAudioFile
 import moe.antimony.hoshi.features.audio.LocalAudioRepository
 import moe.antimony.hoshi.features.audio.LocalAudioResolver
+import moe.antimony.hoshi.features.reader.ReaderSelectionData
+import moe.antimony.hoshi.features.reader.ReaderSelectionRect
 import moe.antimony.hoshi.ui.UiText
 import java.io.File
 import java.net.URL
@@ -27,6 +35,8 @@ internal class AnkiRepository(
     private val localAudioRepository: LocalAudioRepository,
     private val ankiConnectBackendFactory: (String, String) -> AnkiBackend,
     private val loadDictionaryMedia: (DictionaryMedia) -> ByteArray?,
+    private val advancedAiSettingsRepository: AdvancedAiSettingsRepository?,
+    private val advancedAiClient: AdvancedAiClient?,
 ) {
     @Inject
     constructor(
@@ -35,6 +45,8 @@ internal class AnkiRepository(
         settingsRepository: AnkiSettingsRepository,
         localAudioRepository: LocalAudioRepository,
         dictionaryRepository: DictionaryRepository,
+        advancedAiSettingsRepository: AdvancedAiSettingsRepository,
+        advancedAiClient: AdvancedAiClient,
     ) : this(
         context = context,
         backend = backend,
@@ -44,6 +56,8 @@ internal class AnkiRepository(
             AnkiConnectBackend(endpoint, apiKey = apiKey)
         },
         loadDictionaryMedia = { media -> dictionaryRepository.dictionaryMedia(media.dictionary, media.path) },
+        advancedAiSettingsRepository = advancedAiSettingsRepository,
+        advancedAiClient = advancedAiClient,
     )
 
     internal constructor(
@@ -54,6 +68,8 @@ internal class AnkiRepository(
         ankiConnectBackendFactory: (String, String) -> AnkiBackend = { endpoint: String, apiKey: String ->
             AnkiConnectBackend(endpoint, apiKey = apiKey)
         },
+        advancedAiSettingsRepository: AdvancedAiSettingsRepository? = null,
+        advancedAiClient: AdvancedAiClient? = null,
     ) : this(
         context = context,
         backend = backend,
@@ -61,6 +77,8 @@ internal class AnkiRepository(
         localAudioRepository = localAudioRepository,
         ankiConnectBackendFactory = ankiConnectBackendFactory,
         loadDictionaryMedia = { null },
+        advancedAiSettingsRepository = advancedAiSettingsRepository,
+        advancedAiClient = advancedAiClient,
     )
 
     val settings: Flow<AnkiSettings> = settingsRepository.settings
@@ -189,6 +207,25 @@ internal class AnkiRepository(
         val needsCover = fieldMappings.referencesAnkiHandlebar("{book-cover}")
         val needsSasayakiAudio = fieldMappings.referencesAnkiHandlebar("{sasayaki-audio}")
         val needsAudio = fieldMappings.referencesAnkiHandlebar("{audio}")
+        val needsSentenceCn = fieldMappings.referencesAnkiHandlebar("{sentence-cn}")
+        val needsSentenceAnalyze = fieldMappings.referencesAnkiHandlebar("{sentence-analyze}")
+        val needsWordAnalyze = fieldMappings.referencesAnkiHandlebar("{word-analyze}") ||
+            fieldMappings.referencesAnkiHandlebar("{advanced-ai-word}")
+        val sentenceCn = if (needsSentenceCn) {
+            context.sentenceCn?.takeIf { it.isNotBlank() } ?: requestSentenceCn(context.sentence)
+        } else {
+            context.sentenceCn
+        }
+        val sentenceAnalyze = if (needsSentenceAnalyze) {
+            context.sentenceAnalyze?.takeIf { it.isNotBlank() } ?: requestSentenceAnalyze(context.sentence)
+        } else {
+            context.sentenceAnalyze
+        }
+        val wordAnalyze = if (needsWordAnalyze) {
+            context.wordAnalyze?.takeIf { it.isNotBlank() } ?: requestWordAnalyze(payload, context)
+        } else {
+            context.wordAnalyze
+        }
         val mediaContext = AnkiMiningContext(
             sentence = context.sentence,
             documentTitle = context.documentTitle,
@@ -199,6 +236,9 @@ internal class AnkiRepository(
                 addMediaFile(it, File(it).name, mimeTypeForPath(it), activeBackend, settings.backendKind)
             },
             sentenceOffset = context.sentenceOffset,
+            sentenceCn = sentenceCn,
+            sentenceAnalyze = sentenceAnalyze,
+            wordAnalyze = wordAnalyze,
         )
         val mediaPayload = payload.copy(
             audio = payload.audio.takeIf { needsAudio && it.isNotBlank() }
@@ -231,6 +271,53 @@ internal class AnkiRepository(
             }
         }
         added
+    }
+
+    private suspend fun requestSentenceCn(sentence: String): String? {
+        val settingsRepository = advancedAiSettingsRepository ?: return null
+        val client = advancedAiClient ?: return null
+        if (sentence.isBlank()) return null
+        val ready = settingsRepository.settings.first().sentenceTranslationAvailability() as? AdvancedAiAvailability.Ready
+            ?: return null
+        return runCatching { client.translateSentence(ready.settings, sentence) }
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
+    }
+
+    private suspend fun requestSentenceAnalyze(sentence: String): String? {
+        val settingsRepository = advancedAiSettingsRepository ?: return null
+        val client = advancedAiClient ?: return null
+        if (sentence.isBlank()) return null
+        val ready = settingsRepository.settings.first().sentenceAvailability() as? AdvancedAiAvailability.Ready
+            ?: return null
+        return runCatching { client.analyzeSentence(ready.settings, sentence) }
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
+    }
+
+    private suspend fun requestWordAnalyze(
+        payload: AnkiMiningPayload,
+        context: AnkiMiningContext,
+    ): String? {
+        val settingsRepository = advancedAiSettingsRepository ?: return null
+        val client = advancedAiClient ?: return null
+        val sentence = context.sentence.takeIf { it.isNotBlank() } ?: return null
+        val word = payload.matched.takeIf { it.isNotBlank() }
+            ?: payload.expression.takeIf { it.isNotBlank() }
+            ?: payload.popupSelectionText.takeIf { it.isNotBlank() }
+            ?: return null
+        val ready = settingsRepository.settings.first().wordAvailability() as? AdvancedAiAvailability.Ready
+            ?: return null
+        val selection = ReaderSelectionData(
+            text = word,
+            sentence = sentence,
+            rect = ReaderSelectionRect(0.0, 0.0, 1.0, 1.0),
+            normalizedOffset = context.sentenceOffset,
+            sentenceOffset = context.sentenceOffset,
+        )
+        return runCatching { client.analyzeWordInSentence(ready.settings, selection) }
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
     }
 
     suspend fun isDuplicate(

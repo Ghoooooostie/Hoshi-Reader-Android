@@ -36,7 +36,17 @@ class PitchEntry(
     val dictName: String,
     val pitchPositions: IntArray,
     val transcriptions: Array<String>,
-)
+) {
+    // 兼容旧版 JNI，只返回音高位置时补空转写。
+    constructor(
+        dictName: String,
+        pitchPositions: IntArray,
+    ) : this(
+        dictName = dictName,
+        pitchPositions = pitchPositions,
+        transcriptions = emptyArray(),
+    )
+}
 
 class TermResult(
     val expression: String,
@@ -69,7 +79,27 @@ class LookupResult(
     val matched: String,
     val term: TermResult,
     val traceCandidates: Array<TraceCandidate>,
-)
+) {
+    // 兼容旧版 JNI，把旧的去活用结果折叠成算法来源的单条 trace candidate。
+    constructor(
+        matched: String,
+        deinflected: String,
+        process: Array<TransformGroup>,
+        term: TermResult,
+        preprocessorSteps: Int,
+    ) : this(
+        matched = matched,
+        term = term,
+        traceCandidates = arrayOf(
+            TraceCandidate(
+                deinflected = deinflected,
+                preprocessorSteps = preprocessorSteps,
+                source = TraceSource.ALGORITHM,
+                trace = process,
+            ),
+        ),
+    )
+}
 
 object HoshiDicts {
     init {
@@ -77,7 +107,7 @@ object HoshiDicts {
     }
 
     external fun importDictionary(zipPath: String, outputDir: String, lowRam: Boolean = false): ImportResult
-    external fun createLookupObject(languageId: String): Long
+    private external fun createLookupObject(): Long
     external fun destroyLookupObject(session: Long)
     external fun rebuildQuery(
         session: Long,
@@ -89,4 +119,9 @@ object HoshiDicts {
     external fun lookup(session: Long, text: String, maxResults: Int, scanLength: Int): Array<LookupResult>
     external fun getStyles(session: Long): Array<DictionaryStyle>
     external fun getMediaFile(session: Long, dictName: String, mediaPath: String): ByteArray?
+
+    // 兼容旧版 native，当前语言参数先保留在 Kotlin 层接口。
+    fun createLookupObject(languageId: String): Long {
+        return createLookupObject()
+    }
 }

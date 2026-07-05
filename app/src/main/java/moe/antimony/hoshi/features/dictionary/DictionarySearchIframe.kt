@@ -2,10 +2,13 @@ package moe.antimony.hoshi.features.dictionary
 
 import de.manhhao.hoshi.LookupResult
 import java.security.MessageDigest
+import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiPayload
+import moe.antimony.hoshi.features.advancedai.toPayload
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupFramePayload
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupFrameRect
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupViewport
 import moe.antimony.hoshi.features.reader.ReaderPopupHistoryCounts
+import moe.antimony.hoshi.ui.UiText
 
 internal const val DictionarySearchRootPopupId = "dictionary-search-root"
 
@@ -16,6 +19,7 @@ internal fun dictionarySearchRootFramePayload(
     darkMode: Boolean,
     eInkMode: Boolean,
     iframeUrl: String,
+    advancedAi: LookupPopupAdvancedAiPayload? = null,
     clearSelectionSignal: Int = 0,
     rootHistory: ReaderPopupHistoryCounts = ReaderPopupHistoryCounts(),
 ): ReaderLookupPopupFramePayload {
@@ -42,11 +46,15 @@ internal fun dictionarySearchRootFramePayload(
         clearSelectionSignal = clearSelectionSignal,
         selectionOffsetY = top,
         iframeUrl = iframeUrl,
-        contentKey = dictionarySearchResultsContentKey(results),
+        contentKey = lookupPopupContentKey(results, advancedAi),
+        advancedAi = advancedAi,
     )
 }
 
-internal fun dictionarySearchResultsContentKey(results: List<LookupResult>): String? {
+internal fun lookupPopupContentKey(
+    results: List<LookupResult>,
+    advancedAi: LookupPopupAdvancedAiPayload? = null,
+): String? {
     if (results.isEmpty()) return null
     val digest = MessageDigest.getInstance("SHA-256")
     results.forEach { result ->
@@ -54,6 +62,13 @@ internal fun dictionarySearchResultsContentKey(results: List<LookupResult>): Str
         digest.update(entry.size.toString().toByteArray(Charsets.UTF_8))
         digest.update(0)
         digest.update(entry)
+        digest.update(0)
+    }
+    advancedAi?.let { payload ->
+        val marker = "${payload.title}\u0000${payload.status}\u0000${payload.body}".toByteArray(Charsets.UTF_8)
+        digest.update(marker.size.toString().toByteArray(Charsets.UTF_8))
+        digest.update(0)
+        digest.update(marker)
         digest.update(0)
     }
     return digest.digest().joinToString(separator = "") { byte ->
@@ -72,6 +87,7 @@ internal fun dictionarySearchIframePayloads(
     eInkMode: Boolean,
     iframeUrl: String,
     rootClearSelectionSignal: Int = 0,
+    resolveUiText: (UiText) -> String = { error("Unexpected popup UI text $it") },
 ): List<ReaderLookupPopupFramePayload> {
     if (rootResults.isEmpty()) return emptyList()
     return listOf(
@@ -94,6 +110,7 @@ internal fun dictionarySearchIframePayloads(
             backCount = history.backCount,
             forwardCount = history.forwardCount,
             iframeUrl = iframeUrl,
+            advancedAi = popup.state.advancedAiState.toPayload(resolveUiText),
         )
     }
 }

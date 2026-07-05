@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Storage
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -65,6 +66,13 @@ fun AdvancedSettingsView(
     }
     if (destination == AdvancedDestination.Sasayaki) {
         SasayakiSettingsView(
+            onClose = { destination = null },
+            modifier = modifier,
+        )
+        return
+    }
+    if (destination == AdvancedDestination.AdvancedAi) {
+        AdvancedAiSettingsView(
             onClose = { destination = null },
             modifier = modifier,
         )
@@ -144,6 +152,7 @@ internal enum class AdvancedDestination {
     Audio,
     Statistics,
     Sasayaki,
+    AdvancedAi,
     Backup,
     Syncing,
     AnkiConnect,
@@ -153,6 +162,7 @@ internal enum class AdvancedSettingsIcon {
     Speaker,
     Chart,
     Waveform,
+    Spark,
     Cloud,
     AnkiConnect,
     ExternalDrive,
@@ -190,6 +200,12 @@ internal fun advancedSettingsSections(): List<AdvancedSettingsSection> =
                     icon = AdvancedSettingsIcon.Waveform,
                     subtitleRes = R.string.advanced_sasayaki_subtitle,
                 ),
+                AdvancedSettingsRow(
+                    titleRes = R.string.advanced_ai,
+                    destination = AdvancedDestination.AdvancedAi,
+                    icon = AdvancedSettingsIcon.Spark,
+                    subtitleRes = R.string.advanced_ai_subtitle,
+                ),
             ),
         ),
         AdvancedSettingsSection(
@@ -222,6 +238,7 @@ private fun AdvancedSettingsIcon.imageVector(): ImageVector =
         AdvancedSettingsIcon.Speaker -> Icons.AutoMirrored.Rounded.VolumeUp
         AdvancedSettingsIcon.Chart -> Icons.AutoMirrored.Rounded.ShowChart
         AdvancedSettingsIcon.Waveform -> Icons.Rounded.GraphicEq
+        AdvancedSettingsIcon.Spark -> Icons.Rounded.AutoAwesome
         AdvancedSettingsIcon.Cloud -> Icons.Rounded.Cloud
         AdvancedSettingsIcon.AnkiConnect -> Icons.Rounded.Link
         AdvancedSettingsIcon.ExternalDrive -> Icons.Rounded.Storage

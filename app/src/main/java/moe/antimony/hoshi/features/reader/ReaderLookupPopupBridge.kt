@@ -16,6 +16,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
+import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiPayload
 import moe.antimony.hoshi.features.audio.AudioPlaybackMode
 import moe.antimony.hoshi.features.audio.AudioRequestHandler
 import moe.antimony.hoshi.features.dictionary.DictionaryImageRequestHandler
@@ -23,6 +24,7 @@ import moe.antimony.hoshi.features.dictionary.LookupPopupAssets
 import moe.antimony.hoshi.features.dictionary.LookupPopupHtml
 import moe.antimony.hoshi.features.dictionary.LookupPopupItem
 import moe.antimony.hoshi.features.dictionary.LookupPopupLayout
+import moe.antimony.hoshi.features.dictionary.lookupPopupContentKey
 import moe.antimony.hoshi.features.dictionary.popupSelectionOffsetY
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -106,6 +108,7 @@ internal data class ReaderLookupPopupFramePayload(
     val selectionOffsetY: Double,
     val iframeUrl: String,
     val contentKey: String? = null,
+    val advancedAi: LookupPopupAdvancedAiPayload? = null,
 ) {
     companion object {
         fun fromPopup(
@@ -119,6 +122,7 @@ internal data class ReaderLookupPopupFramePayload(
             sasayakiIsPlaying: Boolean = false,
             iframeUrl: String = readerLookupPopupIframeUrl(),
             includeInitialEntryJson: Boolean = true,
+            advancedAi: LookupPopupAdvancedAiPayload? = null,
         ): ReaderLookupPopupFramePayload {
             val state = popup.state
             val selectionRect = state.selection.rect
@@ -169,6 +173,8 @@ internal data class ReaderLookupPopupFramePayload(
                     hasSasayakiCue = hasSasayakiCue,
                 ),
                 iframeUrl = iframeUrl,
+                contentKey = lookupPopupContentKey(state.results, advancedAi),
+                advancedAi = advancedAi,
             )
         }
     }

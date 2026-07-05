@@ -321,6 +321,23 @@ test('shared selection treats svg containers as reader taps while preserving svg
     assert.equal(clearCount, 1);
 });
 
+test('shared selection can select the whole sentence from a hit point', () => {
+    const { document, selection, textNode } = loadSelection('一文目です。二文目です。三文目です。');
+    const secondSentenceOffset = '一文目です。'.length;
+    document.pointElement = hitElement([]);
+    selection.clearSelection = () => {};
+    selection.getCharacterAtPoint = () => ({ node: textNode, offset: secondSentenceOffset });
+
+    const payload = selection.selectSentence(1, 1, 80);
+
+    assert.equal(payload.text, '二文目です。');
+    assert.equal(payload.sentence, '二文目です。');
+    assert.equal(selection.selection.text, '二文目です。');
+    assert.equal(selection.selection.ranges.length, 1);
+    assert.equal(selection.selection.ranges[0].start, secondSentenceOffset);
+    assert.equal(selection.selection.ranges[0].end, '一文目です。二文目です。'.length);
+});
+
 test('shared selection exposes one highlight range per selected character', () => {
     const { document, selection, textNode } = loadSelection('𠮟猫犬');
     selection.selection = {

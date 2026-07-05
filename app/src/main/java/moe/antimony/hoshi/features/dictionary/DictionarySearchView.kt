@@ -81,6 +81,8 @@ import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.audio.WordAudioPlayer
 import moe.antimony.hoshi.features.anki.AnkiMiningContext
 import moe.antimony.hoshi.features.anki.AnkiViewModel
+import moe.antimony.hoshi.features.advancedai.sentenceSuccessContent
+import moe.antimony.hoshi.features.advancedai.wordSuccessContent
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupBridgeCallbackHolder
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupBridgeCallbacks
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupBridgeMessage
@@ -96,6 +98,7 @@ import moe.antimony.hoshi.features.reader.readerLookupPopupIframeUrl
 import moe.antimony.hoshi.ui.asString
 import moe.antimony.hoshi.ui.hoshiSingleLineTextFieldLineLimits
 import moe.antimony.hoshi.ui.hoshiTextFieldCursorBrush
+import moe.antimony.hoshi.ui.resolve
 import moe.antimony.hoshi.ui.rememberSyncedTextFieldState
 import moe.antimony.hoshi.webview.applyHoshiWebViewSecurityDefaults
 import org.json.JSONObject.quote
@@ -295,6 +298,7 @@ fun DictionarySearchView(
             eInkMode = readerSettings.eInkMode,
             iframeUrl = readerPopupIframeUrl,
             rootClearSelectionSignal = uiState.resultClearSelectionSignal,
+            resolveUiText = { it.resolve(context) },
         )
     }
     fun requestSearchFocus() {
@@ -400,6 +404,7 @@ fun DictionarySearchView(
                 } else {
                     val (childPopup, highlightCount) = lookup
                     setIframePopups(nextPopups + childPopup)
+                    searchViewModel.requestPopupWordAnalysis(childPopup.id, message.selection)
                     highlightIframeSelection(message.popupId, highlightCount)
                 }
             }
@@ -411,7 +416,12 @@ fun DictionarySearchView(
                 val miningContext = if (message.popupId == DictionarySearchRootPopupId) {
                     AnkiMiningContext(sentence = uiState.lastQuery.ifBlank { uiState.query })
                 } else {
-                    popupById(message.popupId)?.state?.ankiContext ?: return
+                    popupById(message.popupId)?.state?.let { popupState ->
+                        popupState.ankiContext.copy(
+                            sentenceAnalyze = popupState.advancedAiState.sentenceSuccessContent(),
+                            wordAnalyze = popupState.advancedAiState.wordSuccessContent(),
+                        )
+                    } ?: return
                 }
                 ankiViewModel.mineEntryAsync(message.payloadJson, miningContext) { mined ->
                     replyIframeMessage(message.popupId, messageId, mined.toString())

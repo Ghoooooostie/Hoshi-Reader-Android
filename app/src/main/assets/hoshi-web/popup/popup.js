@@ -108,6 +108,39 @@ function closeOverlay() {
     document.querySelector('.overlay').style.display = 'none';
 }
 
+function createAdvancedAiCard(advancedAi) {
+    if (!advancedAi?.title || !advancedAi?.body) {
+        return null;
+    }
+    const card = el('section', { className: 'advanced-ai-card' });
+    card.setAttribute('data-status', advancedAi.status || 'success');
+    card.appendChild(el('div', {
+        className: 'advanced-ai-card-title',
+        textContent: advancedAi.title,
+    }));
+    card.appendChild(el('div', {
+        className: 'advanced-ai-card-body',
+        textContent: advancedAi.body,
+    }));
+    return card;
+}
+
+function insertAdvancedAiCard(container, advancedAi) {
+    const card = createAdvancedAiCard(advancedAi);
+    if (!card) {
+        return null;
+    }
+    const firstEntry = Array.from(container.children || []).find((child) =>
+        String(child.className || '').split(' ').includes('entry'),
+    );
+    if (firstEntry && typeof container.insertBefore === 'function') {
+        container.insertBefore(card, firstEntry);
+    } else {
+        container.appendChild(card);
+    }
+    return card;
+}
+
 // https://github.com/yomidevs/yomitan/blob/c24d4c9b39ceec1b5fd133df774c41972e9ebbdc/ext/js/language/ja/japanese.js#L171
 function createFuriganaSegment(text, reading) {
     return {text, reading};
@@ -1599,6 +1632,7 @@ window.resetPopupResults = function() {
     pendingHistoryRestore = null;
     window.lookupEntries = undefined;
     window.entryCount = 0;
+    window.popupAdvancedAi = null;
     audioUrls = {};
     selectedDictionaries = {};
     resetDictionaryMediaObserver();
@@ -1679,6 +1713,7 @@ function snapshot() {
         scrollTop: document.scrollingElement.scrollTop,
         lookupEntries: window.lookupEntries,
         entryCount: window.entryCount,
+        advancedAi: window.popupAdvancedAi,
     };
 }
 
@@ -1698,6 +1733,7 @@ function restore(snapshot) {
     }
     window.lookupEntries = snapshot.lookupEntries;
     window.entryCount = snapshot.entryCount;
+    window.popupAdvancedAi = snapshot.advancedAi || null;
     audioUrls = {};
     selectedDictionaries = {};
     applyHoshiPopupThemeOverrides(container);
@@ -1845,6 +1881,8 @@ window.renderPopup = function() {
         return;
     }
     const generation = ++renderGeneration;
+    container.querySelectorAll?.('.advanced-ai-card').forEach((node) => node.remove?.());
+    insertAdvancedAiCard(container, window.popupAdvancedAi);
 
     (async () => {
         for (let idx = 0; idx < window.entryCount; idx++) {

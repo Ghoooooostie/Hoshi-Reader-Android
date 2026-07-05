@@ -26,6 +26,16 @@ class ReaderSelectionCommandTest {
     }
 
     @Test
+    fun selectSentenceCommandBuildsSentenceSelectionInvocation() {
+        val command = ReaderSelectionCommand.SelectSentence(
+            x = 12.5f,
+            y = 24.25f,
+        )
+
+        assertEquals("window.hoshiSelection.selectSentence(12.5, 24.25)", command.source)
+    }
+
+    @Test
     fun highlightCommandBuildsIosSelectionHighlightInvocation() {
         val command = ReaderSelectionCommand.HighlightSelection(count = 4)
 

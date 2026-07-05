@@ -1,6 +1,7 @@
 package moe.antimony.hoshi.features.reader
 
 import android.app.Activity
+import android.content.Intent
 import android.content.Context
 import android.content.ContextWrapper
 import android.os.SystemClock
@@ -43,6 +44,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -58,6 +60,13 @@ import moe.antimony.hoshi.epub.ReaderHighlight
 import moe.antimony.hoshi.epub.SasayakiMatch
 import moe.antimony.hoshi.epub.SasayakiMatchData
 import moe.antimony.hoshi.epub.SasayakiPlaybackData
+import moe.antimony.hoshi.features.advancedai.AdvancedAiAvailability
+import moe.antimony.hoshi.features.advancedai.AdvancedAiCardKind
+import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiState
+import moe.antimony.hoshi.features.advancedai.sentenceSuccessContent
+import moe.antimony.hoshi.features.advancedai.updateAdvancedAiState
+import moe.antimony.hoshi.features.advancedai.wordAvailability
+import moe.antimony.hoshi.features.advancedai.wordSuccessContent
 import moe.antimony.hoshi.features.audio.AudioRequestHandler
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.audio.LocalAudioRepository
@@ -69,6 +78,7 @@ import moe.antimony.hoshi.features.dictionary.LookupPopupAssets
 import moe.antimony.hoshi.features.dictionary.LookupPopupHtml
 import moe.antimony.hoshi.features.dictionary.LookupPopupItem
 import moe.antimony.hoshi.features.dictionary.LookupPopupOptions
+import moe.antimony.hoshi.features.dictionary.ProcessTextLookupActivity
 import moe.antimony.hoshi.features.dictionary.closeChildPopupsAndClearSelection
 import moe.antimony.hoshi.features.dictionary.closeChildPopupsForScrolledParent
 import moe.antimony.hoshi.features.dictionary.clearPopupSelectionHighlights
@@ -87,6 +97,8 @@ import moe.antimony.hoshi.features.sasayaki.SasayakiSettings
 import moe.antimony.hoshi.features.sasayaki.SasayakiSheet
 import moe.antimony.hoshi.features.sasayaki.SasayakiMatchDependencies
 import moe.antimony.hoshi.features.sasayaki.sasayakiImageHoldMillis
+import moe.antimony.hoshi.ui.UiText
+import moe.antimony.hoshi.ui.resolve
 import kotlin.coroutines.resume
 import kotlin.math.roundToInt
 
@@ -122,6 +134,8 @@ fun ReaderWebView(
     val dictionaryRepository = appContainer.dictionaryRepository
     val dictionarySettingsRepository = appContainer.dictionarySettingsRepository
     val audioSettingsRepository = appContainer.audioSettingsRepository
+    val advancedAiSettingsRepository = appContainer.advancedAiSettingsRepository
+    val advancedAiClient = appContainer.advancedAiClient
     val sasayakiSettingsRepository = appContainer.sasayakiSettingsRepository
     val sasayakiPlaybackServiceRuntime = appContainer.sasayakiPlaybackServiceRuntime
     val bookRepository = appContainer.bookRepository
@@ -263,6 +277,7 @@ fun ReaderWebView(
     val readerPopupIframeUrl = remember(readerPopupIframeDocument) {
         readerLookupPopupIframeUrl(readerPopupIframeDocument.hashCode())
     }
+    var popupAnalysisVersions by remember(book) { mutableStateOf<Map<String, Int>>(emptyMap()) }
     LaunchedEffect(webView, readerPopupIframeUrl) {
         webView?.evaluateJavascript(
             """
@@ -533,7 +548,6 @@ fun ReaderWebView(
         )?.let { (popup, highlightCount) ->
             popup.copy(sasayakiCue = sasayakiCueForSelection(selection)) to highlightCount
         }
-
     fun closeReader() {
         val plan = readerLifecycleAutoSyncPlan(ReaderLifecycleAutoSyncEvent.Dispose)
         if (plan.flushPendingProgressSave) {
@@ -573,6 +587,40 @@ fun ReaderWebView(
             highlight.popupId == null || highlight.popupId in activeIds
         }
         stateHolder.setLookupPopups(nextPopups, ::resumeSasayakiAfterLookupIfNeeded)
+    }
+    fun requestReaderPopupWordAnalysis(popupId: String, selection: ReaderSelectionData) {
+        scope.launch {
+            val ready = advancedAiSettingsRepository.settings.first().wordAvailability() as? AdvancedAiAvailability.Ready
+                ?: return@launch
+            val version = (popupAnalysisVersions[popupId] ?: 0) + 1
+            popupAnalysisVersions = popupAnalysisVersions + (popupId to version)
+            setLookupPopups(
+                stateHolder.lookupPopups.updateAdvancedAiState(
+                    popupId = popupId,
+                    nextState = LookupPopupAdvancedAiState.Loading(AdvancedAiCardKind.Word),
+                ),
+            )
+            val result = runCatching {
+                withContext(Dispatchers.IO) {
+                    advancedAiClient.analyzeWordInSentence(ready.settings, selection)
+                }
+            }
+            if (popupAnalysisVersions[popupId] != version) return@launch
+            setLookupPopups(
+                stateHolder.lookupPopups.updateAdvancedAiState(
+                    popupId = popupId,
+                    nextState = result.fold(
+                        onSuccess = { LookupPopupAdvancedAiState.Success(AdvancedAiCardKind.Word, it) },
+                        onFailure = {
+                            LookupPopupAdvancedAiState.Error(
+                                kind = AdvancedAiCardKind.Word,
+                                message = UiText.Resource(moe.antimony.hoshi.R.string.advanced_ai_request_failed),
+                            )
+                        },
+                    ),
+                ),
+            )
+        }
     }
     fun dismissRootLookupPopup() {
         rootSelectionHighlight = null
@@ -736,6 +784,7 @@ fun ReaderWebView(
                 }
                 val (childPopup, highlightCount) = lookup
                 setLookupPopups(nextPopups + childPopup)
+                requestReaderPopupWordAnalysis(childPopup.id, message.selection)
                 highlightReaderPopupSelection(message.popupId, highlightCount)
             }
             is ReaderLookupPopupBridgeMessage.PlayWordAudio -> {
@@ -749,7 +798,13 @@ fun ReaderWebView(
                         sasayakiAudioPath = sasayakiPlayer?.exportCueAudio(cue, popup.state.selection.sentence)?.absolutePath,
                     )
                 } ?: popup.state.ankiContext
-                ankiViewModel.mineEntryAsync(message.payloadJson, ankiContext) { mined ->
+                ankiViewModel.mineEntryAsync(
+                    message.payloadJson,
+                    ankiContext.copy(
+                        sentenceAnalyze = popup.state.advancedAiState.sentenceSuccessContent(),
+                        wordAnalyze = popup.state.advancedAiState.wordSuccessContent(),
+                    ),
+                ) { mined ->
                     replyReaderPopupMessage(message.popupId, messageId, mined.toString())
                 }
             }
@@ -857,6 +912,7 @@ fun ReaderWebView(
                 rects = null,
             )
             setLookupPopups(listOf(popup))
+            requestReaderPopupWordAnalysis(popup.id, selection)
             selectionRects(selectionCount) { rects ->
                 if (stateHolder.lookupPopups.none { it.id == popup.id }) return@selectionRects
                 val displayRects = rects.ifEmpty { listOf(popup.state.selection.rect) }
@@ -892,6 +948,33 @@ fun ReaderWebView(
             }
         }
     }
+    fun openSentenceAnalysis(selection: ReaderSelectionData) {
+        val query = selection.sentence.ifBlank { selection.text }.trim()
+        if (query.isBlank()) return
+        context.startActivity(
+            Intent(context, ProcessTextLookupActivity::class.java).apply {
+                action = Intent.ACTION_PROCESS_TEXT
+                type = "text/plain"
+                putExtra(Intent.EXTRA_PROCESS_TEXT, query)
+                putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true)
+            },
+        )
+    }
+    val handleSentenceLongPressed: (ReaderSelectionData, (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit =
+        { selection, selectionRects ->
+            cancelSasayakiAutoPage()
+            stateHolder.enterFocusModeForReaderInteraction()
+            rootSelectionHighlight = null
+            setLookupPopups(emptyList())
+            val highlightCount = selection.text.codePointCount(0, selection.text.length)
+            selectionRects(highlightCount) { rects ->
+                rootSelectionHighlight = ReaderRootSelectionHighlight(
+                    popupId = null,
+                    rects = rects.ifEmpty { listOf(selection.rect) },
+                )
+            }
+            openSentenceAnalysis(selection)
+        }
     fun handleReaderTapOutside() {
         cancelSasayakiAutoPage()
         if (stateHolder.lookupPopups.isEmpty()) {
@@ -1648,6 +1731,7 @@ fun ReaderWebView(
                         sasayakiIsPlaying = sasayakiPlayer?.isPlaying == true,
                         iframeUrl = readerPopupIframeUrl,
                         rootSelectionHighlight = rootSelectionHighlight,
+                        resolveUiText = { it.resolve(context) },
                     )
                 }
                 if (highlights != null) {
@@ -1715,6 +1799,7 @@ fun ReaderWebView(
                         sasayakiTextColor = currentSasayakiColors.textColor,
                         sasayakiBackgroundColor = currentSasayakiColors.backgroundColor,
                         onTextSelected = handleTextSelected,
+                        onSentenceLongPressed = handleSentenceLongPressed,
                         onClearLookupPopup = ::closeLookupPopupsAndSelection,
                         onReaderTapOutside = ::handleReaderTapOutside,
                         onReaderInteraction = ::handleReaderInteraction,

@@ -5,10 +5,22 @@ import de.manhhao.hoshi.GlossaryEntry
 import de.manhhao.hoshi.LookupResult
 import de.manhhao.hoshi.PitchEntry
 import de.manhhao.hoshi.TermResult
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import moe.antimony.hoshi.features.advancedai.AdvancedAiClient
+import moe.antimony.hoshi.features.advancedai.AdvancedAiSettings
+import moe.antimony.hoshi.features.advancedai.AdvancedAiSettingsRepository
+import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiState
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
 import moe.antimony.hoshi.features.reader.ReaderSelectionRect
@@ -260,6 +272,66 @@ class DictionarySearchViewModelTest {
     }
 
     @Test
+    fun openRootPopupStartsWordAnalysisWhenAdvancedAiEnabled() = runBlocking {
+        advancedAiEnvironment(enabled = true).use { advancedAi ->
+            val repository = FakeDictionarySearchRepository(
+                lookupResults = listOf(lookupResult("食べる")),
+            )
+            val client = RecordingAdvancedAiClient(wordResult = "这里是句中的谓语动词。")
+            val viewModel = viewModel(
+                repository = repository,
+                advancedAiSettingsRepository = advancedAi.repository,
+                advancedAiClient = client,
+            )
+
+            viewModel.openRootPopup(
+                selection = selection("食べる"),
+                options = LookupPopupOptions(isVertical = false),
+            )
+
+            withTimeout(1_000) {
+                while (true) {
+                    val popupState = viewModel.uiState.value.popups.single().state.advancedAiState
+                    if (client.wordRequests == 1 && popupState is LookupPopupAdvancedAiState.Success) {
+                        assertEquals(
+                            "这里是句中的谓语动词。",
+                            popupState.content,
+                        )
+                        break
+                    }
+                    yield()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun popupAnalysisStaysHiddenWhenAdvancedAiDisabled() = runBlocking {
+        advancedAiEnvironment(enabled = false).use { advancedAi ->
+            val repository = FakeDictionarySearchRepository(
+                lookupResults = listOf(lookupResult("食べる")),
+            )
+            val client = RecordingAdvancedAiClient(wordResult = "不会被使用")
+            val viewModel = viewModel(
+                repository = repository,
+                advancedAiSettingsRepository = advancedAi.repository,
+                advancedAiClient = client,
+            )
+
+            viewModel.openRootPopup(
+                selection = selection("食べる"),
+                options = LookupPopupOptions(isVertical = false),
+            )
+
+            assertEquals(0, client.wordRequests)
+            assertTrue(
+                viewModel.uiState.value.popups.single().state.advancedAiState ===
+                    LookupPopupAdvancedAiState.Hidden,
+            )
+        }
+    }
+
+    @Test
     fun rootPopupSelectionWithNoResultsStillClearsExistingPopups() {
         val repository = FakeDictionarySearchRepository()
         val viewModel = viewModel(repository)
@@ -274,11 +346,17 @@ class DictionarySearchViewModelTest {
         assertEquals(emptyList<LookupPopupItem>(), viewModel.uiState.value.popups)
     }
 
-    private fun viewModel(repository: FakeDictionarySearchRepository): DictionarySearchViewModel =
+    private fun viewModel(
+        repository: FakeDictionarySearchRepository,
+        advancedAiSettingsRepository: AdvancedAiSettingsRepository? = null,
+        advancedAiClient: AdvancedAiClient? = null,
+    ): DictionarySearchViewModel =
         DictionarySearchViewModel(
             repository = repository,
             coroutineScope = CoroutineScope(Dispatchers.Unconfined),
             ioDispatcher = Dispatchers.Unconfined,
+            advancedAiSettingsRepository = advancedAiSettingsRepository,
+            advancedAiClient = advancedAiClient,
         )
 
     private fun popup(id: String): LookupPopupItem = LookupPopupItem(
@@ -315,6 +393,31 @@ class DictionarySearchViewModelTest {
         ),
         traceCandidates = emptyArray(),
     )
+
+    private fun advancedAiEnvironment(enabled: Boolean): AdvancedAiRepositoryHandle {
+        val scope = CoroutineScope(Dispatchers.IO + Job())
+        val file = File.createTempFile("advanced-ai-dictionary-search", ".preferences_pb")
+        val repository = AdvancedAiSettingsRepository(
+            dataStore = PreferenceDataStoreFactory.create(
+                scope = scope,
+                produceFile = { file },
+            ),
+            defaultWordPrompt = "Explain the word role.",
+            defaultSentenceTranslationPrompt = "Translate the sentence.",
+            defaultSentencePrompt = "Explain the sentence.",
+        )
+        runBlocking {
+            repository.update {
+                it.copy(
+                    enabled = enabled,
+                    baseUrl = "https://example.invalid/v1",
+                    apiKey = "sk-test",
+                    model = "gpt-test",
+                )
+            }
+        }
+        return AdvancedAiRepositoryHandle(repository, scope, file)
+    }
 }
 
 private class FakeDictionarySearchRepository(
@@ -344,4 +447,33 @@ private class FakeDictionarySearchRepository(
     }
 
     override fun dictionaryStyles(): Map<String, String> = dictionaryStyles
+}
+
+private class RecordingAdvancedAiClient(
+    private val wordResult: String,
+) : AdvancedAiClient {
+    var wordRequests: Int = 0
+        private set
+
+    override suspend fun analyzeWordInSentence(settings: AdvancedAiSettings, selection: ReaderSelectionData): String {
+        wordRequests += 1
+        return wordResult
+    }
+
+    override suspend fun translateSentence(settings: AdvancedAiSettings, sentence: String): String = ""
+
+    override suspend fun analyzeSentence(settings: AdvancedAiSettings, sentence: String): String = ""
+
+    override suspend fun testConnection(settings: AdvancedAiSettings): Result<Unit> = Result.success(Unit)
+}
+
+private class AdvancedAiRepositoryHandle(
+    val repository: AdvancedAiSettingsRepository,
+    private val scope: CoroutineScope,
+    private val file: File,
+) : AutoCloseable {
+    override fun close() {
+        scope.cancel()
+        file.delete()
+    }
 }

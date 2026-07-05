@@ -214,4 +214,38 @@ class AnkiHandlebarRendererTest {
             rendered,
         )
     }
+
+    @Test
+    fun rendersAdvancedAiSentenceTranslationAnalysisAndWordHandlebars() {
+        val rendered = AnkiHandlebarRenderer.render(
+            template = "{sentence-cn}|{sentence-analyze}|{word-analyze}|{advanced-ai-word}",
+            payload = AnkiMiningPayload(expression = "読む", matched = "読む"),
+            context = AnkiMiningContext(
+                sentence = "本を読む。",
+                sentenceCn = "读书。",
+                sentenceAnalyze = "主语省略，谓语是読む。",
+                wordAnalyze = "这里是句中的谓语动词。",
+            ),
+        )
+
+        assertEquals("读书。|主语省略，谓语是読む。|这里是句中的谓语动词。|这里是句中的谓语动词。", rendered)
+    }
+
+    @Test
+    fun rendersAdvancedAiHandlebarsWithHtmlLineBreaksForMultilineContent() {
+        val rendered = AnkiHandlebarRenderer.render(
+            template = "{sentence-analyze}|{word-analyze}",
+            payload = AnkiMiningPayload(expression = "読む", matched = "読む"),
+            context = AnkiMiningContext(
+                sentence = "本を読む。",
+                sentenceAnalyze = "结构：主句。\n难点：无。",
+                wordAnalyze = "词性：动词。\n作用：作谓语。",
+            ),
+        )
+
+        assertEquals(
+            "结构：主句。<br>难点：无。|词性：动词。<br>作用：作谓语。",
+            rendered,
+        )
+    }
 }

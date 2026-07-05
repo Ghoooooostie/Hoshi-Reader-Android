@@ -4,7 +4,9 @@ import android.webkit.WebView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import moe.antimony.hoshi.features.advancedai.toPayload
 import moe.antimony.hoshi.features.dictionary.LookupPopupItem
+import moe.antimony.hoshi.ui.UiText
 
 internal data class ReaderRootSelectionHighlight(
     val popupId: String?,
@@ -24,6 +26,7 @@ internal fun readerLookupPopupFramePayloads(
     sasayakiIsPlaying: Boolean,
     iframeUrl: String,
     rootSelectionHighlight: ReaderRootSelectionHighlight?,
+    resolveUiText: (UiText) -> String = { error("Unexpected popup UI text $it") },
 ): List<ReaderLookupPopupFramePayload> =
     popups.mapIndexed { index, popup ->
         val history = histories[popup.id] ?: ReaderPopupHistoryCounts()
@@ -41,6 +44,7 @@ internal fun readerLookupPopupFramePayloads(
                 popupIndex = index,
                 rootSelectionHighlight = rootSelectionHighlight,
             ),
+            advancedAi = popup.state.advancedAiState.toPayload(resolveUiText),
         )
     }
 

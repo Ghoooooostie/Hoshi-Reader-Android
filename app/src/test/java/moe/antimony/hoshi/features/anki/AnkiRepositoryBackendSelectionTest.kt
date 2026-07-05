@@ -1,10 +1,20 @@
 package moe.antimony.hoshi.features.anki
 
 import android.content.ContextWrapper
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import java.io.File
 import java.nio.file.Files
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
+import moe.antimony.hoshi.features.advancedai.AdvancedAiClient
+import moe.antimony.hoshi.features.advancedai.AdvancedAiSettings
+import moe.antimony.hoshi.features.advancedai.AdvancedAiSettingsRepository
 import moe.antimony.hoshi.ui.UiText
 import moe.antimony.hoshi.features.audio.LocalAudioRepository
 import org.junit.Assert.assertEquals
@@ -521,10 +531,67 @@ class AnkiRepositoryBackendSelectionTest {
         assertTrue(ankiConnect.lastFields.getValue("Media").contains(".opus"))
     }
 
+    @Test
+    fun mineEntryRequestsAdvancedAiFieldsOnlyWhenMappedTemplatesReferenceThem() = runBlocking {
+        val deck = AnkiDeck(10L, "Mining")
+        val noteType = AnkiNoteType(20L, "Basic", listOf("Sentence_CN", "Sentence_Analyze", "Word_Analyze"))
+        val ankiConnect = RecordingBackend(decks = listOf(deck), noteTypes = listOf(noteType))
+        val advancedAiClient = RecordingAdvancedAiClient(
+            wordResult = "这里是句中的谓语动词。",
+            sentenceTranslationResult = "虽然下雨，他还是出门了。",
+            sentenceAnalysisResult = "前半句让步，后半句主句。",
+        )
+        advancedAiEnvironment(enabled = true).use { advancedAi ->
+            val repository = repository(
+                settingsRepository = InMemoryAnkiSettingsRepository(
+                    AnkiSettings(
+                        backendKind = AnkiBackendKind.AnkiConnect,
+                        ankiConnectUrl = "https://anki.example.com",
+                        selectedDeckId = deck.id,
+                        selectedDeckName = deck.name,
+                        selectedNoteTypeId = noteType.id,
+                        selectedNoteTypeName = noteType.name,
+                        availableDecks = listOf(deck),
+                        availableNoteTypes = listOf(noteType),
+                        fieldMappings = mapOf(
+                            "Sentence_CN" to "{sentence-cn}",
+                            "Sentence_Analyze" to "{sentence-analyze}",
+                            "Word_Analyze" to "{word-analyze}",
+                        ),
+                    ),
+                ),
+                ankiConnectBackendFactory = { _, _ -> ankiConnect },
+                advancedAiSettingsRepository = advancedAi.repository,
+                advancedAiClient = advancedAiClient,
+            )
+
+            assertTrue(
+                repository.mineEntry(
+                    rawPayload = """{"expression":"read","matched":"read"}""",
+                    context = AnkiMiningContext(
+                        sentence = "Although it was raining, he still went out.",
+                        sentenceOffset = 0,
+                    ),
+                    decks = emptyList(),
+                    noteTypes = emptyList(),
+                ),
+            )
+
+            assertEquals(1, advancedAiClient.wordRequests)
+            assertEquals(1, advancedAiClient.sentenceTranslationRequests)
+            assertEquals(1, advancedAiClient.sentenceAnalysisRequests)
+            assertEquals("这里是句中的谓语动词。", ankiConnect.lastFields["Word_Analyze"])
+            assertEquals("虽然下雨，他还是出门了。", ankiConnect.lastFields["Sentence_CN"])
+            assertEquals("前半句让步，后半句主句。", ankiConnect.lastFields["Sentence_Analyze"])
+        }
+    }
+
     private fun repository(
         backend: AnkiBackend = RecordingBackend(),
         settingsRepository: InMemoryAnkiSettingsRepository = InMemoryAnkiSettingsRepository(),
         ankiConnectBackendFactory: (String, String) -> AnkiBackend = { _, _ -> RecordingBackend() },
+        advancedAiSettingsRepository: AdvancedAiSettingsRepository? = null,
+        advancedAiClient: AdvancedAiClient? = null,
     ): AnkiRepository {
         val cacheDir = Files.createTempDirectory("hoshi-anki-cache").toFile()
         return AnkiRepository(
@@ -535,7 +602,35 @@ class AnkiRepositoryBackendSelectionTest {
             settingsRepository = settingsRepository,
             localAudioRepository = LocalAudioRepository(Files.createTempDirectory("hoshi-anki-test").toFile()),
             ankiConnectBackendFactory = ankiConnectBackendFactory,
+            advancedAiSettingsRepository = advancedAiSettingsRepository,
+            advancedAiClient = advancedAiClient,
         )
+    }
+
+    private fun advancedAiEnvironment(enabled: Boolean): AdvancedAiRepositoryHandle {
+        val scope = CoroutineScope(Dispatchers.IO + Job())
+        val file = File.createTempFile("advanced-ai-anki", ".preferences_pb")
+        val repository = AdvancedAiSettingsRepository(
+            dataStore = PreferenceDataStoreFactory.create(
+                scope = scope,
+                produceFile = { file },
+            ),
+            defaultWordPrompt = "Explain the word role.",
+            defaultSentenceTranslationPrompt = "Translate the sentence into Chinese.",
+            defaultSentencePrompt = "Translate the sentence into Chinese.",
+        )
+        runBlocking {
+            repository.update {
+                it.copy(
+                    enabled = enabled,
+                    baseUrl = "https://example.invalid/v1",
+                    apiKey = "sk-test",
+                    model = "gpt-test",
+                )
+            }
+            repository.settings.first()
+        }
+        return AdvancedAiRepositoryHandle(repository, scope, file)
     }
 
     private class InMemoryAnkiSettingsRepository(
@@ -629,6 +724,47 @@ class AnkiRepositoryBackendSelectionTest {
         override fun sync(): Boolean {
             syncCalls += 1
             return true
+        }
+    }
+
+    private class RecordingAdvancedAiClient(
+        private val wordResult: String,
+        private val sentenceTranslationResult: String,
+        private val sentenceAnalysisResult: String,
+    ) : AdvancedAiClient {
+        var wordRequests: Int = 0
+            private set
+        var sentenceTranslationRequests: Int = 0
+            private set
+        var sentenceAnalysisRequests: Int = 0
+            private set
+
+        override suspend fun analyzeWordInSentence(settings: AdvancedAiSettings, selection: moe.antimony.hoshi.features.reader.ReaderSelectionData): String {
+            wordRequests += 1
+            return wordResult
+        }
+
+        override suspend fun translateSentence(settings: AdvancedAiSettings, sentence: String): String {
+            sentenceTranslationRequests += 1
+            return sentenceTranslationResult
+        }
+
+        override suspend fun analyzeSentence(settings: AdvancedAiSettings, sentence: String): String {
+            sentenceAnalysisRequests += 1
+            return sentenceAnalysisResult
+        }
+
+        override suspend fun testConnection(settings: AdvancedAiSettings): Result<Unit> = Result.success(Unit)
+    }
+
+    private class AdvancedAiRepositoryHandle(
+        val repository: AdvancedAiSettingsRepository,
+        private val scope: CoroutineScope,
+        private val file: File,
+    ) : AutoCloseable {
+        override fun close() {
+            scope.cancel()
+            file.delete()
         }
     }
 }

@@ -3,6 +3,7 @@ package moe.antimony.hoshi.features.dictionary
 import de.manhhao.hoshi.LookupResult
 import moe.antimony.hoshi.content.ContentLanguageProfile
 import moe.antimony.hoshi.epub.SasayakiMatch
+import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiState
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.anki.AnkiMiningContext
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
@@ -41,6 +42,7 @@ internal data class LookupPopupItem(
 internal data class LookupPopupState(
     val selection: ReaderSelectionData,
     val results: List<LookupResult>,
+    val advancedAiState: LookupPopupAdvancedAiState = LookupPopupAdvancedAiState.Hidden,
     val dictionaryStyles: Map<String, String> = emptyMap(),
     val dictionarySettings: DictionarySettings = DictionarySettings(),
     val isVertical: Boolean = true,

@@ -1,6 +1,6 @@
 # Hoshi Android Current Architecture
 
-Date: 2026-07-01
+Date: 2026-07-05
 
 This document describes the current architecture that exists in the Android
 repo. It is not a future plan and should not track task status. Long-lived
@@ -28,6 +28,10 @@ refactor goals belong in `docs/ARCHITECTURE_REFACTORING.md`.
   `StateFlow`.
 - Settings and small persisted preferences are stored behind DataStore-backed
   repositories.
+- `features/advancedai` owns Advanced AI settings persistence, OpenAI-compatible
+  word and sentence analysis requests, popup AI render state, and the shared
+  content plumbing used by Reader lookup, Process Text lookup, and Anki field
+  rendering.
 - Profiles are Hilt-backed app-wide state. `ProfileRepository` stores profile
   metadata under app-specific files, exposes active profile state through
   `StateFlow`, and controls the effective content language for Reader,

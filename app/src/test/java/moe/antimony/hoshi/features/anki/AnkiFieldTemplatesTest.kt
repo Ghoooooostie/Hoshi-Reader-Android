@@ -179,6 +179,32 @@ class AnkiFieldTemplatesTest {
     }
 
     @Test
+    fun appliesExactAdvancedAiFieldDefaultsForCustomModel() {
+        val noteType = AnkiNoteType(
+            id = 13L,
+            name = "Basic",
+            fields = listOf("Front", "Sentence_CN", "Sentence_Analyze", "Word_Analyze"),
+        )
+
+        assertEquals(
+            mapOf(
+                "Sentence_CN" to "{sentence-cn}",
+                "Sentence_Analyze" to "{sentence-analyze}",
+                "Word_Analyze" to "{word-analyze}",
+            ),
+            AnkiFieldTemplates.defaultMappings(noteType),
+        )
+        assertEquals(
+            mapOf(
+                "Sentence_CN" to "{sentence-cn}",
+                "Sentence_Analyze" to "{sentence-analyze}",
+                "Word_Analyze" to "{word-analyze}",
+            ),
+            AnkiFieldTemplates.applyDefaultsIfUnmapped(noteType, emptyMap()),
+        )
+    }
+
+    @Test
     fun doesNotMatchCustomLapisLikeOrUnrelatedNoteTypes() {
         assertFalse(
             AnkiFieldTemplates.matches(

@@ -18,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -33,10 +34,21 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.antimony.hoshi.ProcessTextLookupRequest
 import moe.antimony.hoshi.content.ContentLanguageProfile
 import moe.antimony.hoshi.dictionary.DictionaryRepository
+import moe.antimony.hoshi.features.advancedai.AdvancedAiAvailability
+import moe.antimony.hoshi.features.advancedai.AdvancedAiCardKind
+import moe.antimony.hoshi.features.advancedai.AdvancedAiClient
+import moe.antimony.hoshi.features.advancedai.AdvancedAiSettingsRepository
+import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiState
+import moe.antimony.hoshi.features.advancedai.sentenceAvailability
+import moe.antimony.hoshi.features.advancedai.sentenceSuccessContent
+import moe.antimony.hoshi.features.advancedai.updateAdvancedAiState
+import moe.antimony.hoshi.features.advancedai.wordAvailability
+import moe.antimony.hoshi.features.advancedai.wordSuccessContent
 import moe.antimony.hoshi.features.audio.AudioRequestHandler
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.audio.AudioSettingsRepository
@@ -61,6 +73,8 @@ import moe.antimony.hoshi.features.reader.readerLookupPopupIframeUrl
 import moe.antimony.hoshi.features.reader.usesDarkInterface
 import moe.antimony.hoshi.features.reader.usesDarkSystemBarIcons
 import moe.antimony.hoshi.profiles.ProfileRepository
+import moe.antimony.hoshi.ui.UiText
+import moe.antimony.hoshi.ui.resolve
 import moe.antimony.hoshi.ui.theme.HoshiReaderTheme
 import moe.antimony.hoshi.webview.applyHoshiWebViewSecurityDefaults
 import kotlin.math.min
@@ -73,6 +87,8 @@ internal class ProcessTextLookupDependencies @Inject constructor(
     val localAudioRepository: LocalAudioRepository,
     val readerFontManager: ReaderFontManager,
     val profileRepository: ProfileRepository,
+    val advancedAiSettingsRepository: AdvancedAiSettingsRepository,
+    val advancedAiClient: AdvancedAiClient,
 )
 
 @AndroidEntryPoint
@@ -138,6 +154,7 @@ private fun ProcessTextLookupOverlay(
     val ankiViewModel: AnkiViewModel = hiltViewModel()
     val ankiUiState by ankiViewModel.uiState.collectAsStateWithLifecycle()
     val assets = remember(context) { LookupPopupAssets.load(context) }
+    val scope = rememberCoroutineScope()
     val fontFaceCss = dependencies.readerFontManager.popupFontFaceCss()
     val popupSettings = popups.firstOrNull()?.state
     val readerPopupIframeDocument = remember(
@@ -194,9 +211,10 @@ private fun ProcessTextLookupOverlay(
     }
     val readerPopupBridgeHolder = remember { ReaderLookupPopupBridgeCallbackHolder() }
 
+    var popupAnalysisVersions by remember(query) { mutableStateOf<Map<String, Int>>(emptyMap()) }
     LaunchedEffect(query, readerSettings, darkMode, contentLanguageProfile) {
-        runCatching {
-            withContext(Dispatchers.IO) {
+        try {
+            val (popup, readySettings) = withContext(Dispatchers.IO) {
                 dependencies.dictionaryRepository.rebuildLookupQuery()
                 val dictionarySettings = dependencies.dictionarySettingsRepository.settings.first().normalized()
                 val audioSettings = dependencies.audioSettingsRepository.settings.first()
@@ -213,7 +231,9 @@ private fun ProcessTextLookupOverlay(
                     dictionarySettings.maxResults,
                     dictionarySettings.scanLength,
                 )
-                lookupPopupItem(
+                val ready = dependencies.advancedAiSettingsRepository.settings.first().sentenceAvailability()
+                    as? AdvancedAiAvailability.Ready
+                val popup = lookupPopupItem(
                     selection = selection,
                     results = results,
                     dictionaryStyles = styles,
@@ -222,16 +242,45 @@ private fun ProcessTextLookupOverlay(
                     readerSettings = readerSettings,
                     darkMode = darkMode,
                     contentLanguageProfile = contentLanguageProfile,
-                )
+                )?.let { rootPopup ->
+                    if (ready == null) {
+                        rootPopup
+                    } else {
+                        rootPopup.copy(
+                            state = rootPopup.state.copy(
+                                advancedAiState = LookupPopupAdvancedAiState.Loading(AdvancedAiCardKind.Sentence),
+                            ),
+                        )
+                    }
+                }
+                popup to ready?.settings
             }
-        }.onSuccess { popup ->
             if (popup == null) {
                 onClose()
-            } else {
-                popups = listOf(popup)
+                return@LaunchedEffect
             }
-        }.onFailure {
-            error = it
+            popups = listOf(popup)
+            if (readySettings != null) {
+                val result = runCatching {
+                    withContext(Dispatchers.IO) {
+                        dependencies.advancedAiClient.analyzeSentence(readySettings, query)
+                    }
+                }
+                popups = popups.updateAdvancedAiState(
+                    popupId = popup.id,
+                    nextState = result.fold(
+                        onSuccess = { LookupPopupAdvancedAiState.Success(AdvancedAiCardKind.Sentence, it) },
+                        onFailure = {
+                            LookupPopupAdvancedAiState.Error(
+                                kind = AdvancedAiCardKind.Sentence,
+                                message = UiText.Resource(moe.antimony.hoshi.R.string.advanced_ai_request_failed),
+                            )
+                        },
+                    ),
+                )
+            }
+        } catch (throwable: Throwable) {
+            error = throwable
             onClose()
         }
     }
@@ -264,6 +313,7 @@ private fun ProcessTextLookupOverlay(
             sasayakiIsPlaying = false,
             iframeUrl = readerPopupIframeUrl,
             rootSelectionHighlight = null,
+            resolveUiText = { it.resolve(context) },
         )
         fun setIframePopups(next: List<LookupPopupItem>) {
             val activeIds = next.mapTo(mutableSetOf()) { it.id }
@@ -323,6 +373,40 @@ private fun ProcessTextLookupOverlay(
                     contentLanguageProfile = contentLanguageProfile,
                 ),
             )
+        fun requestPopupWordAnalysis(popupId: String, selection: ReaderSelectionData) {
+            scope.launch {
+                val ready = dependencies.advancedAiSettingsRepository.settings.first().wordAvailability()
+                    as? AdvancedAiAvailability.Ready ?: return@launch
+                val version = (popupAnalysisVersions[popupId] ?: 0) + 1
+                popupAnalysisVersions = popupAnalysisVersions + (popupId to version)
+                setIframePopups(
+                    popups.updateAdvancedAiState(
+                        popupId = popupId,
+                        nextState = LookupPopupAdvancedAiState.Loading(AdvancedAiCardKind.Word),
+                    ),
+                )
+                val result = runCatching {
+                    withContext(Dispatchers.IO) {
+                        dependencies.advancedAiClient.analyzeWordInSentence(ready.settings, selection)
+                    }
+                }
+                if (popupAnalysisVersions[popupId] != version) return@launch
+                setIframePopups(
+                    popups.updateAdvancedAiState(
+                        popupId = popupId,
+                        nextState = result.fold(
+                            onSuccess = { LookupPopupAdvancedAiState.Success(AdvancedAiCardKind.Word, it) },
+                            onFailure = {
+                                LookupPopupAdvancedAiState.Error(
+                                    kind = AdvancedAiCardKind.Word,
+                                    message = UiText.Resource(moe.antimony.hoshi.R.string.advanced_ai_request_failed),
+                                )
+                            },
+                        ),
+                    ),
+                )
+            }
+        }
         fun handleReaderPopupBridgeMessage(message: ReaderLookupPopupBridgeMessage) {
             when (message) {
                 is ReaderLookupPopupBridgeMessage.OpenLink -> context.openPopupExternalLink(message.url)
@@ -347,6 +431,7 @@ private fun ProcessTextLookupOverlay(
                     } else {
                         val (childPopup, highlightCount) = lookup
                         setIframePopups(nextPopups + childPopup)
+                        requestPopupWordAnalysis(childPopup.id, message.selection)
                         highlightIframeSelection(message.popupId, highlightCount)
                     }
                 }
@@ -356,7 +441,13 @@ private fun ProcessTextLookupOverlay(
                 is ReaderLookupPopupBridgeMessage.MineEntry -> {
                     val popup = popupById(message.popupId) ?: return
                     val messageId = message.messageId ?: return
-                    ankiViewModel.mineEntryAsync(message.payloadJson, popup.state.ankiContext) { mined ->
+                    ankiViewModel.mineEntryAsync(
+                        message.payloadJson,
+                        popup.state.ankiContext.copy(
+                            sentenceAnalyze = popup.state.advancedAiState.sentenceSuccessContent(),
+                            wordAnalyze = popup.state.advancedAiState.wordSuccessContent(),
+                        ),
+                    ) { mined ->
                         replyIframeMessage(message.popupId, messageId, mined.toString())
                     }
                 }

@@ -6,6 +6,13 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ## [Unreleased]
 
+### Added
+
+- Add an Advanced AI settings page that can show AI word-in-sentence analysis
+  above lookup popup dictionaries, show AI sentence Chinese analysis in Process
+  Text lookup, and let Anki templates render `{sentence-cn}` and
+  `{advanced-ai-word}` when configured.
+
 ### Changed
 
 - Improve dictionary lookup and import behavior by honoring Yomitan term scores

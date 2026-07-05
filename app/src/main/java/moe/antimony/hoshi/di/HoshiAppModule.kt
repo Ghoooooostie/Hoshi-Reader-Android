@@ -15,6 +15,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import moe.antimony.hoshi.BuildConfig
+import moe.antimony.hoshi.features.advancedai.AdvancedAiClient
+import moe.antimony.hoshi.features.advancedai.AdvancedAiSettingsRepository
+import moe.antimony.hoshi.features.advancedai.OpenAiCompatibleAdvancedAiClient
+import moe.antimony.hoshi.features.advancedai.advancedAiSettingsRepository
 import moe.antimony.hoshi.features.anki.AnkiSettingsRepository
 import moe.antimony.hoshi.features.anki.ankiSettingsRepository
 import moe.antimony.hoshi.features.audio.AudioSettingsRepository
@@ -102,6 +106,15 @@ internal object HoshiAppModule {
     @Singleton
     fun provideAudioSettingsRepository(@ApplicationContext context: Context): AudioSettingsRepository =
         context.audioSettingsRepository()
+
+    @Provides
+    @Singleton
+    fun provideAdvancedAiSettingsRepository(@ApplicationContext context: Context): AdvancedAiSettingsRepository =
+        context.advancedAiSettingsRepository()
+
+    @Provides
+    @Singleton
+    fun provideAdvancedAiClient(): AdvancedAiClient = OpenAiCompatibleAdvancedAiClient()
 
     @Provides
     @Singleton

@@ -68,6 +68,17 @@ class FakeElement {
         return child;
     }
 
+    insertBefore(child, before) {
+        child.parentElement = this;
+        const index = this.children.indexOf(before);
+        if (index < 0) {
+            this.children.push(child);
+        } else {
+            this.children.splice(index, 0, child);
+        }
+        return child;
+    }
+
     append(...children) {
         children.forEach((child) => this.appendChild(child));
     }
@@ -355,6 +366,25 @@ test('popup language detection does not depend on the selection object', () => {
     delete context.window.hoshiSelection;
 
     assert.equal(context.getLanguageFromText('猫 glossary', 'en'), 'ja');
+});
+
+test('popup inserts the advanced ai card before dictionary entries', () => {
+    const { context } = popupContext();
+    const container = new FakeElement([], 'div');
+    const existingEntry = new FakeElement([], 'div');
+    existingEntry.className = 'entry';
+    container.appendChild(existingEntry);
+
+    context.insertAdvancedAiCard(container, {
+        title: 'AI 词语分析',
+        status: 'success',
+        body: '这里是句中的谓语动词。',
+    });
+
+    assert.equal(container.children[0].className, 'advanced-ai-card');
+    assert.equal(container.children[0].dataset.status, 'success');
+    assert.equal(container.children[0].children[0].textContent, 'AI 词语分析');
+    assert.equal(container.children[1], existingEntry);
 });
 
 test('popup renders each deinflection trace candidate as its own tag row', () => {

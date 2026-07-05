@@ -207,6 +207,7 @@ internal object LookupPopupHtml {
                     window.dictionaryStyles = $styles;
                     window.lookupEntries = [];
                     window.entryCount = 0;
+                    window.popupAdvancedAi = null;
                     window.popupId = null;
                     window.hoshiPostPopupScrollState = function() {
                         var scrollRoot = document.scrollingElement || document.documentElement || document.body;
@@ -287,6 +288,7 @@ internal object LookupPopupHtml {
                             }
                             if (message.type === 'resetPopup') {
                                 window.popupId = null;
+                                window.popupAdvancedAi = null;
                                 closeOverlay();
                                 window.hoshiSelection?.clearSelection();
                                 window.resetPopupResults?.();
@@ -295,6 +297,7 @@ internal object LookupPopupHtml {
                             }
                             if (message.type === 'renderPopup') {
                                 window.popupId = message.popupId || null;
+                                window.popupAdvancedAi = message.advancedAi || null;
                                 closeOverlay();
                                 window.entryCount = message.entriesCount || 0;
                                 var initialEntries = [];

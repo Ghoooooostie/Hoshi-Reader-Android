@@ -145,6 +145,9 @@ data class AnkiMiningContext(
     val coverPath: String? = null,
     val sasayakiAudioPath: String? = null,
     val sentenceOffset: Int? = null,
+    val sentenceCn: String? = null,
+    val sentenceAnalyze: String? = null,
+    val wordAnalyze: String? = null,
 )
 
 object AnkiHandlebarRenderer {
@@ -194,6 +197,10 @@ object AnkiHandlebarRenderer {
             "{selected-glossary-no-dictionary-fallback}" -> stripDictionaryName(payload.selectedGlossaryOrFallback())
             "{popup-selection-text}" -> payload.popupSelectionText
             "{sentence}" -> sentenceValue(payload, context)
+            "{sentence-cn}" -> context.sentenceCn.orEmpty().ankiMultilinePlainText()
+            "{sentence-analyze}" -> context.sentenceAnalyze.orEmpty().ankiMultilinePlainText()
+            "{word-analyze}" -> context.wordAnalyze.orEmpty().ankiMultilinePlainText()
+            "{advanced-ai-word}" -> context.wordAnalyze.orEmpty().ankiMultilinePlainText()
             "{frequencies}" -> payload.frequenciesHtml
             "{frequency-harmonic-rank}" -> payload.freqHarmonicRank
             "{pitch-accent-positions}" -> payload.pitchPositions
@@ -264,4 +271,7 @@ object AnkiHandlebarRenderer {
         }
         return context.sentence.replaceFirst(matched, "<b>$matched</b>")
     }
+
+    private fun String.ankiMultilinePlainText(): String =
+        replace("\r\n", "\n").replace("\n", "<br>")
 }
