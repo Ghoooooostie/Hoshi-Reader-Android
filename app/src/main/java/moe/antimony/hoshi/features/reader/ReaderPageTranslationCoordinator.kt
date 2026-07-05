@@ -9,18 +9,14 @@ internal class ReaderPageTranslationCoordinator {
     private var activeChapterKey: String? = null
     private val pendingQueue = ArrayDeque<ReaderPageTranslationTarget>()
     private val queuedIds = linkedSetOf<String>()
+    private val completedIds = linkedSetOf<String>()
     private var inFlightId: String? = null
-    private val translatedByChapter = linkedMapOf<String, LinkedHashMap<String, String>>()
 
     fun clear() {
-        clearActiveWork()
-        translatedByChapter.clear()
-    }
-
-    fun clearActiveWork() {
         activeChapterKey = null
         pendingQueue.clear()
         queuedIds.clear()
+        completedIds.clear()
         inFlightId = null
     }
 
@@ -29,10 +25,9 @@ internal class ReaderPageTranslationCoordinator {
         targets: List<ReaderPageTranslationTarget>,
     ) {
         ensureChapter(chapterKey)
-        val translated = translated(chapterKey)
         targets.forEach { target ->
             if (target.text.isBlank()) return@forEach
-            if (translated.containsKey(target.id)) return@forEach
+            if (completedIds.contains(target.id)) return@forEach
             if (queuedIds.contains(target.id)) return@forEach
             if (inFlightId == target.id) return@forEach
             pendingQueue.addLast(target)
@@ -56,7 +51,7 @@ internal class ReaderPageTranslationCoordinator {
     ) {
         if (!matchesInFlight(chapterKey, targetId)) return
         inFlightId = null
-        translated(chapterKey)[targetId] = translation
+        completedIds += targetId
     }
 
     fun markFailure(
@@ -67,13 +62,6 @@ internal class ReaderPageTranslationCoordinator {
         inFlightId = null
     }
 
-    fun cachedTranslation(
-        chapterKey: String,
-        targetId: String,
-    ): String? {
-        return translatedByChapter[chapterKey]?.get(targetId)
-    }
-
     private fun matchesInFlight(chapterKey: String, targetId: String): Boolean =
         activeChapterKey == chapterKey && inFlightId == targetId
 
@@ -82,9 +70,7 @@ internal class ReaderPageTranslationCoordinator {
         activeChapterKey = chapterKey
         pendingQueue.clear()
         queuedIds.clear()
+        completedIds.clear()
         inFlightId = null
     }
-
-    private fun translated(chapterKey: String): LinkedHashMap<String, String> =
-        translatedByChapter.getOrPut(chapterKey) { linkedMapOf() }
 }
