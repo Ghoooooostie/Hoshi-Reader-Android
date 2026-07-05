@@ -529,7 +529,7 @@
     <string name="advanced_ai_sentence_analysis_title">Sentence Analysis</string>
     <string name="advanced_ai_loading">Loading analysis…</string>
     <string name="advanced_ai_request_failed">Unable to load AI analysis.</string>
-    <string name="advanced_ai_default_word_prompt">Explain the selected word\'s role inside the sentence in concise Chinese. Output plain Chinese text only with exactly three lines: 词性：... 作用：... 补充：... Do not use Markdown, bullets, numbering, or quotes.</string>
+    <string name="advanced_ai_default_word_prompt">Act like a Japanese teacher and explain the selected word in concise Chinese. Prioritize what the word means in this sentence, its part of speech, and why it is used here; add a more natural Chinese rendering, collocations, or near-synonyms only when helpful.</string>
     <string name="advanced_ai_default_sentence_translation_prompt">Output only the final natural Chinese translation. Do not add explanations, labels, quotes, or line breaks.</string>
     <string name="advanced_ai_default_sentence_prompt">Analyze the sentence structure and difficult points in concise Chinese. Output plain Chinese text only with exactly three lines: 结构：... 难点：... 补充：... Do not use Markdown, bullets, numbering, or quotes.</string>
     <string name="audio_sources">Sources</string>

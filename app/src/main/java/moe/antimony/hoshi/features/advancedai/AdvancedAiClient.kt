@@ -127,7 +127,7 @@ internal fun buildWordAnalysisRequestBody(
     selection: ReaderSelectionData,
 ): String = buildChatCompletionsRequest(
     model = settings.model,
-    prompt = buildWordAnalysisPrompt(settings.wordPrompt),
+    prompt = buildConfiguredPrompt(settings.wordPrompt),
     userContent = buildString {
         appendLine("Selected word: ${selection.text}")
         appendLine("Sentence: ${selection.sentence}")
@@ -142,7 +142,7 @@ internal fun buildSentenceTranslationRequestBody(
     sentence: String,
 ): String = buildChatCompletionsRequest(
     model = settings.model,
-    prompt = buildSentenceTranslationPrompt(settings.sentenceTranslationPrompt),
+    prompt = buildConfiguredPrompt(settings.sentenceTranslationPrompt),
     userContent = "Sentence: $sentence",
 )
 
@@ -152,57 +152,12 @@ internal fun buildSentenceAnalysisRequestBody(
     sentence: String,
 ): String = buildChatCompletionsRequest(
     model = settings.model,
-    prompt = buildSentenceAnalysisPrompt(settings.sentencePrompt),
+    prompt = buildConfiguredPrompt(settings.sentencePrompt),
     userContent = "Sentence: $sentence",
 )
 
-/** 统一拼上词语分析的稳定输出要求。 */
-private fun buildWordAnalysisPrompt(prompt: String): String =
-    appendOutputRequirements(
-        prompt = prompt,
-        requirements = """
-            Output in plain Chinese text only.
-            Do not use Markdown, bullets, numbering, or quotes.
-            Use exactly these three lines:
-            词性：...
-            作用：...
-            补充：...
-        """.trimIndent(),
-    )
-
-/** 统一拼上整句翻译的稳定输出要求。 */
-private fun buildSentenceTranslationPrompt(prompt: String): String =
-    appendOutputRequirements(
-        prompt = prompt,
-        requirements = """
-            Output only the final Chinese translation.
-            Do not add explanations, labels, quotes, or line breaks.
-        """.trimIndent(),
-    )
-
-/** 统一拼上长难句分析的稳定输出要求。 */
-private fun buildSentenceAnalysisPrompt(prompt: String): String =
-    appendOutputRequirements(
-        prompt = prompt,
-        requirements = """
-            Output in plain Chinese text only.
-            Do not use Markdown, bullets, numbering, or quotes.
-            Use exactly these three lines:
-            结构：...
-            难点：...
-            补充：...
-        """.trimIndent(),
-    )
-
-/** 避免不同入口漏掉同一组输出约束。 */
-private fun appendOutputRequirements(
-    prompt: String,
-    requirements: String,
-): String = buildString {
-    append(prompt.trim())
-    append("\n\n")
-    append(requirements.trim())
-}
+/** 直接使用用户当前保存的提示词，避免隐式追加额外要求。 */
+private fun buildConfiguredPrompt(prompt: String): String = prompt.trim()
 
 /** 解析 chat completions 的首条文本返回。 */
 internal fun parseCompletionText(responseText: String): String {

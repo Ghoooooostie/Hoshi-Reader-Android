@@ -15,6 +15,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ### Changed
 
+- Let Advanced AI prompt fields use the exact text saved in Settings, and refresh
+  the default word-analysis prompt so `Word_Analyze` explains the selected
+  word's meaning instead of forcing the old three-line template.
 - Improve dictionary lookup and import behavior by honoring Yomitan term scores
   and normalizing Japanese iteration marks, full-width numbers, and emphatic
   sequences.

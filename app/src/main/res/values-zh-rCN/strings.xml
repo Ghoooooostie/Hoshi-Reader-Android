@@ -527,7 +527,7 @@
     <string name="advanced_ai_sentence_analysis_title">长难句分析</string>
     <string name="advanced_ai_loading">分析中</string>
     <string name="advanced_ai_request_failed">AI 分析加载失败。</string>
-    <string name="advanced_ai_default_word_prompt">请用简洁中文分析所选词在句中的作用。只输出纯文本，不要 Markdown、星号、编号或引号。固定三行：词性：... 作用：... 补充：...</string>
+    <string name="advanced_ai_default_word_prompt">请像日语老师一样，用简洁中文分析所选词在原句中的具体意思和用法。优先说清这个词在这里是什么意思、是什么词性、在句子里起什么作用；如果有必要，再补充更自然的中文理解、常见搭配或近义表达。</string>
     <string name="advanced_ai_default_sentence_translation_prompt">只输出一句自然流畅的中文译文，不要解释、前言、引号或换行。</string>
     <string name="advanced_ai_default_sentence_prompt">请用简洁中文分析句子结构和难点。只输出纯文本，不要 Markdown、星号、编号或引号。固定三行：结构：... 难点：... 补充：...</string>
     <string name="audio_sources">来源</string>

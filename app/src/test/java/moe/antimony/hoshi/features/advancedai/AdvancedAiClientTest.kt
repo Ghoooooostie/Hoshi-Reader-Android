@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlin.concurrent.thread
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -37,11 +38,10 @@ class AdvancedAiClientTest {
         val body = buildWordAnalysisRequestBody(settings, selection)
 
         assertTrue(body.contains("Explain the role of the selected word."))
-        assertTrue(body.contains("Output in plain Chinese text only."))
-        assertTrue(body.contains("Do not use Markdown"))
-        assertTrue(body.contains("词性："))
-        assertTrue(body.contains("作用："))
-        assertTrue(body.contains("补充："))
+        assertFalse(body.contains("Output in plain Chinese text only."))
+        assertFalse(body.contains("Output concise Chinese only."))
+        assertFalse(body.contains("词性："))
+        assertFalse(body.contains("句中含义："))
         assertTrue(body.contains("Selected word: read"))
         assertTrue(body.contains("Sentence: I read the line aloud."))
         assertTrue(body.contains("Sentence offset: 2"))
@@ -71,11 +71,9 @@ class AdvancedAiClientTest {
         )
 
         assertTrue(body.contains("Explain the structure of the sentence."))
-        assertTrue(body.contains("Output in plain Chinese text only."))
-        assertTrue(body.contains("Do not use Markdown"))
-        assertTrue(body.contains("结构："))
-        assertTrue(body.contains("难点："))
-        assertTrue(body.contains("补充："))
+        assertFalse(body.contains("Output in plain Chinese text only."))
+        assertFalse(body.contains("结构："))
+        assertFalse(body.contains("难点："))
         assertTrue(body.contains("Sentence: Although it was raining, he still went out."))
     }
 
@@ -87,8 +85,8 @@ class AdvancedAiClientTest {
         )
 
         assertTrue(body.contains("Translate the sentence into natural Chinese."))
-        assertTrue(body.contains("Output only the final Chinese translation."))
-        assertTrue(body.contains("Do not add explanations"))
+        assertFalse(body.contains("Output only the final Chinese translation."))
+        assertFalse(body.contains("Do not add explanations"))
         assertTrue(body.contains("Sentence: Although it was raining, he still went out."))
     }
 

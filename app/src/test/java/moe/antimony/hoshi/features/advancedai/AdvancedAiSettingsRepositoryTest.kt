@@ -15,6 +15,9 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 class AdvancedAiSettingsRepositoryTest {
+    private val legacyWordPrompt =
+        "请用简洁中文分析所选词在句中的作用。只输出纯文本，不要 Markdown、星号、编号或引号。固定三行：词性：... 作用：... 补充：..."
+
     @get:Rule
     val tempFolder = TemporaryFolder()
 
@@ -78,6 +81,28 @@ class AdvancedAiSettingsRepositoryTest {
                 AdvancedAiMissingField.WordPrompt,
                 (availability as AdvancedAiAvailability.MissingConfiguration).field,
             )
+        }
+    }
+
+    @Test
+    fun migratesLegacyWordPromptToCurrentDefault() = runBlocking {
+        repository().use { handle ->
+            handle.repository.update { it.copy(wordPrompt = legacyWordPrompt) }
+
+            val saved = handle.repository.settings.first()
+
+            assertEquals("word-default", saved.wordPrompt)
+        }
+    }
+
+    @Test
+    fun keepsCustomizedWordPromptWhenItIsNotLegacyDefault() = runBlocking {
+        repository().use { handle ->
+            handle.repository.update { it.copy(wordPrompt = "custom-word-prompt") }
+
+            val saved = handle.repository.settings.first()
+
+            assertEquals("custom-word-prompt", saved.wordPrompt)
         }
     }
 
