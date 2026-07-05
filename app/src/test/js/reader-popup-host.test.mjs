@@ -374,6 +374,30 @@ test('root popup shifts above visible translation blocks instead of covering the
     assert.equal(shell.style.top, '18px');
 });
 
+test('root popup shifts below wrapped selection highlights instead of covering later lines', () => {
+    const scene = popupHost();
+    scene.window.innerHeight = 200;
+
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            frame: { left: 0, top: 44, width: 80, height: 30 },
+        }],
+        rootHighlight: {
+            popupId: 'root',
+            pending: false,
+            rects: [
+                { x: 0, y: 40, width: 100, height: 18 },
+                { x: 0, y: 62, width: 90, height: 18 },
+            ],
+        },
+    });
+
+    const shell = scene.document.getElementById('hoshi-reader-popup-layer').children[0];
+
+    assert.equal(shell.style.top, '84px');
+});
+
 test('active iframe rerenders when same popup id receives new entry payload', () => {
     const scene = popupHost();
     scene.host.renderStack({

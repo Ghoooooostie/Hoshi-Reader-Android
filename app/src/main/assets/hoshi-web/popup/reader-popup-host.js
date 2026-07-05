@@ -145,26 +145,57 @@
             .filter(rect => rangesOverlap(frame.left, frame.left + frame.width, rect.left, rect.right));
     }
 
-    function frameOverlapsTranslationRects(frame, rects) {
+    function visibleRootHighlightRects(frame) {
+        if (!rootHighlight || rootHighlight.pending || !Array.isArray(rootHighlight.rects)) return [];
+        return rootHighlight.rects
+            .map(normalizeRect)
+            .filter(rect => !!rect && rect.width > 0 && rect.height > 0)
+            .filter(rect => rangesOverlap(frame.left, frame.left + frame.width, rect.left, rect.right));
+    }
+
+    function frameOverlapsRects(frame, rects) {
         return rects.some(rect => rangesOverlap(frame.top, frame.top + frame.height, rect.top, rect.bottom));
     }
 
-    function adjustedRootPopupFrame(frame) {
-        const translationRects = visibleTranslationRects(frame);
-        if (!frameOverlapsTranslationRects(frame, translationRects)) return frame;
-        const minTop = 0;
+    function shiftedFrameAboveRects(frame, rects) {
+        const top = Math.min(...rects.map(rect => rect.top)) - frame.height - TRANSLATION_AVOID_GAP;
+        if (top < 0) return null;
+        return { left: frame.left, top, width: frame.width, height: frame.height };
+    }
+
+    function shiftedFrameBelowRects(frame, rects) {
+        const top = Math.max(...rects.map(rect => rect.bottom)) + TRANSLATION_AVOID_GAP;
         const maxTop = Math.max(0, (window.innerHeight || 0) - frame.height);
-        const aboveTop = Math.min(...translationRects.map(rect => rect.top)) - frame.height - TRANSLATION_AVOID_GAP;
-        if (aboveTop >= minTop) {
-            const candidate = { left: frame.left, top: aboveTop, width: frame.width, height: frame.height };
-            if (!frameOverlapsTranslationRects(candidate, translationRects)) return candidate;
+        if (top > maxTop) return null;
+        return { left: frame.left, top, width: frame.width, height: frame.height };
+    }
+
+    function adjustedRootPopupFrame(frame) {
+        let adjusted = frame;
+        const highlightRects = visibleRootHighlightRects(adjusted);
+        if (frameOverlapsRects(adjusted, highlightRects)) {
+            const below = shiftedFrameBelowRects(adjusted, highlightRects);
+            if (below && !frameOverlapsRects(below, highlightRects)) {
+                adjusted = below;
+            } else {
+                const above = shiftedFrameAboveRects(adjusted, highlightRects);
+                if (above && !frameOverlapsRects(above, highlightRects)) {
+                    adjusted = above;
+                }
+            }
         }
-        const belowTop = Math.max(...translationRects.map(rect => rect.bottom)) + TRANSLATION_AVOID_GAP;
-        if (belowTop <= maxTop) {
-            const candidate = { left: frame.left, top: belowTop, width: frame.width, height: frame.height };
-            if (!frameOverlapsTranslationRects(candidate, translationRects)) return candidate;
+
+        const translationRects = visibleTranslationRects(adjusted);
+        if (!frameOverlapsRects(adjusted, translationRects)) return adjusted;
+        const above = shiftedFrameAboveRects(adjusted, translationRects);
+        if (above && !frameOverlapsRects(above, highlightRects) && !frameOverlapsRects(above, translationRects)) {
+            return above;
         }
-        return frame;
+        const below = shiftedFrameBelowRects(adjusted, translationRects);
+        if (below && !frameOverlapsRects(below, highlightRects) && !frameOverlapsRects(below, translationRects)) {
+            return below;
+        }
+        return adjusted;
     }
 
     function adjustedPayloadFrame(payload, root) {

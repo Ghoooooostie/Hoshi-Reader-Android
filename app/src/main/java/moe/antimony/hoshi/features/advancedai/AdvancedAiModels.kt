@@ -8,6 +8,7 @@ internal data class AdvancedAiSettings(
     val model: String = "",
     val wordPrompt: String,
     val sentenceTranslationPrompt: String,
+    val pageParagraphTranslationPrompt: String,
     val sentencePrompt: String,
 )
 
@@ -18,6 +19,7 @@ internal enum class AdvancedAiMissingField {
     Model,
     WordPrompt,
     SentenceTranslationPrompt,
+    PageParagraphTranslationPrompt,
     SentencePrompt,
 }
 
@@ -37,6 +39,13 @@ internal fun AdvancedAiSettings.sentenceTranslationAvailability(): AdvancedAiAva
     availability(
         prompt = sentenceTranslationPrompt,
         missingField = AdvancedAiMissingField.SentenceTranslationPrompt,
+    )
+
+/** 判断段落翻译是否可用。 */
+internal fun AdvancedAiSettings.pageParagraphTranslationAvailability(): AdvancedAiAvailability =
+    availability(
+        prompt = pageParagraphTranslationPrompt,
+        missingField = AdvancedAiMissingField.PageParagraphTranslationPrompt,
     )
 
 /** 判断长难句分析是否可用。 */

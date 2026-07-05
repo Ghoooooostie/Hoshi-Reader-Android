@@ -404,6 +404,7 @@ class DictionarySearchViewModelTest {
             ),
             defaultWordPrompt = "Explain the word role.",
             defaultSentenceTranslationPrompt = "Translate the sentence.",
+            defaultPageParagraphTranslationPrompt = "Translate the paragraph without skipping sentences.",
             defaultSentencePrompt = "Explain the sentence.",
         )
         runBlocking {

@@ -617,6 +617,7 @@ class AnkiRepositoryBackendSelectionTest {
             ),
             defaultWordPrompt = "Explain the word role.",
             defaultSentenceTranslationPrompt = "Translate the sentence into Chinese.",
+            defaultPageParagraphTranslationPrompt = "Translate the paragraph into Chinese without skipping sentences.",
             defaultSentencePrompt = "Translate the sentence into Chinese.",
         )
         runBlocking {

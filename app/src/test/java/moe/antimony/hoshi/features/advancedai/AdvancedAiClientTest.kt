@@ -22,6 +22,7 @@ class AdvancedAiClientTest {
         model = "gpt-test",
         wordPrompt = "Explain the role of the selected word.",
         sentenceTranslationPrompt = "Translate the sentence into natural Chinese.",
+        pageParagraphTranslationPrompt = "Translate the full paragraph into natural Chinese without skipping any sentence.",
         sentencePrompt = "Explain the structure of the sentence.",
     )
 
@@ -92,14 +93,17 @@ class AdvancedAiClientTest {
 
     @Test
     fun pageParagraphTranslationRequestBodyRequiresCompleteOrderedTranslation() {
+        val fullPageSettings = settings.copy(
+            sentenceTranslationPrompt = "只输出一句自然流畅的中文译文，不要解释、前言、引号或换行。",
+            pageParagraphTranslationPrompt = "完整翻译整段内容，按原顺序逐句输出，不要省略，不要概括。",
+        )
         val body = buildPageParagraphTranslationRequestBody(
-            settings = settings,
+            settings = fullPageSettings,
             paragraph = "He nodded. Then he got into the car.",
         )
 
-        assertTrue(body.contains("Translate the sentence into natural Chinese."))
-        assertTrue(body.contains("Translate every sentence from the entire input in order."))
-        assertTrue(body.contains("Do not omit, summarize, or merge sentences."))
+        assertFalse(body.contains("只输出一句自然流畅的中文译文"))
+        assertTrue(body.contains("完整翻译整段内容，按原顺序逐句输出，不要省略，不要概括。"))
         assertTrue(body.contains("Paragraph: He nodded. Then he got into the car."))
     }
 

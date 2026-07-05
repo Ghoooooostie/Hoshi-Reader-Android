@@ -28,10 +28,12 @@ class AdvancedAiSettingsRepositoryTest {
 
             assertTrue(!settings.enabled)
             assertEquals("word-default", settings.wordPrompt)
-            assertEquals("translation-default", settings.sentenceTranslationPrompt)
+            assertEquals("sentence-translation-default", settings.sentenceTranslationPrompt)
+            assertEquals("paragraph-translation-default", settings.pageParagraphTranslationPrompt)
             assertEquals("sentence-default", settings.sentencePrompt)
             assertTrue(settings.wordAvailability() is AdvancedAiAvailability.Disabled)
             assertTrue(settings.sentenceTranslationAvailability() is AdvancedAiAvailability.Disabled)
+            assertTrue(settings.pageParagraphTranslationAvailability() is AdvancedAiAvailability.Disabled)
             assertTrue(settings.sentenceAvailability() is AdvancedAiAvailability.Disabled)
         }
     }
@@ -51,11 +53,13 @@ class AdvancedAiSettingsRepositoryTest {
             val saved = handle.repository.settings.first()
             val wordAvailability = saved.wordAvailability()
             val sentenceTranslationAvailability = saved.sentenceTranslationAvailability()
+            val pageParagraphTranslationAvailability = saved.pageParagraphTranslationAvailability()
             val sentenceAvailability = saved.sentenceAvailability()
 
             assertEquals("https://example.invalid/v1/", saved.baseUrl)
             assertTrue(wordAvailability is AdvancedAiAvailability.Ready)
             assertTrue(sentenceTranslationAvailability is AdvancedAiAvailability.Ready)
+            assertTrue(pageParagraphTranslationAvailability is AdvancedAiAvailability.Ready)
             assertTrue(sentenceAvailability is AdvancedAiAvailability.Ready)
             assertEquals("https://example.invalid/v1", (wordAvailability as AdvancedAiAvailability.Ready).settings.baseUrl)
         }
@@ -116,7 +120,8 @@ class AdvancedAiSettingsRepositoryTest {
             repository = AdvancedAiSettingsRepository(
                 dataStore = dataStore,
                 defaultWordPrompt = "word-default",
-                defaultSentenceTranslationPrompt = "translation-default",
+                defaultSentenceTranslationPrompt = "sentence-translation-default",
+                defaultPageParagraphTranslationPrompt = "paragraph-translation-default",
                 defaultSentencePrompt = "sentence-default",
             ),
             scope = scope,

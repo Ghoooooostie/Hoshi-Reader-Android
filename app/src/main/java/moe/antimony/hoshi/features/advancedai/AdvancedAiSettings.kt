@@ -19,6 +19,7 @@ internal fun Context.advancedAiSettingsRepository(): AdvancedAiSettingsRepositor
         dataStore = advancedAiDataStore,
         defaultWordPrompt = getString(R.string.advanced_ai_default_word_prompt),
         defaultSentenceTranslationPrompt = getString(R.string.advanced_ai_default_sentence_translation_prompt),
+        defaultPageParagraphTranslationPrompt = getString(R.string.advanced_ai_default_page_paragraph_translation_prompt),
         defaultSentencePrompt = getString(R.string.advanced_ai_default_sentence_prompt),
     )
 
@@ -27,6 +28,7 @@ internal class AdvancedAiSettingsRepository(
     private val dataStore: DataStore<Preferences>,
     private val defaultWordPrompt: String,
     private val defaultSentenceTranslationPrompt: String,
+    private val defaultPageParagraphTranslationPrompt: String,
     private val defaultSentencePrompt: String,
     private val legacyWordPrompts: Set<String> = LEGACY_WORD_PROMPTS,
 ) {
@@ -43,6 +45,7 @@ internal class AdvancedAiSettingsRepository(
             preferences[KEY_MODEL] = next.model
             preferences[KEY_WORD_PROMPT] = next.wordPrompt
             preferences[KEY_SENTENCE_TRANSLATION_PROMPT] = next.sentenceTranslationPrompt
+            preferences[KEY_PAGE_PARAGRAPH_TRANSLATION_PROMPT] = next.pageParagraphTranslationPrompt
             preferences[KEY_SENTENCE_PROMPT] = next.sentencePrompt
         }
     }
@@ -56,6 +59,7 @@ internal class AdvancedAiSettingsRepository(
             model = this[KEY_MODEL].orEmpty(),
             wordPrompt = migrateLegacyPrompt(this[KEY_WORD_PROMPT], defaultWordPrompt, legacyWordPrompts),
             sentenceTranslationPrompt = this[KEY_SENTENCE_TRANSLATION_PROMPT] ?: defaultSentenceTranslationPrompt,
+            pageParagraphTranslationPrompt = this[KEY_PAGE_PARAGRAPH_TRANSLATION_PROMPT] ?: defaultPageParagraphTranslationPrompt,
             sentencePrompt = this[KEY_SENTENCE_PROMPT] ?: defaultSentencePrompt,
         )
 
@@ -84,6 +88,7 @@ internal class AdvancedAiSettingsRepository(
         private val KEY_MODEL = stringPreferencesKey("model")
         private val KEY_WORD_PROMPT = stringPreferencesKey("wordPrompt")
         private val KEY_SENTENCE_TRANSLATION_PROMPT = stringPreferencesKey("sentenceTranslationPrompt")
+        private val KEY_PAGE_PARAGRAPH_TRANSLATION_PROMPT = stringPreferencesKey("pageParagraphTranslationPrompt")
         private val KEY_SENTENCE_PROMPT = stringPreferencesKey("sentencePrompt")
     }
 }

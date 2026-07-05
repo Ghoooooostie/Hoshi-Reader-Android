@@ -62,6 +62,7 @@ import moe.antimony.hoshi.epub.SasayakiPlaybackData
 import moe.antimony.hoshi.features.advancedai.AdvancedAiAvailability
 import moe.antimony.hoshi.features.advancedai.AdvancedAiCardKind
 import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiState
+import moe.antimony.hoshi.features.advancedai.pageParagraphTranslationAvailability
 import moe.antimony.hoshi.features.advancedai.sentenceTranslationAvailability
 import moe.antimony.hoshi.features.advancedai.sentenceSuccessContent
 import moe.antimony.hoshi.features.advancedai.updateAdvancedAiState
@@ -224,7 +225,7 @@ fun ReaderWebView(
     }
     LaunchedEffect(advancedAiSettingsRepository, context) {
         advancedAiSettingsRepository.settings.collect { settings ->
-            pageTranslationAvailabilityHint = if (settings.sentenceTranslationAvailability() is AdvancedAiAvailability.Ready) {
+            pageTranslationAvailabilityHint = if (settings.pageParagraphTranslationAvailability() is AdvancedAiAvailability.Ready) {
                 null
             } else {
                 context.getString(moe.antimony.hoshi.R.string.reader_translation_ai_unavailable_hint)
@@ -641,7 +642,7 @@ fun ReaderWebView(
     fun pumpReaderPageTranslationQueue(chapterKey: String = currentPageTranslationChapterKey) {
         if (readerPageTranslationJob != null) return
         readerPageTranslationJob = scope.launch {
-            val ready = advancedAiSettingsRepository.settings.first().sentenceTranslationAvailability()
+            val ready = advancedAiSettingsRepository.settings.first().pageParagraphTranslationAvailability()
                 as? AdvancedAiAvailability.Ready
                 ?: run {
                     readerPageTranslationJob = null
@@ -672,11 +673,6 @@ fun ReaderWebView(
         if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel) return
         if (stateHolder.isWebViewRestoring) return
         collectVisibleReaderPageTranslationTargets { targets ->
-            targets.forEach { target ->
-                pageTranslationCoordinator.cachedTranslation(currentPageTranslationChapterKey, target.id)?.let { cached ->
-                    applyReaderPageTranslation(target.id, cached)
-                }
-            }
             pageTranslationCoordinator.enqueue(currentPageTranslationChapterKey, targets)
             pumpReaderPageTranslationQueue()
         }
@@ -1084,22 +1080,20 @@ fun ReaderWebView(
             selectionRects(selectionCount) { rects ->
                 if (stateHolder.lookupPopups.none { it.id == popup.id }) return@selectionRects
                 val displayRects = rects.ifEmpty { listOf(popup.state.selection.rect) }
-                val anchor = displayRects.firstOrNull()
-                if (anchor != null) {
-                    setLookupPopups(
-                        stateHolder.lookupPopups.map { existing ->
-                            if (existing.id == popup.id) {
-                                existing.copy(
-                                    state = existing.state.copy(
-                                        selection = existing.state.selection.copy(rect = anchor),
-                                    ),
-                                )
-                            } else {
-                                existing
-                            }
-                        },
-                    )
-                }
+                val anchor = readerPopupAnchorRect(displayRects, popup.state.selection.rect)
+                setLookupPopups(
+                    stateHolder.lookupPopups.map { existing ->
+                        if (existing.id == popup.id) {
+                            existing.copy(
+                                state = existing.state.copy(
+                                    selection = existing.state.selection.copy(rect = anchor),
+                                ),
+                            )
+                        } else {
+                            existing
+                        }
+                    },
+                )
                 rootSelectionHighlight = ReaderRootSelectionHighlight(
                     popupId = popup.id,
                     rects = displayRects,
@@ -1138,22 +1132,20 @@ fun ReaderWebView(
             selectionRects(highlightCount) { rects ->
                 if (stateHolder.lookupPopups.none { it.id == popup.id }) return@selectionRects
                 val displayRects = rects.ifEmpty { listOf(selection.rect) }
-                val anchor = displayRects.firstOrNull()
-                if (anchor != null) {
-                    setLookupPopups(
-                        stateHolder.lookupPopups.map { existing ->
-                            if (existing.id == popup.id) {
-                                existing.copy(
-                                    state = existing.state.copy(
-                                        selection = existing.state.selection.copy(rect = anchor),
-                                    ),
-                                )
-                            } else {
-                                existing
-                            }
-                        },
-                    )
-                }
+                val anchor = readerPopupAnchorRect(displayRects, selection.rect)
+                setLookupPopups(
+                    stateHolder.lookupPopups.map { existing ->
+                        if (existing.id == popup.id) {
+                            existing.copy(
+                                state = existing.state.copy(
+                                    selection = existing.state.selection.copy(rect = anchor),
+                                ),
+                            )
+                        } else {
+                            existing
+                        }
+                    },
+                )
                 rootSelectionHighlight = ReaderRootSelectionHighlight(
                     popupId = popup.id,
                     rects = displayRects,
@@ -1863,11 +1855,6 @@ fun ReaderWebView(
             ),
     )
     val restoreLoadingPresentation = readerRestoreLoadingPresentation(stateHolder.isWebViewRestoring)
-    LaunchedEffect(currentPageTranslationChapterKey) {
-        readerPageTranslationJob?.cancel()
-        readerPageTranslationJob = null
-        pageTranslationCoordinator.clearActiveWork()
-    }
     LaunchedEffect(
         effectiveSettings.readerAiFullPageTranslationEnabled,
         effectiveSettings.viewMode,
@@ -1889,6 +1876,7 @@ fun ReaderWebView(
         if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel) return@LaunchedEffect
         if (stateHolder.isWebViewRestoring) return@LaunchedEffect
         if (webView == null) return@LaunchedEffect
+        clearReaderPageTranslations()
         delay(350)
         requestVisibleReaderPageTranslations()
     }

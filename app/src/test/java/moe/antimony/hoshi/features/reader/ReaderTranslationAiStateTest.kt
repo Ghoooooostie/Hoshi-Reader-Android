@@ -103,6 +103,23 @@ class ReaderTranslationAiStateTest {
         assertEquals(listOf("分析句子"), client.analysisRequests)
     }
 
+    @Test
+    fun popupAnchorRectUsesFullWrappedSelectionBoundsAcrossMultipleLines() {
+        val anchor = readerPopupAnchorRect(
+            selectionRects = listOf(
+                ReaderSelectionRect(x = 210.0, y = 420.0, width = 180.0, height = 36.0),
+                ReaderSelectionRect(x = 96.0, y = 456.0, width = 260.0, height = 36.0),
+                ReaderSelectionRect(x = 24.0, y = 468.0, width = 250.0, height = 36.0),
+            ),
+            fallback = ReaderSelectionRect(x = 210.0, y = 420.0, width = 180.0, height = 36.0),
+        )
+
+        assertEquals(24.0, anchor.x, 0.0)
+        assertEquals(420.0, anchor.y, 0.0)
+        assertEquals(366.0, anchor.width, 0.0)
+        assertEquals(84.0, anchor.height, 0.0)
+    }
+
     private fun sampleSelection(): ReaderSelectionData =
         ReaderSelectionData(
             text = "整句",
@@ -123,6 +140,7 @@ class ReaderTranslationAiStateTest {
             model = "gpt-test",
             wordPrompt = "word",
             sentenceTranslationPrompt = sentenceTranslationPrompt,
+            pageParagraphTranslationPrompt = "paragraph-translate",
             sentencePrompt = sentencePrompt,
         )
 

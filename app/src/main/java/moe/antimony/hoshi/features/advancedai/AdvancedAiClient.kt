@@ -168,7 +168,7 @@ internal fun buildPageParagraphTranslationRequestBody(
     paragraph: String,
 ): String = buildChatCompletionsRequest(
     model = settings.model,
-    prompt = buildPageParagraphTranslationPrompt(settings.sentenceTranslationPrompt),
+    prompt = buildConfiguredPrompt(settings.pageParagraphTranslationPrompt),
     userContent = "Paragraph: $paragraph",
 )
 
@@ -184,15 +184,6 @@ internal fun buildSentenceAnalysisRequestBody(
 
 /** 直接使用用户当前保存的提示词，避免隐式追加额外要求。 */
 private fun buildConfiguredPrompt(prompt: String): String = prompt.trim()
-
-/** 全文翻译必须覆盖整段全部句子，不能让模型概括或省略。 */
-private fun buildPageParagraphTranslationPrompt(prompt: String): String = buildString {
-    appendLine(buildConfiguredPrompt(prompt))
-    appendLine()
-    appendLine("Translate every sentence from the entire input in order.")
-    appendLine("Do not omit, summarize, or merge sentences.")
-    append("Output only the final natural Chinese translation of the full paragraph.")
-}.trim()
 
 /** 解析 chat completions 的首条文本返回。 */
 internal fun parseCompletionText(responseText: String): String {

@@ -57,6 +57,7 @@ class ReaderWebAssetsTest {
         )
 
         assertEquals("transparent", declarations["background"])
+        assertEquals("0", declarations["border"])
     }
 
     private fun assetText(path: String): String =

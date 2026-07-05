@@ -62,6 +62,10 @@ private enum class AdvancedAiEditableField(
         titleRes = R.string.advanced_ai_sentence_translation_prompt,
         isMultiline = true,
     ),
+    PageParagraphTranslationPrompt(
+        titleRes = R.string.advanced_ai_page_paragraph_translation_prompt,
+        isMultiline = true,
+    ),
     SentencePrompt(
         titleRes = R.string.advanced_ai_sentence_prompt,
         isMultiline = true,
@@ -232,6 +236,15 @@ fun AdvancedAiSettingsView(
                     )
                     GroupDivider()
                     AdvancedAiValueRow(
+                        title = stringResource(R.string.advanced_ai_page_paragraph_translation_prompt),
+                        value = settings.pageParagraphTranslationPrompt,
+                        onEdit = {
+                            editingField = AdvancedAiEditableField.PageParagraphTranslationPrompt
+                            editingValue = settings.pageParagraphTranslationPrompt
+                        },
+                    )
+                    GroupDivider()
+                    AdvancedAiValueRow(
                         title = stringResource(R.string.advanced_ai_sentence_prompt),
                         value = settings.sentencePrompt,
                         onEdit = {
@@ -329,5 +342,6 @@ private fun AdvancedAiSettings.updateField(
         AdvancedAiEditableField.Model -> copy(model = value.trim())
         AdvancedAiEditableField.WordPrompt -> copy(wordPrompt = value.trim())
         AdvancedAiEditableField.SentenceTranslationPrompt -> copy(sentenceTranslationPrompt = value.trim())
+        AdvancedAiEditableField.PageParagraphTranslationPrompt -> copy(pageParagraphTranslationPrompt = value.trim())
         AdvancedAiEditableField.SentencePrompt -> copy(sentencePrompt = value.trim())
     }
