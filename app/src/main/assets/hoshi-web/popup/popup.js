@@ -1877,12 +1877,15 @@ installPopupDocumentTapHandlers();
 
 window.renderPopup = function() {
     const container = document.getElementById('entries-container');
-    if (!window.entryCount) {
-        return;
-    }
     const generation = ++renderGeneration;
     container.querySelectorAll?.('.advanced-ai-card').forEach((node) => node.remove?.());
-    insertAdvancedAiCard(container, window.popupAdvancedAi);
+    const advancedAiCard = insertAdvancedAiCard(container, window.popupAdvancedAi);
+    if (!window.entryCount) {
+        if (advancedAiCard) {
+            applyHoshiPopupThemeOverrides(container);
+        }
+        return;
+    }
 
     (async () => {
         for (let idx = 0; idx < window.entryCount; idx++) {

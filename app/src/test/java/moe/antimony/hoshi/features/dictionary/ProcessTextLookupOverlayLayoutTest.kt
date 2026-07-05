@@ -1,9 +1,13 @@
 package moe.antimony.hoshi.features.dictionary
 
+import moe.antimony.hoshi.content.ContentLanguageProfile
+import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupViewport
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
 import moe.antimony.hoshi.features.reader.ReaderSelectionRect
+import moe.antimony.hoshi.features.reader.ReaderSettings
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -84,6 +88,30 @@ class ProcessTextLookupOverlayLayoutTest {
         assertEquals(200.0, rootFrame.centerX, 0.0)
         assertEquals(448.0, rootFrame.centerY, 0.0)
         assertEquals(child.state.selection.rect, displayed[1].state.selection.rect)
+    }
+
+    @Test
+    fun processTextRootPopupAllowsEmptyDictionaryResultsForSentenceAi() {
+        val popup = lookupPopupItem(
+            selection = ReaderSelectionData(
+                text = "「なかなか涼しくならんね」",
+                sentence = "「なかなか涼しくならんね」",
+                rect = ReaderSelectionRect(x = 0.0, y = 0.0, width = 1.0, height = 1.0),
+                normalizedOffset = 0,
+                sentenceOffset = 0,
+            ),
+            results = emptyList(),
+            dictionaryStyles = emptyMap(),
+            dictionarySettings = DictionarySettings(),
+            audioSettings = AudioSettings(),
+            readerSettings = ReaderSettings(),
+            darkMode = false,
+            contentLanguageProfile = ContentLanguageProfile.Japanese,
+            allowEmptyResults = true,
+        )
+
+        assertNotNull(popup)
+        assertTrue(popup!!.state.results.isEmpty())
     }
 
     private fun popup(id: String, x: Double, y: Double): LookupPopupItem = LookupPopupItem(

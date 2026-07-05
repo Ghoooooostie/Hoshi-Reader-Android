@@ -338,6 +338,20 @@ test('shared selection can select the whole sentence from a hit point', () => {
     assert.equal(selection.selection.ranges[0].end, '一文目です。二文目です。'.length);
 });
 
+test('shared sentence selection still works when the hit lands on an opening quote boundary', () => {
+    const { document, selection, textNode } = loadSelection('「なかなか涼しくならんね」。次の文。');
+    document.pointElement = hitElement([]);
+    document.caretPositionFromPoint = () => ({ offsetNode: textNode, offset: 0 });
+    selection.clearSelection = () => {};
+    selection.inCharRange = (range) => range.startOffset === 0;
+
+    const payload = selection.selectSentence(1, 1, 1, 1);
+
+    assert.equal(payload.text, '「なかなか涼しくならんね」。');
+    assert.equal(payload.sentence, '「なかなか涼しくならんね」。');
+    assert.equal(selection.selection.ranges[0].start, 0);
+});
+
 test('shared selection exposes one highlight range per selected character', () => {
     const { document, selection, textNode } = loadSelection('𠮟猫犬');
     selection.selection = {

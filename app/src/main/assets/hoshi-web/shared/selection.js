@@ -363,7 +363,7 @@ window.hoshiSelection = {
         }
     },
 
-    getCharacterAtPoint(x, y, rectX = x, rectY = y) {
+    getCharacterAtPoint(x, y, rectX = x, rectY = y, options = {}) {
         const range = this.getCaretRange(x, y, rectX, rectY);
         if (!range) {
             return null;
@@ -380,6 +380,7 @@ window.hoshiSelection = {
 
         const text = node.textContent;
         const caret = range.startOffset;
+        const allowHitBoundary = options.allowHitBoundary === true;
 
         for (const offset of [caret, caret - 1, caret + 1]) {
             if (offset < 0 || offset >= text.length) {
@@ -392,7 +393,7 @@ window.hoshiSelection = {
             charRange.setStart(node, start);
             charRange.setEnd(node, end);
             if (this.inCharRange(charRange, rectX, rectY)) {
-                if (this.isHitBoundaryAt(text, start)) {
+                if (!allowHitBoundary && this.isHitBoundaryAt(text, start)) {
                     return null;
                 }
                 return { node, offset: start };
@@ -705,7 +706,7 @@ window.hoshiSelection = {
         if (hitElement?.closest('img, image, .blur-wrapper')) {
             return this.imageTapResult();
         }
-        const rawHit = this.getCharacterAtPoint(x, y, rectX, rectY);
+        const rawHit = this.getCharacterAtPoint(x, y, rectX, rectY, { allowHitBoundary: true });
         if (!rawHit) {
             this.clearSelection();
             return null;

@@ -90,6 +90,21 @@ class FakeElement {
         this.listeners.set(type, listeners);
     }
 
+    querySelectorAll(selector) {
+        const matches = [];
+        const className = selector.startsWith('.') ? selector.slice(1) : null;
+        const visit = (node) => {
+            for (const child of node.children ?? []) {
+                if (className && String(child.className || '').split(' ').includes(className)) {
+                    matches.push(child);
+                }
+                visit(child);
+            }
+        };
+        visit(this);
+        return matches;
+    }
+
     getBoundingClientRect() {
         return {
             x: 0,
@@ -108,7 +123,17 @@ class FakeElement {
         return selectors.some((item) => this.matches.has(item) || item === this.tagName.toLowerCase()) ? this : null;
     }
 
-    remove() {}
+    remove() {
+        const siblings = this.parentElement?.children;
+        if (!Array.isArray(siblings)) {
+            return;
+        }
+        const index = siblings.indexOf(this);
+        if (index >= 0) {
+            siblings.splice(index, 1);
+        }
+        this.parentElement = null;
+    }
 }
 
 function popupContext({
@@ -119,6 +144,7 @@ function popupContext({
     bodyProbeWidth = 100,
 } = {}) {
     const documentElement = new FakeElement();
+    const entriesContainer = new FakeElement([], 'div');
     documentElement.childProbeWidth = htmlProbeWidth;
     const body = new FakeContainer();
     body.children = [];
@@ -132,6 +158,8 @@ function popupContext({
     const document = {
         body,
         documentElement,
+        head: new FakeContainer(),
+        scrollingElement: { scrollTop: 0 },
         addEventListener(type, listener) {
             const listeners = documentListeners.get(type) ?? [];
             listeners.push(listener);
@@ -142,6 +170,9 @@ function popupContext({
         },
         createElement(tagName) {
             return new FakeElement([], tagName);
+        },
+        getElementById(id) {
+            return id === 'entries-container' ? entriesContainer : null;
         },
         querySelectorAll() {
             return [];
@@ -169,6 +200,10 @@ function popupContext({
             return { zoom: target === documentElement ? htmlZoom : '1' };
         },
         Node: { TEXT_NODE: 3 },
+        requestAnimationFrame(callback) {
+            callback();
+            return 0;
+        },
         webkit: {
             messageHandlers: {
                 tapOutside: {
@@ -198,6 +233,7 @@ function popupContext({
         context,
         body,
         document,
+        entriesContainer,
         selectTextCalls,
         tapOutsideMessages,
         mineEntryMessages,
@@ -385,6 +421,23 @@ test('popup inserts the advanced ai card before dictionary entries', () => {
     assert.equal(container.children[0].dataset.status, 'success');
     assert.equal(container.children[0].children[0].textContent, 'AI 词语分析');
     assert.equal(container.children[1], existingEntry);
+});
+
+test('popup renders the advanced ai card even when there are no dictionary entries', () => {
+    const { context, entriesContainer } = popupContext();
+
+    context.window.entryCount = 0;
+    context.window.popupAdvancedAi = {
+        title: '长难句分析',
+        status: 'success',
+        body: '这里应该直接显示 AI 分析结果。',
+    };
+
+    context.window.renderPopup();
+
+    assert.equal(entriesContainer.children.length, 1);
+    assert.equal(entriesContainer.children[0].className, 'advanced-ai-card');
+    assert.equal(entriesContainer.children[0].children[0].textContent, '长难句分析');
 });
 
 test('popup renders each deinflection trace candidate as its own tag row', () => {

@@ -25,6 +25,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ### Fixed
 
+- Keep Process Text long-sentence analysis popups showing the Advanced AI card
+  even when sentence lookup returns no dictionary entries, including taps near
+  opening quote boundaries.
 - Keep the Statistics tab visible after enabling it and switching away from Settings.
 - Refresh Statistics by-book covers when changing calendar ranges.
 - Keep long-pressed Reader volume keys paging or seeking Sasayaki instead of

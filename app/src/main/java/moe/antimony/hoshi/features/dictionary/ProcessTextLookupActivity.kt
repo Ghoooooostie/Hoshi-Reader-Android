@@ -242,6 +242,7 @@ private fun ProcessTextLookupOverlay(
                     readerSettings = readerSettings,
                     darkMode = darkMode,
                     contentLanguageProfile = contentLanguageProfile,
+                    allowEmptyResults = ready != null,
                 )?.let { rootPopup ->
                     if (ready == null) {
                         rootPopup
@@ -609,7 +610,7 @@ private fun ProcessTextLookupIframeHost(
     )
 }
 
-private fun lookupPopupItem(
+internal fun lookupPopupItem(
     selection: ReaderSelectionData,
     results: List<LookupResult>,
     dictionaryStyles: Map<String, String>,
@@ -618,8 +619,9 @@ private fun lookupPopupItem(
     readerSettings: ReaderSettings,
     darkMode: Boolean,
     contentLanguageProfile: ContentLanguageProfile,
+    allowEmptyResults: Boolean = false,
 ): LookupPopupItem? {
-    if (results.isEmpty()) return null
+    if (results.isEmpty() && !allowEmptyResults) return null
     return LookupPopupItem(
         state = LookupPopupState(
             selection = selection,
