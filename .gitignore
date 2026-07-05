@@ -12,3 +12,6 @@ local.properties
 .codex/
 /.superpowers/
 /docs/superpowers/
+.gradle-codex/
+.kotlin/
+/debug/
