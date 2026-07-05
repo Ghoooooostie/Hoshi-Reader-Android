@@ -680,9 +680,10 @@ class ReaderChromeTest {
                 ReaderMenuDestination.Sasayaki,
                 ReaderMenuDestination.Statistics,
                 ReaderMenuDestination.GoTo,
+                ReaderMenuDestination.TranslationAi,
                 ReaderMenuDestination.Appearance,
             ),
-            readerBottomMenuVisualOrder(showStatistics = true, showSasayaki = true),
+            readerBottomMenuVisualOrder(showStatistics = true, showSasayaki = true, showTranslationAi = true),
         )
     }
 
@@ -691,9 +692,10 @@ class ReaderChromeTest {
         assertEquals(
             listOf(
                 ReaderMenuDestination.GoTo,
+                ReaderMenuDestination.TranslationAi,
                 ReaderMenuDestination.Appearance,
             ),
-            readerBottomMenuVisualOrder(showStatistics = false, showSasayaki = false),
+            readerBottomMenuVisualOrder(showStatistics = false, showSasayaki = false, showTranslationAi = true),
         )
     }
 

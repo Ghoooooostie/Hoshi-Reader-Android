@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.TravelExplore
+import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -380,6 +381,7 @@ internal fun BoxScope.ReaderBottomChrome(
     menuExpanded: Boolean,
     onDismissMenu: () -> Unit,
     onGoTo: () -> Unit,
+    onTranslationAi: () -> Unit,
     onAppearance: () -> Unit,
     onStatistics: (() -> Unit)?,
     onSasayaki: (() -> Unit)?,
@@ -399,6 +401,7 @@ internal fun BoxScope.ReaderBottomChrome(
             colors = colors,
             metrics = metrics,
             onGoTo = onGoTo,
+            onTranslationAi = onTranslationAi,
             onAppearance = onAppearance,
             onStatistics = onStatistics,
             onSasayaki = onSasayaki,
@@ -627,6 +630,7 @@ private fun ReaderMenuCard(
     colors: ReaderChromeColors,
     metrics: ReaderBottomChromeMetrics,
     onGoTo: () -> Unit,
+    onTranslationAi: () -> Unit,
     onAppearance: () -> Unit,
     onStatistics: (() -> Unit)?,
     onSasayaki: (() -> Unit)?,
@@ -660,6 +664,7 @@ private fun ReaderMenuCard(
             readerBottomMenuVisualOrder(
                 showStatistics = onStatistics != null,
                 showSasayaki = onSasayaki != null,
+                showTranslationAi = true,
             ).forEachIndexed { index, destination ->
                 if (index > 0) {
                     HorizontalDivider(
@@ -694,6 +699,20 @@ private fun ReaderMenuCard(
                         colors = colors,
                         metrics = metrics,
                         onClick = onGoTo,
+                    )
+
+                    ReaderMenuDestination.TranslationAi -> ReaderMenuItem(
+                        text = stringResource(R.string.reader_translation_ai),
+                        icon = {
+                            Icon(
+                                imageVector = readerBottomMenuIcon(ReaderMenuDestination.TranslationAi),
+                                contentDescription = null,
+                                tint = Color(colors.menuContent),
+                            )
+                        },
+                        colors = colors,
+                        metrics = metrics,
+                        onClick = onTranslationAi,
                     )
 
                     ReaderMenuDestination.Statistics -> ReaderMenuItem(
@@ -733,6 +752,7 @@ internal fun readerBottomMenuIcon(destination: ReaderMenuDestination): ImageVect
     when (destination) {
         ReaderMenuDestination.Appearance -> Icons.Rounded.Palette
         ReaderMenuDestination.GoTo -> Icons.Rounded.TravelExplore
+        ReaderMenuDestination.TranslationAi -> Icons.Rounded.Translate
         ReaderMenuDestination.Statistics -> Icons.AutoMirrored.Rounded.ShowChart
         ReaderMenuDestination.Sasayaki -> Icons.Rounded.GraphicEq
     }

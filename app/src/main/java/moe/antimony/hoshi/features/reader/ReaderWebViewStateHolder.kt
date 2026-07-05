@@ -19,6 +19,9 @@ internal class ReaderWebViewStateHolder(
     var showGoTo by mutableStateOf(false)
         private set
 
+    var showTranslationAi by mutableStateOf(false)
+        private set
+
     var showSasayaki by mutableStateOf(false)
         private set
 
@@ -116,6 +119,15 @@ internal class ReaderWebViewStateHolder(
 
     fun dismissGoTo() {
         showGoTo = false
+    }
+
+    fun openTranslationAiFromMenu() {
+        showReaderMenu = false
+        showTranslationAi = true
+    }
+
+    fun dismissTranslationAi() {
+        showTranslationAi = false
     }
 
     fun openAppearanceFromMenu() {

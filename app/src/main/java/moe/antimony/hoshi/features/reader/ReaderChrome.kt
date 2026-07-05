@@ -106,6 +106,7 @@ data class ReaderChromeVisibility(
 enum class ReaderMenuDestination {
     Appearance,
     GoTo,
+    TranslationAi,
     Statistics,
     Sasayaki,
 }
@@ -292,10 +293,12 @@ fun readerBottomChromeMetrics(
 fun readerBottomMenuVisualOrder(
     showStatistics: Boolean,
     showSasayaki: Boolean,
+    showTranslationAi: Boolean,
 ): List<ReaderMenuDestination> = buildList {
     if (showSasayaki) add(ReaderMenuDestination.Sasayaki)
     if (showStatistics) add(ReaderMenuDestination.Statistics)
     add(ReaderMenuDestination.GoTo)
+    if (showTranslationAi) add(ReaderMenuDestination.TranslationAi)
     add(ReaderMenuDestination.Appearance)
 }
 

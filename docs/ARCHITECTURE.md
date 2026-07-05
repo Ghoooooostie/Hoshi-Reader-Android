@@ -127,6 +127,11 @@ refactor goals belong in `docs/ARCHITECTURE_REFACTORING.md`.
   `app/src/main/assets/hoshi-web`; Kotlin owns typed commands, escaped
   parameters, asset loading, dynamic configuration fill-in, and WebView bridge
   invocation.
+- Reader sentence translation/analysis cards and full-page visible-paragraph
+  translation are driven from Kotlin through the shared Advanced AI sentence
+  endpoints, while `reader-translation.js` applies inline translation blocks in
+  paginated and continuous WebView modes without letting translated text feed
+  back into Reader progress or selection semantics.
 - Reader and lookup popup text selection use shared selection plumbing. Language
   utilities live in language-named assets such as `language-ja.js`, while
   selection scan policies live in `selection-ja.js` and `selection-en.js`;

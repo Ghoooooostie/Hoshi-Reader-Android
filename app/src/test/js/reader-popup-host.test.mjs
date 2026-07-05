@@ -19,6 +19,7 @@ class FakeElement {
         this.contentWindow = tagName === 'iframe' ? { postMessage() {} } : null;
         this.src = '';
         this.clientRects = [];
+        this.boundingClientRect = null;
     }
 
     appendChild(child) {
@@ -51,6 +52,32 @@ class FakeElement {
 
     getClientRects() {
         return this.clientRects;
+    }
+
+    getBoundingClientRect() {
+        if (this.boundingClientRect) {
+            const rect = this.boundingClientRect;
+            return {
+                left: rect.left ?? rect.x ?? 0,
+                top: rect.top ?? rect.y ?? 0,
+                width: rect.width ?? 0,
+                height: rect.height ?? 0,
+                right: rect.right ?? ((rect.left ?? rect.x ?? 0) + (rect.width ?? 0)),
+                bottom: rect.bottom ?? ((rect.top ?? rect.y ?? 0) + (rect.height ?? 0)),
+            };
+        }
+        const first = this.clientRects[0];
+        if (first) {
+            return {
+                left: first.left ?? first.x ?? 0,
+                top: first.top ?? first.y ?? 0,
+                width: first.width ?? 0,
+                height: first.height ?? 0,
+                right: first.right ?? ((first.left ?? first.x ?? 0) + (first.width ?? 0)),
+                bottom: first.bottom ?? ((first.top ?? first.y ?? 0) + (first.height ?? 0)),
+            };
+        }
+        return { left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0 };
     }
 
     remove() {
@@ -326,6 +353,25 @@ test('process text iframe host outside pointer dismisses the top popup', () => {
     assert.deepEqual(nativeMessages, [
         { name: 'swipeDismiss', popupId: 'child' },
     ]);
+});
+
+test('root popup shifts above visible translation blocks instead of covering them', () => {
+    const scene = popupHost();
+    const translation = new FakeElement('div');
+    translation.className = 'hoshi-reader-translation';
+    translation.boundingClientRect = { left: 0, top: 52, width: 100, height: 18 };
+    scene.document.body.appendChild(translation);
+
+    scene.host.renderStack({
+        popups: [{
+            ...rootPopupPayload(),
+            frame: { left: 0, top: 40, width: 80, height: 30 },
+        }],
+    });
+
+    const shell = scene.document.getElementById('hoshi-reader-popup-layer').children[0];
+
+    assert.equal(shell.style.top, '18px');
 });
 
 test('active iframe rerenders when same popup id receives new entry payload', () => {

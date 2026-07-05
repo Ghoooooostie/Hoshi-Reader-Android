@@ -13,10 +13,19 @@ internal enum class AdvancedAiCardKind {
 
 /** popup 顶部 AI 区块的可序列化展示数据。 */
 @Serializable
+internal data class LookupPopupAdvancedAiModeOptionPayload(
+    val value: String,
+    val title: String,
+    val selected: Boolean,
+)
+
+/** popup 顶部 AI 区块的可序列化展示数据。 */
+@Serializable
 internal data class LookupPopupAdvancedAiPayload(
     val title: String,
     val status: String,
     val body: String,
+    val modeOptions: List<LookupPopupAdvancedAiModeOptionPayload> = emptyList(),
 )
 
 /** popup 顶部 AI 区块的状态。 */
@@ -41,6 +50,7 @@ internal sealed interface LookupPopupAdvancedAiState {
 /** 转成 popup iframe 需要的简单载荷。 */
 internal fun LookupPopupAdvancedAiState.toPayload(
     resolve: (UiText) -> String,
+    modeOptions: List<LookupPopupAdvancedAiModeOptionPayload> = emptyList(),
 ): LookupPopupAdvancedAiPayload? =
     when (this) {
         LookupPopupAdvancedAiState.Hidden -> null
@@ -48,16 +58,19 @@ internal fun LookupPopupAdvancedAiState.toPayload(
             title = resolve(UiText.Resource(kind.titleResId())),
             status = "loading",
             body = resolve(UiText.Resource(R.string.advanced_ai_loading)),
+            modeOptions = modeOptions,
         )
         is LookupPopupAdvancedAiState.Success -> LookupPopupAdvancedAiPayload(
             title = resolve(UiText.Resource(kind.titleResId())),
             status = "success",
             body = content,
+            modeOptions = modeOptions,
         )
         is LookupPopupAdvancedAiState.Error -> LookupPopupAdvancedAiPayload(
             title = resolve(UiText.Resource(kind.titleResId())),
             status = "error",
             body = resolve(message),
+            modeOptions = modeOptions,
         )
     }
 

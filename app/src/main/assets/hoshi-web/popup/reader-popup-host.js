@@ -5,6 +5,7 @@
     const SASAYAKI_BAR_HEIGHT = 37;
     const HIGHLIGHT_LINE_SIZE = 1.5;
     const HIGHLIGHT_INLINE_MERGE_TOLERANCE = 1;
+    const TRANSLATION_AVOID_GAP = 4;
     const frames = new Map();
     const frameSources = new WeakMap();
     let idleRootRecord = null;
@@ -115,6 +116,65 @@
                 iframe,
             );
         }
+    }
+
+    function rangesOverlap(aStart, aEnd, bStart, bEnd) {
+        return aStart < bEnd && bStart < aEnd;
+    }
+
+    function normalizeRect(rect) {
+        if (!rect) return null;
+        const left = rect.left ?? rect.x ?? 0;
+        const top = rect.top ?? rect.y ?? 0;
+        const width = rect.width ?? Math.max(0, (rect.right ?? left) - left);
+        const height = rect.height ?? Math.max(0, (rect.bottom ?? top) - top);
+        return {
+            left,
+            top,
+            width,
+            height,
+            right: left + width,
+            bottom: top + height,
+        };
+    }
+
+    function visibleTranslationRects(frame) {
+        return Array.from(document.querySelectorAll('.hoshi-reader-translation'))
+            .map(node => normalizeRect(node.getBoundingClientRect?.()))
+            .filter(rect => !!rect && rect.width > 0 && rect.height > 0)
+            .filter(rect => rangesOverlap(frame.left, frame.left + frame.width, rect.left, rect.right));
+    }
+
+    function frameOverlapsTranslationRects(frame, rects) {
+        return rects.some(rect => rangesOverlap(frame.top, frame.top + frame.height, rect.top, rect.bottom));
+    }
+
+    function adjustedRootPopupFrame(frame) {
+        const translationRects = visibleTranslationRects(frame);
+        if (!frameOverlapsTranslationRects(frame, translationRects)) return frame;
+        const minTop = 0;
+        const maxTop = Math.max(0, (window.innerHeight || 0) - frame.height);
+        const aboveTop = Math.min(...translationRects.map(rect => rect.top)) - frame.height - TRANSLATION_AVOID_GAP;
+        if (aboveTop >= minTop) {
+            const candidate = { left: frame.left, top: aboveTop, width: frame.width, height: frame.height };
+            if (!frameOverlapsTranslationRects(candidate, translationRects)) return candidate;
+        }
+        const belowTop = Math.max(...translationRects.map(rect => rect.bottom)) + TRANSLATION_AVOID_GAP;
+        if (belowTop <= maxTop) {
+            const candidate = { left: frame.left, top: belowTop, width: frame.width, height: frame.height };
+            if (!frameOverlapsTranslationRects(candidate, translationRects)) return candidate;
+        }
+        return frame;
+    }
+
+    function adjustedPayloadFrame(payload, root) {
+        if (!root || !payload?.frame) return payload;
+        const frame = adjustedRootPopupFrame(payload.frame);
+        if (frame.top === payload.frame.top) return payload;
+        return {
+            ...payload,
+            frame,
+        };
     }
 
     function applyShellStyle(shell, payload) {
@@ -257,22 +317,24 @@
     function renderPayload(payload, index) {
         const isRoot = index === 0;
         const { record, needsRender } = activateRecord(payload, isRoot);
+        record.payload = adjustedPayloadFrame(record.payload, record.root);
+        const effectivePayload = record.payload;
 
         if (record.clearSelectionSignal !== undefined && record.clearSelectionSignal !== payload.clearSelectionSignal) {
             record.iframe.contentWindow?.postMessage({ type: 'clearSelection' }, ORIGIN);
         }
         record.clearSelectionSignal = payload.clearSelectionSignal;
-        applyShellStyle(record.shell, payload);
-        renderControls(record.shell, payload, record.iframe);
-        record.iframe.style.top = `${frameContentTop(payload)}px`;
-        record.iframe.style.height = `calc(100% - ${frameContentTop(payload)}px)`;
+        applyShellStyle(record.shell, effectivePayload);
+        renderControls(record.shell, effectivePayload, record.iframe);
+        record.iframe.style.top = `${frameContentTop(effectivePayload)}px`;
+        record.iframe.style.height = `calc(100% - ${frameContentTop(effectivePayload)}px)`;
         syncRootReveal();
-        if (record.iframe.src !== payload.iframeUrl) {
+        if (record.iframe.src !== effectivePayload.iframeUrl) {
             setContentReady(record, false);
             setRevealReady(record, false);
             resetIframe(record);
             record.loaded = false;
-            record.iframe.src = payload.iframeUrl;
+            record.iframe.src = effectivePayload.iframeUrl;
         } else if (needsRender && record.loaded) {
             renderIframe(record);
         }

@@ -1,6 +1,8 @@
 package moe.antimony.hoshi.features.dictionary
 
 import de.manhhao.hoshi.LookupResult
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.security.MessageDigest
 import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiPayload
 import moe.antimony.hoshi.features.advancedai.toPayload
@@ -55,7 +57,7 @@ internal fun lookupPopupContentKey(
     results: List<LookupResult>,
     advancedAi: LookupPopupAdvancedAiPayload? = null,
 ): String? {
-    if (results.isEmpty()) return null
+    if (results.isEmpty() && advancedAi == null) return null
     val digest = MessageDigest.getInstance("SHA-256")
     results.forEach { result ->
         val entry = LookupPopupHtml.entryJsonString(result).toByteArray(Charsets.UTF_8)
@@ -65,7 +67,10 @@ internal fun lookupPopupContentKey(
         digest.update(0)
     }
     advancedAi?.let { payload ->
-        val marker = "${payload.title}\u0000${payload.status}\u0000${payload.body}".toByteArray(Charsets.UTF_8)
+        val marker = lookupPopupContentKeyJson.encodeToString(
+            LookupPopupAdvancedAiPayload.serializer(),
+            payload,
+        ).toByteArray(Charsets.UTF_8)
         digest.update(marker.size.toString().toByteArray(Charsets.UTF_8))
         digest.update(0)
         digest.update(marker)
@@ -75,6 +80,8 @@ internal fun lookupPopupContentKey(
         (byte.toInt() and 0xff).toString(16).padStart(2, '0')
     }
 }
+
+private val lookupPopupContentKeyJson = Json { encodeDefaults = true }
 
 internal fun dictionarySearchIframePayloads(
     rootResults: List<LookupResult>,

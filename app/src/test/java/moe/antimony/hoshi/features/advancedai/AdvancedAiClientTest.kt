@@ -91,6 +91,19 @@ class AdvancedAiClientTest {
     }
 
     @Test
+    fun pageParagraphTranslationRequestBodyRequiresCompleteOrderedTranslation() {
+        val body = buildPageParagraphTranslationRequestBody(
+            settings = settings,
+            paragraph = "He nodded. Then he got into the car.",
+        )
+
+        assertTrue(body.contains("Translate the sentence into natural Chinese."))
+        assertTrue(body.contains("Translate every sentence from the entire input in order."))
+        assertTrue(body.contains("Do not omit, summarize, or merge sentences."))
+        assertTrue(body.contains("Paragraph: He nodded. Then he got into the car."))
+    }
+
+    @Test
     fun parseCompletionReturnsTrimmedFirstChoiceContent() {
         val response = """
             {

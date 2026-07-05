@@ -309,6 +309,7 @@ private fun ProcessTextLookupOverlay(
         val iframePayloads = readerLookupPopupFramePayloads(
             popups = displayedPopups,
             histories = popupHistories,
+            readerAiPopupModes = emptyMap(),
             viewport = viewport,
             sasayakiWasPaused = false,
             sasayakiIsPlaying = false,
@@ -523,6 +524,7 @@ private fun ProcessTextLookupOverlay(
                 }
                 is ReaderLookupPopupBridgeMessage.ContentReady,
                 is ReaderLookupPopupBridgeMessage.ScrollState,
+                is ReaderLookupPopupBridgeMessage.SwitchAdvancedAiMode,
                 is ReaderLookupPopupBridgeMessage.SasayakiReplayCue,
                 is ReaderLookupPopupBridgeMessage.SasayakiTogglePlayback,
                 is ReaderLookupPopupBridgeMessage.SasayakiPlayForward,

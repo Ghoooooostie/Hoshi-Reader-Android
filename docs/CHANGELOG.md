@@ -12,6 +12,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   above lookup popup dictionaries, show AI sentence Chinese analysis in Process
   Text lookup, and let Anki templates render `{sentence-cn}` and
   `{advanced-ai-word}` when configured.
+- Add a Reader Translation (AI) panel with profile-scoped long-press mode,
+  in-reader sentence translation and sentence analysis cards, and visible-page
+  paragraph translation that fills in directly under the source text.
 
 ### Changed
 
@@ -28,6 +31,11 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 - Keep Process Text long-sentence analysis popups showing the Advanced AI card
   even when sentence lookup returns no dictionary entries, including taps near
   opening quote boundaries.
+- Keep Reader Translation (AI) long-press popups from covering visible
+  paragraph translations when there is room to move, and remove the extra
+  tinted background from the in-popup AI card.
+- Keep Reader full-page Translation (AI) from skipping sentences when a visible
+  paragraph contains multiple source sentences.
 - Keep the Statistics tab visible after enabling it and switching away from Settings.
 - Refresh Statistics by-book covers when changing calendar ranges.
 - Keep long-pressed Reader volume keys paging or seeking Sasayaki instead of

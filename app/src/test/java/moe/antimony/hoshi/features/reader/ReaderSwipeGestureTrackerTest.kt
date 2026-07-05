@@ -61,6 +61,17 @@ class ReaderSwipeGestureTrackerTest {
     }
 
     @Test
+    fun mostlyVerticalDiagonalMoveDoesNotTriggerPageSwipe() {
+        val tracker = ReaderSwipeGestureTracker(minDistance = 72f)
+
+        tracker.onDown(240f, 100f, eventTime = 1_000L)
+
+        val result = tracker.onMove(160f, 190f, eventTime = 1_120L)
+
+        assertTrue(result == ReaderSwipeGestureTracker.Result.None)
+    }
+
+    @Test
     fun slowHorizontalDragDoesNotTriggerPageSwipe() {
         val tracker = ReaderSwipeGestureTracker(minDistance = 72f)
 

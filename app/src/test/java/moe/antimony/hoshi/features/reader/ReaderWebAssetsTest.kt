@@ -1,6 +1,7 @@
 package moe.antimony.hoshi.features.reader
 
 import java.io.File
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -46,5 +47,36 @@ class ReaderWebAssetsTest {
         val css = ReaderContentStyles.css()
 
         assertFalse(css.contains("__HOSHI_"))
+    }
+
+    @Test
+    fun popupAdvancedAiCardDoesNotPaintAnExtraBackgroundLayer() {
+        val declarations = cssDeclarationsForSelector(
+            assetText("hoshi-web/popup/popup.css"),
+            ".advanced-ai-card",
+        )
+
+        assertEquals("transparent", declarations["background"])
+    }
+
+    private fun assetText(path: String): String =
+        listOf(
+            File("app/src/main/assets/$path"),
+            File("src/main/assets/$path"),
+        ).firstOrNull(File::isFile)
+            ?.readText(Charsets.UTF_8)
+            ?: File("app/src/main/assets/$path").readText(Charsets.UTF_8)
+
+    private fun cssDeclarationsForSelector(css: String, selector: String): Map<String, String> {
+        val pattern = Regex("${Regex.escape(selector)}\\s*\\{([^}]*)\\}")
+        val body = pattern.find(css)?.groupValues?.getOrNull(1).orEmpty()
+        return body.lines()
+            .map(String::trim)
+            .filter { it.isNotEmpty() && it.contains(':') }
+            .associate { line ->
+                val declaration = line.removeSuffix(";")
+                val separator = declaration.indexOf(':')
+                declaration.substring(0, separator).trim() to declaration.substring(separator + 1).trim()
+            }
     }
 }

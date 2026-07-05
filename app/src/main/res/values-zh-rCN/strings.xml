@@ -304,6 +304,20 @@
     <string name="reader_jump_forward">返回后一个跳转位置</string>
     <string name="reader_menu">阅读器菜单</string>
     <string name="reader_go_to">跳转</string>
+    <string name="reader_translation_ai">翻译（AI）</string>
+    <string name="reader_translation_ai_page_section">全文翻译设置组</string>
+    <string name="reader_translation_ai_enable">当前页原文下方按段落显示译文</string>
+    <string name="reader_translation_ai_page_supporting">翻到下一页后，再开始翻译下一页。</string>
+    <string name="reader_translation_ai_unsupported_vn">当前模式暂不支持全文翻译。</string>
+    <string name="reader_translation_ai_unavailable_hint">请先在高级 AI 里完成配置。</string>
+    <string name="reader_translation_ai_long_press_section">长按配置</string>
+    <string name="reader_translation_ai_default_mode">默认长按模式</string>
+    <string name="reader_translation_ai_mode_translation">整句翻译</string>
+    <string name="reader_translation_ai_mode_analysis">长难句分析</string>
+    <string name="reader_translation_ai_loading">AI 处理中</string>
+    <string name="reader_translation_ai_request_failed">AI 翻译加载失败。</string>
+    <string name="reader_translation_ai_style_section">样式组</string>
+    <string name="reader_translation_ai_style_follow_text">译文颜色会比当前正文颜色浅一点。</string>
     <string name="reader_search" comment="Reader Go to panel tab label, distinct from dictionary search placeholder.">搜索</string>
     <string name="reader_search_in_book">在书中搜索</string>
     <string name="reader_search_empty_prompt">输入文本搜索本书</string>

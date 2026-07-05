@@ -891,6 +891,12 @@ class ReaderWebViewStateHolderTest {
 
         holder.dismissGoTo()
         holder.showReaderMenu()
+        holder.openTranslationAiFromMenu()
+        assertFalse(holder.showReaderMenu)
+        assertTrue(holder.showTranslationAi)
+
+        holder.dismissTranslationAi()
+        holder.showReaderMenu()
         holder.openSasayakiFromMenu()
         assertFalse(holder.showReaderMenu)
         assertTrue(holder.showSasayaki)

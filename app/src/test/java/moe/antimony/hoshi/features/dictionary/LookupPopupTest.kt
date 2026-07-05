@@ -10,9 +10,13 @@ import moe.antimony.hoshi.features.reader.ReaderLookupPopupFramePayload
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupRootHighlightPayload
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupStackPayload
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupViewport
+import moe.antimony.hoshi.features.reader.ReaderAiLongPressMode
 import moe.antimony.hoshi.features.reader.readerLookupPopupIframeUrl
 import moe.antimony.hoshi.features.reader.readerLookupPopupTouchBlocksReaderGesture
+import moe.antimony.hoshi.features.reader.toReaderAiPopupPayload
 import moe.antimony.hoshi.features.audio.AudioSettings
+import moe.antimony.hoshi.features.advancedai.AdvancedAiCardKind
+import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiState
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.double
@@ -250,6 +254,42 @@ class LookupPopupTest {
 
         assertEquals(1, payload.entriesCount)
         assertEquals(null, payload.initialEntryJson)
+    }
+
+    @Test
+    fun readerIframeFramePayloadUsesCompactHeightForAiOnlyPopup() {
+        val popup = LookupPopupItem(
+            id = "root",
+            state = LookupPopupState(
+                selection = ReaderSelectionData(
+                    text = "整句",
+                    sentence = "今夜星空美。",
+                    rect = ReaderSelectionRect(x = 100.0, y = 100.0, width = 20.0, height = 30.0),
+                    normalizedOffset = null,
+                ),
+                results = emptyList(),
+                advancedAiState = LookupPopupAdvancedAiState.Success(
+                    kind = AdvancedAiCardKind.Sentence,
+                    content = "今夜星空美。",
+                ),
+                isVertical = true,
+                isFullWidth = true,
+                width = 360,
+                height = 280,
+            ),
+        )
+
+        val payload = ReaderLookupPopupFramePayload.fromPopup(
+            popup = popup,
+            popupIndex = 0,
+            viewport = ReaderLookupPopupViewport(width = 500.0, height = 800.0),
+            advancedAi = popup.state.advancedAiState.toReaderAiPopupPayload(
+                mode = ReaderAiLongPressMode.Translation,
+                resolve = { "resolved" },
+            ),
+        )
+
+        assertTrue(payload.frame.height < 280.0)
     }
 
     @Test

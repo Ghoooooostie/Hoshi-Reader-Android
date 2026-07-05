@@ -520,6 +520,7 @@ fun DictionarySearchView(
                     }
                 }
             }
+            is ReaderLookupPopupBridgeMessage.SwitchAdvancedAiMode -> Unit
             is ReaderLookupPopupBridgeMessage.SasayakiReplayCue,
             is ReaderLookupPopupBridgeMessage.SasayakiTogglePlayback,
             is ReaderLookupPopupBridgeMessage.SasayakiPlayForward,

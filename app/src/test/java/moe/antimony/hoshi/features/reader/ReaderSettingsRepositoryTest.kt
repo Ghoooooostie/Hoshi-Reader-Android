@@ -61,6 +61,8 @@ class ReaderSettingsRepositoryTest {
             assertFalse(settings.hideFurigana)
             assertEquals(ReaderViewMode.Paginated, settings.viewMode)
             assertFalse(settings.continuousMode)
+            assertFalse(settings.readerAiFullPageTranslationEnabled)
+            assertEquals(ReaderAiLongPressMode.Translation, settings.readerAiLongPressMode)
             assertEquals(45, settings.visualNovelRevealSpeed)
             assertEquals(VisualNovelScreenMode.Block, settings.visualNovelScreenMode)
             assertEquals(1, settings.visualNovelSentencesPerScreen)
@@ -119,6 +121,8 @@ class ReaderSettingsRepositoryTest {
                 selectedFont = ReaderFontManager.defaultMinchoFont,
                 fontSize = 29,
                 viewMode = ReaderViewMode.Continuous,
+                readerAiFullPageTranslationEnabled = true,
+                readerAiLongPressMode = ReaderAiLongPressMode.Analysis,
                 chapterSwipeDistance = 120,
                 bottomSafeAreaDp = 100,
                 lineHeight = 1.9,
@@ -145,6 +149,8 @@ class ReaderSettingsRepositoryTest {
             assertEquals(29, migrated.fontSize)
             assertEquals(ReaderViewMode.Continuous, migrated.viewMode)
             assertTrue(migrated.continuousMode)
+            assertTrue(migrated.readerAiFullPageTranslationEnabled)
+            assertEquals(ReaderAiLongPressMode.Analysis, migrated.readerAiLongPressMode)
             assertEquals(60, migrated.chapterSwipeDistance)
             assertEquals(72, migrated.bottomSafeAreaDp)
             assertEquals(1.9, migrated.lineHeight, 0.000001)
@@ -179,6 +185,8 @@ class ReaderSettingsRepositoryTest {
                     fontSize = 24,
                     hideFurigana = true,
                     viewMode = ReaderViewMode.VisualNovel,
+                    readerAiFullPageTranslationEnabled = true,
+                    readerAiLongPressMode = ReaderAiLongPressMode.Analysis,
                     visualNovelRevealSpeed = 80,
                     visualNovelScreenMode = VisualNovelScreenMode.Sentences,
                     visualNovelSentencesPerScreen = 3,
@@ -239,6 +247,8 @@ class ReaderSettingsRepositoryTest {
             assertTrue(saved.hideFurigana)
             assertEquals(ReaderViewMode.VisualNovel, saved.viewMode)
             assertFalse(saved.continuousMode)
+            assertTrue(saved.readerAiFullPageTranslationEnabled)
+            assertEquals(ReaderAiLongPressMode.Analysis, saved.readerAiLongPressMode)
             assertEquals(80, saved.visualNovelRevealSpeed)
             assertEquals(VisualNovelScreenMode.Sentences, saved.visualNovelScreenMode)
             assertEquals(3, saved.visualNovelSentencesPerScreen)
@@ -326,6 +336,8 @@ class ReaderSettingsRepositoryTest {
                     fontSize = 30,
                     popupWidth = 440,
                     bottomSafeAreaDp = 44,
+                    readerAiFullPageTranslationEnabled = true,
+                    readerAiLongPressMode = ReaderAiLongPressMode.Analysis,
                     visualNovelMergeCrossScreenSasayakiCues = true,
                     showStatisticsTab = false,
                     volumeKeysTurnPages = true,
@@ -341,6 +353,8 @@ class ReaderSettingsRepositoryTest {
             assertEquals(30, inherited.fontSize)
             assertEquals(440, inherited.popupWidth)
             assertEquals(44, inherited.bottomSafeAreaDp)
+            assertTrue(inherited.readerAiFullPageTranslationEnabled)
+            assertEquals(ReaderAiLongPressMode.Analysis, inherited.readerAiLongPressMode)
             assertTrue(inherited.visualNovelMergeCrossScreenSasayakiCues)
             assertFalse(inherited.showStatisticsTab)
             assertTrue(inherited.volumeKeysTurnPages)
@@ -353,6 +367,8 @@ class ReaderSettingsRepositoryTest {
                     fontSize = 18,
                     popupWidth = 280,
                     bottomSafeAreaDp = 60,
+                    readerAiFullPageTranslationEnabled = false,
+                    readerAiLongPressMode = ReaderAiLongPressMode.Translation,
                     visualNovelMergeCrossScreenSasayakiCues = false,
                     showStatisticsTab = true,
                     volumeKeysTurnPages = false,
@@ -367,6 +383,8 @@ class ReaderSettingsRepositoryTest {
             assertEquals(30, japanese.fontSize)
             assertEquals(440, japanese.popupWidth)
             assertEquals(44, japanese.bottomSafeAreaDp)
+            assertTrue(japanese.readerAiFullPageTranslationEnabled)
+            assertEquals(ReaderAiLongPressMode.Analysis, japanese.readerAiLongPressMode)
             assertTrue(japanese.visualNovelMergeCrossScreenSasayakiCues)
             assertTrue(japanese.showStatisticsTab)
             assertFalse(japanese.volumeKeysTurnPages)

@@ -64,6 +64,8 @@ data class ReaderSettings(
     val fontSize: Int = 22,
     val hideFurigana: Boolean = false,
     val viewMode: ReaderViewMode = ReaderViewMode.Paginated,
+    val readerAiFullPageTranslationEnabled: Boolean = false,
+    val readerAiLongPressMode: ReaderAiLongPressMode = ReaderAiLongPressMode.Translation,
     val visualNovelRevealSpeed: Int = 45,
     val visualNovelScreenMode: VisualNovelScreenMode = VisualNovelScreenMode.Block,
     val visualNovelSentencesPerScreen: Int = 1,
@@ -253,6 +255,16 @@ enum class ReaderViewMode(val rawValue: String) {
     }
 }
 
+enum class ReaderAiLongPressMode {
+    Translation,
+    Analysis;
+
+    companion object {
+        fun fromStorage(value: String?): ReaderAiLongPressMode =
+            entries.firstOrNull { it.name == value } ?: Translation
+    }
+}
+
 enum class VisualNovelScreenMode(val rawValue: String, @get:StringRes val labelRes: Int) {
     Block("block", R.string.reader_visual_novel_screen_mode_block),
     Sentences("sentences", R.string.reader_visual_novel_screen_mode_sentences);
@@ -316,6 +328,10 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
         viewMode = ReaderViewMode.fromStorage(
             preferences.getString("readerViewMode", null),
             legacyContinuousMode = preferences.getBoolean("continuousMode", false),
+        ),
+        readerAiFullPageTranslationEnabled = preferences.getBoolean("readerAiFullPageTranslationEnabled", false),
+        readerAiLongPressMode = ReaderAiLongPressMode.fromStorage(
+            preferences.getString("readerAiLongPressMode", null),
         ),
         visualNovelRevealSpeed = preferences.getInt("visualNovelRevealSpeed", 45).coerceVisualNovelRevealSpeed(),
         visualNovelScreenMode = VisualNovelScreenMode.fromStorage(preferences.getString("visualNovelScreenMode", null)),
@@ -388,6 +404,8 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
             .putBoolean("readerHideFurigana", settings.hideFurigana)
             .putString("readerViewMode", settings.viewMode.rawValue)
             .putBoolean("continuousMode", settings.continuousMode)
+            .putBoolean("readerAiFullPageTranslationEnabled", settings.readerAiFullPageTranslationEnabled)
+            .putString("readerAiLongPressMode", settings.readerAiLongPressMode.name)
             .putInt("visualNovelRevealSpeed", settings.visualNovelRevealSpeed.coerceVisualNovelRevealSpeed())
             .putString("visualNovelScreenMode", settings.visualNovelScreenMode.rawValue)
             .putInt("visualNovelSentencesPerScreen", settings.visualNovelSentencesPerScreen.coerceIn(1, 12))
@@ -531,6 +549,8 @@ class ReaderSettingsRepository(
                 this[KEY_READER_VIEW_MODE],
                 legacyContinuousMode = this[KEY_CONTINUOUS_MODE] ?: false,
             ),
+            readerAiFullPageTranslationEnabled = this[KEY_READER_AI_FULL_PAGE_TRANSLATION_ENABLED] ?: false,
+            readerAiLongPressMode = ReaderAiLongPressMode.fromStorage(this[KEY_READER_AI_LONG_PRESS_MODE]),
             visualNovelRevealSpeed = (this[KEY_VISUAL_NOVEL_REVEAL_SPEED] ?: 45).coerceVisualNovelRevealSpeed(),
             visualNovelScreenMode = VisualNovelScreenMode.fromStorage(this[KEY_VISUAL_NOVEL_SCREEN_MODE]),
             visualNovelSentencesPerScreen = (this[KEY_VISUAL_NOVEL_SENTENCES_PER_SCREEN] ?: 1).coerceIn(1, 12),
@@ -596,6 +616,8 @@ class ReaderSettingsRepository(
         this[KEY_HIDE_FURIGANA] = settings.hideFurigana
         this[KEY_READER_VIEW_MODE] = settings.viewMode.rawValue
         this[KEY_CONTINUOUS_MODE] = settings.continuousMode
+        this[KEY_READER_AI_FULL_PAGE_TRANSLATION_ENABLED] = settings.readerAiFullPageTranslationEnabled
+        this[KEY_READER_AI_LONG_PRESS_MODE] = settings.readerAiLongPressMode.name
         this[KEY_VISUAL_NOVEL_REVEAL_SPEED] = settings.visualNovelRevealSpeed.coerceVisualNovelRevealSpeed()
         this[KEY_VISUAL_NOVEL_SCREEN_MODE] = settings.visualNovelScreenMode.rawValue
         this[KEY_VISUAL_NOVEL_SENTENCES_PER_SCREEN] = settings.visualNovelSentencesPerScreen.coerceIn(1, 12)
@@ -707,6 +729,9 @@ class ReaderSettingsRepository(
         private val KEY_HIDE_FURIGANA = booleanPreferencesKey("readerHideFurigana")
         private val KEY_READER_VIEW_MODE = stringPreferencesKey("readerViewMode")
         private val KEY_CONTINUOUS_MODE = booleanPreferencesKey("continuousMode")
+        private val KEY_READER_AI_FULL_PAGE_TRANSLATION_ENABLED =
+            booleanPreferencesKey("readerAiFullPageTranslationEnabled")
+        private val KEY_READER_AI_LONG_PRESS_MODE = stringPreferencesKey("readerAiLongPressMode")
         private val KEY_VISUAL_NOVEL_REVEAL_SPEED = intPreferencesKey("visualNovelRevealSpeed")
         private val KEY_VISUAL_NOVEL_SCREEN_MODE = stringPreferencesKey("visualNovelScreenMode")
         private val KEY_VISUAL_NOVEL_SENTENCES_PER_SCREEN = intPreferencesKey("visualNovelSentencesPerScreen")
@@ -781,6 +806,8 @@ private data class ProfileReaderAppearanceSettings(
     val hideFurigana: Boolean = false,
     val viewMode: ReaderViewMode? = null,
     val continuousMode: Boolean = false,
+    val readerAiFullPageTranslationEnabled: Boolean = false,
+    val readerAiLongPressMode: ReaderAiLongPressMode = ReaderAiLongPressMode.Translation,
     val visualNovelRevealSpeed: Int = 45,
     val visualNovelScreenMode: VisualNovelScreenMode = VisualNovelScreenMode.Block,
     val visualNovelSentencesPerScreen: Int = 1,
@@ -835,6 +862,8 @@ private fun ReaderSettings.toProfileAppearanceSettings(): ProfileReaderAppearanc
         hideFurigana = hideFurigana,
         viewMode = viewMode,
         continuousMode = continuousMode,
+        readerAiFullPageTranslationEnabled = readerAiFullPageTranslationEnabled,
+        readerAiLongPressMode = readerAiLongPressMode,
         visualNovelRevealSpeed = visualNovelRevealSpeed.coerceVisualNovelRevealSpeed(),
         visualNovelScreenMode = visualNovelScreenMode,
         visualNovelSentencesPerScreen = visualNovelSentencesPerScreen.coerceIn(1, 12),
@@ -892,6 +921,8 @@ private fun ReaderSettings.withProfileAppearance(appearance: ProfileReaderAppear
         } else {
             ReaderViewMode.Paginated
         },
+        readerAiFullPageTranslationEnabled = appearance.readerAiFullPageTranslationEnabled,
+        readerAiLongPressMode = appearance.readerAiLongPressMode,
         visualNovelRevealSpeed = appearance.visualNovelRevealSpeed.coerceVisualNovelRevealSpeed(),
         visualNovelScreenMode = appearance.visualNovelScreenMode,
         visualNovelSentencesPerScreen = appearance.visualNovelSentencesPerScreen.coerceIn(1, 12),

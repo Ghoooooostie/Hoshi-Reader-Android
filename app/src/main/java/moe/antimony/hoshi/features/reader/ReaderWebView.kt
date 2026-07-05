@@ -1,7 +1,6 @@
 package moe.antimony.hoshi.features.reader
 
 import android.app.Activity
-import android.content.Intent
 import android.content.Context
 import android.content.ContextWrapper
 import android.os.SystemClock
@@ -63,6 +62,7 @@ import moe.antimony.hoshi.epub.SasayakiPlaybackData
 import moe.antimony.hoshi.features.advancedai.AdvancedAiAvailability
 import moe.antimony.hoshi.features.advancedai.AdvancedAiCardKind
 import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiState
+import moe.antimony.hoshi.features.advancedai.sentenceTranslationAvailability
 import moe.antimony.hoshi.features.advancedai.sentenceSuccessContent
 import moe.antimony.hoshi.features.advancedai.updateAdvancedAiState
 import moe.antimony.hoshi.features.advancedai.wordAvailability
@@ -78,7 +78,6 @@ import moe.antimony.hoshi.features.dictionary.LookupPopupAssets
 import moe.antimony.hoshi.features.dictionary.LookupPopupHtml
 import moe.antimony.hoshi.features.dictionary.LookupPopupItem
 import moe.antimony.hoshi.features.dictionary.LookupPopupOptions
-import moe.antimony.hoshi.features.dictionary.ProcessTextLookupActivity
 import moe.antimony.hoshi.features.dictionary.closeChildPopupsAndClearSelection
 import moe.antimony.hoshi.features.dictionary.closeChildPopupsForScrolledParent
 import moe.antimony.hoshi.features.dictionary.clearPopupSelectionHighlights
@@ -197,12 +196,14 @@ fun ReaderWebView(
             ),
         )
     }
+    val pageTranslationCoordinator = remember(bookId, book) { ReaderPageTranslationCoordinator() }
     LaunchedEffect(readerSettings) {
         stateHolder.syncSettings(readerSettings)
     }
     var dictionarySettings by remember { mutableStateOf(DictionarySettings()) }
     var audioSettings by remember { mutableStateOf(AudioSettings()) }
     var dictionaryStyles by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var pageTranslationAvailabilityHint by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(dictionarySettingsRepository) {
         dictionarySettingsRepository.settings.collect { settings ->
             dictionarySettings = settings
@@ -221,6 +222,15 @@ fun ReaderWebView(
             audioSettings = settings
         }
     }
+    LaunchedEffect(advancedAiSettingsRepository, context) {
+        advancedAiSettingsRepository.settings.collect { settings ->
+            pageTranslationAvailabilityHint = if (settings.sentenceTranslationAvailability() is AdvancedAiAvailability.Ready) {
+                null
+            } else {
+                context.getString(moe.antimony.hoshi.R.string.reader_translation_ai_unavailable_hint)
+            }
+        }
+    }
     LaunchedEffect(sasayakiSettingsRepository) {
         sasayakiSettingsRepository.settings.collect { settings ->
             sasayakiSettings = settings
@@ -229,8 +239,11 @@ fun ReaderWebView(
     val effectiveSettings = stateHolder.effectiveSettings
     val readerPosition = stateHolder.readerPosition
     val lookupPopups = stateHolder.lookupPopups
+    val currentPageTranslationChapterKey = "$bookId:${readerPosition.loadPosition.index}"
     var readerPopupHistories by remember { mutableStateOf<Map<String, ReaderPopupHistoryCounts>>(emptyMap()) }
     var rootSelectionHighlight by remember { mutableStateOf<ReaderRootSelectionHighlight?>(null) }
+    var readerAiPopupModes by remember(book) { mutableStateOf<Map<String, ReaderAiLongPressMode>>(emptyMap()) }
+    var readerPageTranslationJob by remember { mutableStateOf<Job?>(null) }
     var fullscreenImage by remember { mutableStateOf<ReaderFullscreenImage?>(null) }
     val ankiViewModel: AnkiViewModel = hiltViewModel()
     val ankiUiState by ankiViewModel.uiState.collectAsStateWithLifecycle()
@@ -277,7 +290,7 @@ fun ReaderWebView(
     val readerPopupIframeUrl = remember(readerPopupIframeDocument) {
         readerLookupPopupIframeUrl(readerPopupIframeDocument.hashCode())
     }
-    var popupAnalysisVersions by remember(book) { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    var popupAiRequestVersions by remember(book) { mutableStateOf<Map<String, Int>>(emptyMap()) }
     LaunchedEffect(webView, readerPopupIframeUrl) {
         webView?.evaluateJavascript(
             """
@@ -319,6 +332,7 @@ fun ReaderWebView(
     val showReaderMenu = stateHolder.showReaderMenu
     val showAppearance = stateHolder.showAppearance
     val showGoTo = stateHolder.showGoTo
+    val showTranslationAi = stateHolder.showTranslationAi
     val showSasayaki = stateHolder.showSasayaki
     val showStatistics = stateHolder.showStatistics
     val focusMode = stateHolder.focusMode
@@ -492,34 +506,41 @@ fun ReaderWebView(
         if (!sasayakiSettings.enabled || !player.hasAudio) return null
         return player.findCue(chapterIndex = stateHolder.readerPosition.displayedPosition.index, offset = offset)
     }
+    fun rootLookupPopupOptions(): LookupPopupOptions =
+        LookupPopupOptions(
+            isVertical = effectiveSettings.verticalWriting,
+            isFullWidth = effectiveSettings.popupFullWidth,
+            width = effectiveSettings.popupWidth,
+            height = effectiveSettings.popupHeight,
+            swipeToDismiss = effectiveSettings.popupSwipeToDismiss,
+            swipeThreshold = effectiveSettings.popupSwipeThreshold,
+            reducedMotionScrolling = effectiveSettings.popupReducedMotionScrolling,
+            reducedMotionScrollPercent = effectiveSettings.popupReducedMotionScrollPercent,
+            reducedMotionSwipeThreshold = effectiveSettings.popupReducedMotionSwipeThreshold,
+            popupScale = effectiveSettings.popupScale,
+            popupActionBar = effectiveSettings.popupActionBar,
+            dictionarySettings = dictionarySettings,
+            darkMode = popupDarkMode,
+            eInkMode = effectiveSettings.eInkMode,
+            audioSettings = audioSettings,
+            documentTitle = book.title,
+            coverPath = sasayakiCoverFile?.absolutePath,
+            contentLanguageProfile = popupContentLanguageProfile,
+        )
     fun lookupRootPopup(selection: ReaderSelectionData): Pair<LookupPopupItem, Int>? =
         createLookupPopupItem(
             selection = selection,
             dictionaryStyles = dictionaryStyles,
             lookup = dictionaryRepository::lookup,
-            options = LookupPopupOptions(
-                isVertical = effectiveSettings.verticalWriting,
-                isFullWidth = effectiveSettings.popupFullWidth,
-                width = effectiveSettings.popupWidth,
-                height = effectiveSettings.popupHeight,
-                swipeToDismiss = effectiveSettings.popupSwipeToDismiss,
-                swipeThreshold = effectiveSettings.popupSwipeThreshold,
-                reducedMotionScrolling = effectiveSettings.popupReducedMotionScrolling,
-                reducedMotionScrollPercent = effectiveSettings.popupReducedMotionScrollPercent,
-                reducedMotionSwipeThreshold = effectiveSettings.popupReducedMotionSwipeThreshold,
-                popupScale = effectiveSettings.popupScale,
-                popupActionBar = effectiveSettings.popupActionBar,
-                dictionarySettings = dictionarySettings,
-                darkMode = popupDarkMode,
-                eInkMode = effectiveSettings.eInkMode,
-                audioSettings = audioSettings,
-                documentTitle = book.title,
-                coverPath = sasayakiCoverFile?.absolutePath,
-                contentLanguageProfile = popupContentLanguageProfile,
-            ),
+            options = rootLookupPopupOptions(),
         )?.let { (popup, highlightCount) ->
             popup.copy(sasayakiCue = sasayakiCueForSelection(selection)) to highlightCount
         }
+    fun readerAiRootPopup(selection: ReaderSelectionData): LookupPopupItem =
+        createReaderAiPopupItem(
+            selection = selection,
+            options = rootLookupPopupOptions(),
+        )
     fun lookupChildPopup(selection: ReaderSelectionData): Pair<LookupPopupItem, Int>? =
         createLookupPopupItem(
             selection = selection,
@@ -583,17 +604,154 @@ fun ReaderWebView(
     fun setLookupPopups(nextPopups: List<LookupPopupItem>) {
         val activeIds = nextPopups.mapTo(mutableSetOf()) { it.id }
         readerPopupHistories = readerPopupHistories.filterKeys(activeIds::contains)
+        readerAiPopupModes = readerAiPopupModes.filterKeys(activeIds::contains)
+        popupAiRequestVersions = popupAiRequestVersions.filterKeys(activeIds::contains)
         rootSelectionHighlight = rootSelectionHighlight?.takeIf { highlight ->
             highlight.popupId == null || highlight.popupId in activeIds
         }
         stateHolder.setLookupPopups(nextPopups, ::resumeSasayakiAfterLookupIfNeeded)
     }
+    fun clearReaderPageTranslations() {
+        readerPageTranslationJob?.cancel()
+        readerPageTranslationJob = null
+        pageTranslationCoordinator.clear()
+        webView?.evaluateJavascript(ReaderPageTranslationCommand.clearTranslations(), null)
+    }
+    fun applyReaderPageTranslation(
+        targetId: String,
+        translation: String,
+    ) {
+        webView?.evaluateJavascript(
+            ReaderPageTranslationCommand.applyTranslation(targetId, translation),
+            null,
+        )
+    }
+    fun collectVisibleReaderPageTranslationTargets(
+        onLoaded: (List<ReaderPageTranslationTarget>) -> Unit,
+    ) {
+        val currentWebView = webView
+        if (currentWebView == null) {
+            onLoaded(emptyList())
+            return
+        }
+        currentWebView.evaluateJavascript(ReaderPageTranslationCommand.collectVisibleTargets()) { result ->
+            onLoaded(ReaderPageTranslationBridgePayload.targetsFromJavascriptResult(result))
+        }
+    }
+    fun pumpReaderPageTranslationQueue(chapterKey: String = currentPageTranslationChapterKey) {
+        if (readerPageTranslationJob != null) return
+        readerPageTranslationJob = scope.launch {
+            val ready = advancedAiSettingsRepository.settings.first().sentenceTranslationAvailability()
+                as? AdvancedAiAvailability.Ready
+                ?: run {
+                    readerPageTranslationJob = null
+                    return@launch
+                }
+            while (true) {
+                val next = pageTranslationCoordinator.pollNext(chapterKey) ?: break
+                val result = runCatching {
+                    withContext(Dispatchers.IO) {
+                        advancedAiClient.translatePageParagraph(ready.settings, next.text)
+                    }
+                }
+                result.onSuccess { translation ->
+                    pageTranslationCoordinator.markSuccess(chapterKey, next.id, translation)
+                    if (currentPageTranslationChapterKey == chapterKey) {
+                        applyReaderPageTranslation(next.id, translation)
+                    }
+                }.onFailure {
+                    pageTranslationCoordinator.markFailure(chapterKey, next.id)
+                }
+            }
+            readerPageTranslationJob = null
+            pumpReaderPageTranslationQueue(chapterKey)
+        }
+    }
+    fun requestVisibleReaderPageTranslations() {
+        if (!effectiveSettings.readerAiFullPageTranslationEnabled) return
+        if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel) return
+        if (stateHolder.isWebViewRestoring) return
+        collectVisibleReaderPageTranslationTargets { targets ->
+            targets.forEach { target ->
+                pageTranslationCoordinator.cachedTranslation(currentPageTranslationChapterKey, target.id)?.let { cached ->
+                    applyReaderPageTranslation(target.id, cached)
+                }
+            }
+            pageTranslationCoordinator.enqueue(currentPageTranslationChapterKey, targets)
+            pumpReaderPageTranslationQueue()
+        }
+    }
+    fun requestReaderPopupSentenceAi(
+        popupId: String,
+        selection: ReaderSelectionData,
+        mode: ReaderAiLongPressMode,
+    ) {
+        val sentence = readerAiLongPressSentence(selection)
+        if (sentence.isBlank()) {
+            readerAiPopupModes = readerAiPopupModes - popupId
+            setLookupPopups(stateHolder.lookupPopups.filterNot { it.id == popupId })
+            return
+        }
+        scope.launch {
+            val version = (popupAiRequestVersions[popupId] ?: 0) + 1
+            popupAiRequestVersions = popupAiRequestVersions + (popupId to version)
+            readerAiPopupModes = readerAiPopupModes + (popupId to mode)
+            setLookupPopups(
+                stateHolder.lookupPopups.updateAdvancedAiState(
+                    popupId = popupId,
+                    nextState = LookupPopupAdvancedAiState.Loading(AdvancedAiCardKind.Sentence),
+                ),
+            )
+            val availability = readerAiLongPressAvailability(
+                settings = advancedAiSettingsRepository.settings.first(),
+                mode = mode,
+            )
+            val nextState = when (availability) {
+                is AdvancedAiAvailability.Ready -> {
+                    runCatching {
+                        withContext(Dispatchers.IO) {
+                            advancedAiClient.requestReaderAiLongPressContent(
+                                settings = availability.settings,
+                                mode = mode,
+                                sentence = sentence,
+                            )
+                        }
+                    }.fold(
+                        onSuccess = {
+                            LookupPopupAdvancedAiState.Success(
+                                kind = AdvancedAiCardKind.Sentence,
+                                content = it,
+                            )
+                        },
+                        onFailure = {
+                            LookupPopupAdvancedAiState.Error(
+                                kind = AdvancedAiCardKind.Sentence,
+                                message = UiText.Resource(readerAiLongPressRequestFailedResId(mode)),
+                            )
+                        },
+                    )
+                }
+
+                else -> LookupPopupAdvancedAiState.Error(
+                    kind = AdvancedAiCardKind.Sentence,
+                    message = UiText.Resource(moe.antimony.hoshi.R.string.reader_translation_ai_unavailable_hint),
+                )
+            }
+            if (popupAiRequestVersions[popupId] != version) return@launch
+            setLookupPopups(
+                stateHolder.lookupPopups.updateAdvancedAiState(
+                    popupId = popupId,
+                    nextState = nextState,
+                ),
+            )
+        }
+    }
     fun requestReaderPopupWordAnalysis(popupId: String, selection: ReaderSelectionData) {
         scope.launch {
             val ready = advancedAiSettingsRepository.settings.first().wordAvailability() as? AdvancedAiAvailability.Ready
                 ?: return@launch
-            val version = (popupAnalysisVersions[popupId] ?: 0) + 1
-            popupAnalysisVersions = popupAnalysisVersions + (popupId to version)
+            val version = (popupAiRequestVersions[popupId] ?: 0) + 1
+            popupAiRequestVersions = popupAiRequestVersions + (popupId to version)
             setLookupPopups(
                 stateHolder.lookupPopups.updateAdvancedAiState(
                     popupId = popupId,
@@ -605,7 +763,7 @@ fun ReaderWebView(
                     advancedAiClient.analyzeWordInSentence(ready.settings, selection)
                 }
             }
-            if (popupAnalysisVersions[popupId] != version) return@launch
+            if (popupAiRequestVersions[popupId] != version) return@launch
             setLookupPopups(
                 stateHolder.lookupPopups.updateAdvancedAiState(
                     popupId = popupId,
@@ -849,6 +1007,16 @@ fun ReaderWebView(
                 val index = popupIndex(message.popupId).takeIf { it >= 0 } ?: return
                 setLookupPopups(closeChildPopupsForScrolledParent(stateHolder.lookupPopups, index))
             }
+            is ReaderLookupPopupBridgeMessage.SwitchAdvancedAiMode -> {
+                val currentMode = readerAiPopupModes[message.popupId] ?: return
+                if (currentMode == message.mode) return
+                val popup = popupById(message.popupId) ?: return
+                requestReaderPopupSentenceAi(
+                    popupId = popup.id,
+                    selection = popup.state.selection,
+                    mode = message.mode,
+                )
+            }
             is ReaderLookupPopupBridgeMessage.ScrollState -> Unit
             is ReaderLookupPopupBridgeMessage.NavigateBack -> {
                 val current = readerPopupHistories[message.popupId] ?: return
@@ -948,32 +1116,49 @@ fun ReaderWebView(
             }
         }
     }
-    fun openSentenceAnalysis(selection: ReaderSelectionData) {
-        val query = selection.sentence.ifBlank { selection.text }.trim()
-        if (query.isBlank()) return
-        context.startActivity(
-            Intent(context, ProcessTextLookupActivity::class.java).apply {
-                action = Intent.ACTION_PROCESS_TEXT
-                type = "text/plain"
-                putExtra(Intent.EXTRA_PROCESS_TEXT, query)
-                putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true)
-            },
-        )
-    }
     val handleSentenceLongPressed: (ReaderSelectionData, (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit =
         { selection, selectionRects ->
             cancelSasayakiAutoPage()
             stateHolder.enterFocusModeForReaderInteraction()
             rootSelectionHighlight = null
             setLookupPopups(emptyList())
+            val popup = readerAiRootPopup(selection)
+            readerAiPopupModes = readerAiPopupModes + (popup.id to effectiveSettings.readerAiLongPressMode)
+            rootSelectionHighlight = ReaderRootSelectionHighlight(
+                popupId = popup.id,
+                rects = null,
+            )
+            setLookupPopups(listOf(popup))
+            requestReaderPopupSentenceAi(
+                popupId = popup.id,
+                selection = selection,
+                mode = effectiveSettings.readerAiLongPressMode,
+            )
             val highlightCount = selection.text.codePointCount(0, selection.text.length)
             selectionRects(highlightCount) { rects ->
+                if (stateHolder.lookupPopups.none { it.id == popup.id }) return@selectionRects
+                val displayRects = rects.ifEmpty { listOf(selection.rect) }
+                val anchor = displayRects.firstOrNull()
+                if (anchor != null) {
+                    setLookupPopups(
+                        stateHolder.lookupPopups.map { existing ->
+                            if (existing.id == popup.id) {
+                                existing.copy(
+                                    state = existing.state.copy(
+                                        selection = existing.state.selection.copy(rect = anchor),
+                                    ),
+                                )
+                            } else {
+                                existing
+                            }
+                        },
+                    )
+                }
                 rootSelectionHighlight = ReaderRootSelectionHighlight(
-                    popupId = null,
-                    rects = rects.ifEmpty { listOf(selection.rect) },
+                    popupId = popup.id,
+                    rects = displayRects,
                 )
             }
-            openSentenceAnalysis(selection)
         }
     fun handleReaderTapOutside() {
         cancelSasayakiAutoPage()
@@ -1678,6 +1863,35 @@ fun ReaderWebView(
             ),
     )
     val restoreLoadingPresentation = readerRestoreLoadingPresentation(stateHolder.isWebViewRestoring)
+    LaunchedEffect(currentPageTranslationChapterKey) {
+        readerPageTranslationJob?.cancel()
+        readerPageTranslationJob = null
+        pageTranslationCoordinator.clearActiveWork()
+    }
+    LaunchedEffect(
+        effectiveSettings.readerAiFullPageTranslationEnabled,
+        effectiveSettings.viewMode,
+        webView,
+    ) {
+        if (!effectiveSettings.readerAiFullPageTranslationEnabled || effectiveSettings.viewMode == ReaderViewMode.VisualNovel) {
+            clearReaderPageTranslations()
+        }
+    }
+    LaunchedEffect(
+        effectiveSettings.readerAiFullPageTranslationEnabled,
+        effectiveSettings.viewMode,
+        stateHolder.isWebViewRestoring,
+        webView,
+        currentPageTranslationChapterKey,
+        readerPosition.displayedPosition.progress,
+    ) {
+        if (!effectiveSettings.readerAiFullPageTranslationEnabled) return@LaunchedEffect
+        if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel) return@LaunchedEffect
+        if (stateHolder.isWebViewRestoring) return@LaunchedEffect
+        if (webView == null) return@LaunchedEffect
+        delay(350)
+        requestVisibleReaderPageTranslations()
+    }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -1726,6 +1940,7 @@ fun ReaderWebView(
                     readerLookupPopupFramePayloads(
                         popups = themedLookupPopups,
                         histories = readerPopupHistories,
+                        readerAiPopupModes = readerAiPopupModes,
                         viewport = readerLookupPopupViewport,
                         sasayakiWasPaused = sasayakiWasPausedByLookup,
                         sasayakiIsPlaying = sasayakiPlayer?.isPlaying == true,
@@ -1901,6 +2116,7 @@ fun ReaderWebView(
             menuExpanded = showReaderMenu,
             onDismissMenu = stateHolder::dismissReaderMenu,
             onGoTo = stateHolder::openGoToFromMenu,
+            onTranslationAi = stateHolder::openTranslationAiFromMenu,
             onAppearance = stateHolder::openAppearanceFromMenu,
             onStatistics = if (effectiveSettings.enableStatistics) {
                 stateHolder::openStatisticsFromMenu
@@ -1915,6 +2131,18 @@ fun ReaderWebView(
             metrics = bottomChromeMetrics,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
+        if (showTranslationAi) {
+            ReaderTranslationAiSheet(
+                settings = effectiveSettings,
+                fullPageTranslationSupported = effectiveSettings.viewMode != ReaderViewMode.VisualNovel,
+                availabilityHint = pageTranslationAvailabilityHint,
+                onSettingsChange = {
+                    stateHolder.applySettings(it)
+                    onReaderSettingsChange(it)
+                },
+                onDismiss = stateHolder::dismissTranslationAi,
+            )
+        }
         if (showAppearance) {
             ReaderAppearanceSheet(
                 settings = effectiveSettings,

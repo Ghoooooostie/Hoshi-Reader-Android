@@ -73,6 +73,19 @@ html:not([data-hoshi-reader-eink-mode="true"]) .hoshi-sasayaki-cue.hoshi-sasayak
     color: var(--hoshi-sasayaki-text-color) !important;
     background-color: var(--hoshi-sasayaki-background-color) !important;
 }
+.hoshi-reader-translation {
+    display: block;
+    color: var(--hoshi-text-color);
+    opacity: 0.72;
+    margin: 0.45em 0 0.9em 0;
+    font-size: 0.92em;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    -webkit-user-select: none;
+    user-select: none;
+}
 .hoshi-vn-stage {
     height: var(--hoshi-reader-visible-height, var(--page-height, 100vh));
     width: var(--page-width, 100vw);

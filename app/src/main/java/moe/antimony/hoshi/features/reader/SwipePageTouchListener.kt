@@ -61,6 +61,7 @@ internal class ReaderSwipeGestureTracker(
         if (!hasDown || swipeDispatched) return Result.None
         val dx = x - downX
         val dy = y - downY
+        if (abs(dx) <= abs(dy)) return Result.None
         val elapsedMs = (eventTime - downTime).coerceAtLeast(1L)
         val velocityX = abs(dx) * 1_000f / elapsedMs
         val hasPageDistance = abs(dx) >= minDistance

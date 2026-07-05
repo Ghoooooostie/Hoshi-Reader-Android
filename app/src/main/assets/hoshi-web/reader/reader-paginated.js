@@ -1,6 +1,7 @@
 __HOSHI_READER_TEXT_SEMANTICS_SCRIPT__
 __HOSHI_READER_DOM_TEXT_SCRIPT__
 __HOSHI_READER_MEDIA_SEMANTICS_SCRIPT__
+__HOSHI_READER_TRANSLATION_SCRIPT__
 
 window.hoshiReader = {
   pageHeight: 0,
@@ -26,6 +27,10 @@ window.hoshiReader = {
   isFurigana: function(node) {
     var el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
     return !!(el && el.closest('rt, rp'));
+  },
+  isReaderTranslation: function(node) {
+    var el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+    return !!(el && el.closest('.hoshi-reader-translation'));
   },
   textSemantics: function() {
     if (!window.hoshiReaderTextSemantics) {
@@ -76,7 +81,9 @@ window.hoshiReader = {
   createWalker: function(rootNode) {
     var root = rootNode || document.body;
     return document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode: (n) => this.isFurigana(n) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+      acceptNode: (n) => (this.isFurigana(n) || this.isReaderTranslation(n))
+        ? NodeFilter.FILTER_REJECT
+        : NodeFilter.FILTER_ACCEPT
     });
   },
   getRect: function(target) {

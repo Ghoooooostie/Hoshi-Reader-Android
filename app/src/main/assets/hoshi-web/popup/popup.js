@@ -118,6 +118,29 @@ function createAdvancedAiCard(advancedAi) {
         className: 'advanced-ai-card-title',
         textContent: advancedAi.title,
     }));
+    const modeOptions = Array.isArray(advancedAi.modeOptions) ? advancedAi.modeOptions : [];
+    if (modeOptions.length > 1 && window.webkit?.messageHandlers?.switchAdvancedAiMode) {
+        const selector = el('div', { className: 'advanced-ai-card-mode-switch' });
+        for (const option of modeOptions) {
+            const button = el('button', {
+                type: 'button',
+                className: 'advanced-ai-card-mode-button',
+                textContent: option.title || '',
+            });
+            if (option.selected) {
+                button.setAttribute('data-selected', 'true');
+            }
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!option.selected && option.value) {
+                    window.webkit.messageHandlers.switchAdvancedAiMode.postMessage(option.value);
+                }
+            });
+            selector.appendChild(button);
+        }
+        card.appendChild(selector);
+    }
     card.appendChild(el('div', {
         className: 'advanced-ai-card-body',
         textContent: advancedAi.body,
@@ -1784,6 +1807,9 @@ function isPopupInteractiveTapTarget(target) {
 
 function handlePopupTap(target, clientX, clientY) {
     if (isPopupInteractiveTapTarget(target)) {
+        return false;
+    }
+    if (target?.closest('.advanced-ai-card')) {
         return false;
     }
     if (!target?.closest('.glossary-content') && !target?.closest('.expr-tag')) {

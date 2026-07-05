@@ -1,6 +1,7 @@
 package moe.antimony.hoshi.features.advancedai
 
 import moe.antimony.hoshi.R
+import moe.antimony.hoshi.features.dictionary.lookupPopupContentKey
 import moe.antimony.hoshi.features.dictionary.LookupPopupItem
 import moe.antimony.hoshi.features.dictionary.LookupPopupState
 import moe.antimony.hoshi.features.reader.ReaderSelectionData
@@ -42,6 +43,22 @@ class AdvancedAiPopupStateTest {
         assertEquals("长难句分析", payload.title)
         assertEquals("loading", payload.status)
         assertEquals("分析中", payload.body)
+    }
+
+    @Test
+    fun advancedAiOnlyPopupStillProducesContentKey() {
+        val payload = LookupPopupAdvancedAiPayload(
+            title = "整句翻译",
+            status = "success",
+            body = "这是翻译结果。",
+        )
+
+        val contentKey = lookupPopupContentKey(
+            results = emptyList(),
+            advancedAi = payload,
+        )
+
+        assertTrue(contentKey?.isNotBlank() == true)
     }
 
     @Test

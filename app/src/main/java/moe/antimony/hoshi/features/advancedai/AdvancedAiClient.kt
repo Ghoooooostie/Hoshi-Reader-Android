@@ -50,6 +50,8 @@ internal class HttpAdvancedAiTransport : AdvancedAiTransport {
 internal interface AdvancedAiClient {
     suspend fun analyzeWordInSentence(settings: AdvancedAiSettings, selection: ReaderSelectionData): String
     suspend fun translateSentence(settings: AdvancedAiSettings, sentence: String): String
+    suspend fun translatePageParagraph(settings: AdvancedAiSettings, paragraph: String): String =
+        translateSentence(settings, paragraph)
     suspend fun analyzeSentence(settings: AdvancedAiSettings, sentence: String): String
     suspend fun testConnection(settings: AdvancedAiSettings): Result<Unit>
 }
@@ -81,6 +83,20 @@ internal class OpenAiCompatibleAdvancedAiClient(
             val response = transport.post(
                 url = chatCompletionsUrl(settings.baseUrl),
                 body = buildSentenceTranslationRequestBody(settings, sentence),
+                apiKey = settings.apiKey,
+                timeoutMillis = timeoutMillis,
+            )
+            parseCompletionText(response)
+        }
+
+    override suspend fun translatePageParagraph(
+        settings: AdvancedAiSettings,
+        paragraph: String,
+    ): String =
+        runLoggedRequest {
+            val response = transport.post(
+                url = chatCompletionsUrl(settings.baseUrl),
+                body = buildPageParagraphTranslationRequestBody(settings, paragraph),
                 apiKey = settings.apiKey,
                 timeoutMillis = timeoutMillis,
             )
@@ -146,6 +162,16 @@ internal fun buildSentenceTranslationRequestBody(
     userContent = "Sentence: $sentence",
 )
 
+/** 构造全文翻译段落请求体，强制整段逐句完整翻译。 */
+internal fun buildPageParagraphTranslationRequestBody(
+    settings: AdvancedAiSettings,
+    paragraph: String,
+): String = buildChatCompletionsRequest(
+    model = settings.model,
+    prompt = buildPageParagraphTranslationPrompt(settings.sentenceTranslationPrompt),
+    userContent = "Paragraph: $paragraph",
+)
+
 /** 构造长难句分析请求体。 */
 internal fun buildSentenceAnalysisRequestBody(
     settings: AdvancedAiSettings,
@@ -158,6 +184,15 @@ internal fun buildSentenceAnalysisRequestBody(
 
 /** 直接使用用户当前保存的提示词，避免隐式追加额外要求。 */
 private fun buildConfiguredPrompt(prompt: String): String = prompt.trim()
+
+/** 全文翻译必须覆盖整段全部句子，不能让模型概括或省略。 */
+private fun buildPageParagraphTranslationPrompt(prompt: String): String = buildString {
+    appendLine(buildConfiguredPrompt(prompt))
+    appendLine()
+    appendLine("Translate every sentence from the entire input in order.")
+    appendLine("Do not omit, summarize, or merge sentences.")
+    append("Output only the final natural Chinese translation of the full paragraph.")
+}.trim()
 
 /** 解析 chat completions 的首条文本返回。 */
 internal fun parseCompletionText(responseText: String): String {

@@ -24,6 +24,7 @@ import moe.antimony.hoshi.features.dictionary.LookupPopupAssets
 import moe.antimony.hoshi.features.dictionary.LookupPopupHtml
 import moe.antimony.hoshi.features.dictionary.LookupPopupItem
 import moe.antimony.hoshi.features.dictionary.LookupPopupLayout
+import moe.antimony.hoshi.features.dictionary.LookupPopupState
 import moe.antimony.hoshi.features.dictionary.lookupPopupContentKey
 import moe.antimony.hoshi.features.dictionary.popupSelectionOffsetY
 import java.io.ByteArrayInputStream
@@ -131,7 +132,7 @@ internal data class ReaderLookupPopupFramePayload(
                 screenWidth = viewport.width,
                 screenHeight = viewport.height,
                 maxWidth = state.width.toDouble(),
-                maxHeight = state.height.toDouble(),
+                maxHeight = popupFrameMaxHeight(state, advancedAi),
                 isVertical = state.isVertical,
                 isFullWidth = state.isFullWidth,
                 topInset = state.topInset,
@@ -177,8 +178,19 @@ internal data class ReaderLookupPopupFramePayload(
                 advancedAi = advancedAi,
             )
         }
+
+        private fun popupFrameMaxHeight(
+            state: LookupPopupState,
+            advancedAi: LookupPopupAdvancedAiPayload?,
+        ): Double {
+            val configuredHeight = state.height.toDouble()
+            if (advancedAi == null || state.results.isNotEmpty()) return configuredHeight
+            return minOf(configuredHeight, AdvancedAiCompactPopupMaxHeightDp)
+        }
     }
 }
+
+private const val AdvancedAiCompactPopupMaxHeightDp = 184.0
 
 @Serializable
 internal data class ReaderLookupPopupStackPayload(
@@ -268,6 +280,12 @@ internal sealed class ReaderLookupPopupBridgeMessage {
         override val messageId: String?,
     ) : ReaderLookupPopupBridgeMessage()
 
+    data class SwitchAdvancedAiMode(
+        override val popupId: String,
+        override val messageId: String?,
+        val mode: ReaderAiLongPressMode,
+    ) : ReaderLookupPopupBridgeMessage()
+
     data class ScrollState(
         override val popupId: String,
         override val messageId: String?,
@@ -350,6 +368,11 @@ internal sealed class ReaderLookupPopupBridgeMessage {
                 )
                 "contentReady" -> ContentReady(popupId, messageId)
                 "popupScrolled" -> PopupScrolled(popupId, messageId)
+                "switchAdvancedAiMode" -> SwitchAdvancedAiMode(
+                    popupId = popupId,
+                    messageId = messageId,
+                    mode = ReaderAiLongPressMode.entries.firstOrNull { it.name == payload.string("body") } ?: return null,
+                )
                 "scrollState" -> {
                     val body = payload.obj("body") ?: return null
                     ScrollState(
