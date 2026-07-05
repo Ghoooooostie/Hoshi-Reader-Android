@@ -17,6 +17,8 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 - Keep the Statistics tab visible after enabling it and switching away from Settings.
 - Refresh Statistics by-book covers when changing calendar ranges.
+- Keep Reader lookup highlights from expanding to an entire ruby annotation when
+  selecting a shorter word inside it.
 - Keep long-pressed Reader volume keys paging or seeking Sasayaki instead of
   falling back to system volume changes after the first press.
 
