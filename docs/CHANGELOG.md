@@ -19,6 +19,8 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 - Refresh Statistics by-book covers when changing calendar ranges.
 - Keep Reader lookup highlights from expanding to an entire ruby annotation when
   selecting a shorter word inside it.
+- Keep VN vertical text from jumping to a new column immediately after a ruby
+  annotation.
 - Keep long-pressed Reader volume keys paging or seeking Sasayaki instead of
   falling back to system volume changes after the first press.
 
