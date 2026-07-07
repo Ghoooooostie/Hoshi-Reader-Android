@@ -6,6 +6,10 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ## [Unreleased]
 
+### Added
+
+- Add a Reader Appearance setting for top safe area height.
+
 ### Changed
 
 - Improve dictionary lookup and import behavior by honoring Yomitan term scores
