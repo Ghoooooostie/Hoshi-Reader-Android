@@ -6,6 +6,8 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ## [Unreleased]
 
+## [v1.3.1] - 2026-07-11
+
 ### Added
 
 - Add a Reader Appearance setting for top safe area height.
