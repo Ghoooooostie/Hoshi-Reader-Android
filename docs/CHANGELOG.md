@@ -6,6 +6,11 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep dictionary definitions in the configured dictionary order when an
+  inflected lookup merges multiple deinflection candidates.
+
 ## [v1.3.1] - 2026-07-11
 
 ### Added
