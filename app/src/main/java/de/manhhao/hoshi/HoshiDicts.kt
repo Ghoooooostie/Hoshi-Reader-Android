@@ -107,7 +107,7 @@ object HoshiDicts {
     }
 
     external fun importDictionary(zipPath: String, outputDir: String, lowRam: Boolean = false): ImportResult
-    private external fun createLookupObject(): Long
+    external fun createLookupObject(languageId: String): Long
     external fun destroyLookupObject(session: Long)
     external fun rebuildQuery(
         session: Long,
@@ -119,9 +119,4 @@ object HoshiDicts {
     external fun lookup(session: Long, text: String, maxResults: Int, scanLength: Int): Array<LookupResult>
     external fun getStyles(session: Long): Array<DictionaryStyle>
     external fun getMediaFile(session: Long, dictName: String, mediaPath: String): ByteArray?
-
-    // 兼容旧版 native，当前语言参数先保留在 Kotlin 层接口。
-    fun createLookupObject(languageId: String): Long {
-        return createLookupObject()
-    }
 }
