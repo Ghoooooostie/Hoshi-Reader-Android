@@ -19,27 +19,32 @@ class DictionaryLookupQueryServiceTest {
     fun rebuildForwardsEnabledPathsByDictionaryTypeToNativeBridge() {
         val bridge = RecordingDictionaryNativeBridge()
         val service = DictionaryLookupQueryService(bridge)
+        val termPath = File("/dicts/Term/JMdict").absolutePath
+        val frequencyPath = File("/dicts/Frequency/Freq").absolutePath
+        val pitchPath = File("/dicts/Pitch/Pitch").absolutePath
 
         service.rebuild(
-            termDictionaries = listOf(File("/dicts/Term/JMdict")),
-            frequencyDictionaries = listOf(File("/dicts/Frequency/Freq")),
-            pitchDictionaries = listOf(File("/dicts/Pitch/Pitch")),
+            termDictionaries = listOf(File(termPath)),
+            frequencyDictionaries = listOf(File(frequencyPath)),
+            pitchDictionaries = listOf(File(pitchPath)),
             dictionaryLanguageId = "en",
         )
 
         assertEquals(listOf("en"), bridge.createdLanguageIds)
-        assertArrayEquals(arrayOf("/dicts/Term/JMdict"), bridge.termPaths)
-        assertArrayEquals(arrayOf("/dicts/Frequency/Freq"), bridge.freqPaths)
-        assertArrayEquals(arrayOf("/dicts/Pitch/Pitch"), bridge.pitchPaths)
+        assertArrayEquals(arrayOf(termPath), bridge.termPaths)
+        assertArrayEquals(arrayOf(frequencyPath), bridge.freqPaths)
+        assertArrayEquals(arrayOf(pitchPath), bridge.pitchPaths)
     }
 
     @Test
     fun rebuildPublishesNewQueryWithoutMutatingCurrentQueryInPlace() {
         val bridge = RecordingDictionaryNativeBridge()
         val service = DictionaryLookupQueryService(bridge)
+        val oldPath = File("/dicts/Term/Old").absolutePath
+        val newPath = File("/dicts/Term/New").absolutePath
 
         service.rebuild(
-            termDictionaries = listOf(File("/dicts/Term/Old")),
+            termDictionaries = listOf(File(oldPath)),
             frequencyDictionaries = emptyList(),
             pitchDictionaries = emptyList(),
             dictionaryLanguageId = "ja",
@@ -47,14 +52,14 @@ class DictionaryLookupQueryServiceTest {
         val oldResult = service.lookup("食べる").single().term.glossaries.single().glossary
 
         service.rebuild(
-            termDictionaries = listOf(File("/dicts/Term/New")),
+            termDictionaries = listOf(File(newPath)),
             frequencyDictionaries = emptyList(),
             pitchDictionaries = emptyList(),
             dictionaryLanguageId = "en",
         )
 
-        assertEquals("session-1:/dicts/Term/Old", oldResult)
-        assertEquals("session-2:/dicts/Term/New", service.lookup("食べる").single().term.glossaries.single().glossary)
+        assertEquals("session-1:$oldPath", oldResult)
+        assertEquals("session-2:$newPath", service.lookup("食べる").single().term.glossaries.single().glossary)
         assertEquals(listOf("ja", "en"), bridge.createdLanguageIds)
         assertEquals(listOf(1L), bridge.destroyedSessions)
     }
@@ -63,9 +68,11 @@ class DictionaryLookupQueryServiceTest {
     fun failedRebuildKeepsCurrentQueryAvailable() {
         val bridge = RecordingDictionaryNativeBridge()
         val service = DictionaryLookupQueryService(bridge)
+        val stablePath = File("/dicts/Term/Stable").absolutePath
+        val brokenPath = File("/dicts/Term/Broken").absolutePath
 
         service.rebuild(
-            termDictionaries = listOf(File("/dicts/Term/Stable")),
+            termDictionaries = listOf(File(stablePath)),
             frequencyDictionaries = emptyList(),
             pitchDictionaries = emptyList(),
             dictionaryLanguageId = "ja",
@@ -74,7 +81,7 @@ class DictionaryLookupQueryServiceTest {
 
         val failure = runCatching {
             service.rebuild(
-                termDictionaries = listOf(File("/dicts/Term/Broken")),
+                termDictionaries = listOf(File(brokenPath)),
                 frequencyDictionaries = emptyList(),
                 pitchDictionaries = emptyList(),
                 dictionaryLanguageId = "en",
@@ -82,7 +89,7 @@ class DictionaryLookupQueryServiceTest {
         }
 
         assertTrue(failure.isFailure)
-        assertEquals("session-1:/dicts/Term/Stable", service.lookup("食べる").single().term.glossaries.single().glossary)
+        assertEquals("session-1:$stablePath", service.lookup("食べる").single().term.glossaries.single().glossary)
         assertEquals(listOf(2L), bridge.destroyedSessions)
     }
 
@@ -90,6 +97,8 @@ class DictionaryLookupQueryServiceTest {
     fun rebuildDoesNotDestroyPreviousQueryWhileLookupIsReadingIt() {
         val lookupStarted = CountDownLatch(1)
         val releaseLookup = CountDownLatch(1)
+        val oldPath = File("/dicts/Term/Old").absolutePath
+        val newPath = File("/dicts/Term/New").absolutePath
         val bridge = RecordingDictionaryNativeBridge(
             onLookup = { session ->
                 if (session == 1L) {
@@ -100,7 +109,7 @@ class DictionaryLookupQueryServiceTest {
         )
         val service = DictionaryLookupQueryService(bridge)
         service.rebuild(
-            termDictionaries = listOf(File("/dicts/Term/Old")),
+            termDictionaries = listOf(File(oldPath)),
             frequencyDictionaries = emptyList(),
             pitchDictionaries = emptyList(),
             dictionaryLanguageId = "ja",
@@ -113,7 +122,7 @@ class DictionaryLookupQueryServiceTest {
 
         val rebuildThread = thread(start = true) {
             service.rebuild(
-                termDictionaries = listOf(File("/dicts/Term/New")),
+                termDictionaries = listOf(File(newPath)),
                 frequencyDictionaries = emptyList(),
                 pitchDictionaries = emptyList(),
                 dictionaryLanguageId = "en",
@@ -126,7 +135,7 @@ class DictionaryLookupQueryServiceTest {
         lookupThread.join(5_000)
         rebuildThread.join(5_000)
         assertEquals(listOf(1L), bridge.destroyedSessions)
-        assertEquals("session-2:/dicts/Term/New", service.lookup("食べる").single().term.glossaries.single().glossary)
+        assertEquals("session-2:$newPath", service.lookup("食べる").single().term.glossaries.single().glossary)
     }
 
     private class RecordingDictionaryNativeBridge : DictionaryNativeBridge {
