@@ -307,8 +307,30 @@ private fun String.toSafeTtuFileStem(): String {
     require(!stem.contains('/') && !stem.contains('\\')) {
         "Unsafe TTU section reference: $this"
     }
-    return stem
+    return stem.toSafeTtuFileComponent()
 }
+
+private fun String.toSafeTtuFileComponent(): String = buildString {
+    this@toSafeTtuFileComponent.codePoints().forEach { codePoint ->
+        if (codePoint.isSafeTtuFileCodePoint()) {
+            appendCodePoint(codePoint)
+        } else {
+            String(Character.toChars(codePoint)).toByteArray(Charsets.UTF_8).forEach { byte ->
+                append('%')
+                append(ttuHexDigits[(byte.toInt() ushr 4) and 0x0F])
+                append(ttuHexDigits[byte.toInt() and 0x0F])
+            }
+        }
+    }
+}
+
+private fun Int.isSafeTtuFileCodePoint(): Boolean =
+    this in 'a'.code..'z'.code ||
+        this in 'A'.code..'Z'.code ||
+        this in '0'.code..'9'.code ||
+        this == '-'.code ||
+        this == '_'.code ||
+        this == '.'.code
 
 private fun generateXhtml(file: TtuXhtmlFile, title: String): String {
     var content = file.html.removeOuterTtuDiv()
@@ -525,6 +547,8 @@ private val json = Json {
     ignoreUnknownKeys = true
     encodeDefaults = true
 }
+
+private const val ttuHexDigits = "0123456789ABCDEF"
 
 private val containerXml = """
     <?xml version="1.0"?>
