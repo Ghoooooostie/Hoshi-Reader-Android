@@ -16,6 +16,17 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   in-reader sentence translation and sentence analysis cards, and visible-page
   paragraph translation that fills in directly under the source text.
 
+### Fixed
+
+- Keep dictionary definitions in the configured dictionary order when an
+  inflected lookup merges multiple deinflection candidates.
+
+## [v1.3.1] - 2026-07-11
+
+### Added
+
+- Add a Reader Appearance setting for top safe area height.
+
 ### Changed
 
 - Let Advanced AI prompt fields use the exact text saved in Settings, and refresh
@@ -38,6 +49,10 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   paragraph contains multiple source sentences.
 - Keep the Statistics tab visible after enabling it and switching away from Settings.
 - Refresh Statistics by-book covers when changing calendar ranges.
+- Keep Reader lookup highlights from expanding to an entire ruby annotation when
+  selecting a shorter word inside it.
+- Keep VN vertical text from jumping to a new column immediately after a ruby
+  annotation.
 - Keep long-pressed Reader volume keys paging or seeking Sasayaki instead of
   falling back to system volume changes after the first press.
 

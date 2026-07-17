@@ -1781,6 +1781,7 @@ fun ReaderWebView(
         }
     }
 
+    val topChromeMetrics = readerTopChromeMetrics(effectiveSettings.topSafeAreaDp)
     val bottomChromeMetrics = readerBottomChromeMetrics(effectiveSettings.bottomSafeAreaDp)
     val currentStatusBarPadding = rememberCurrentStatusBarPadding()
     val stableStatusBarPadding = rememberStableStatusBarPadding()
@@ -1819,6 +1820,7 @@ fun ReaderWebView(
     val topInfoPadding = readerTopInfoOverlayPaddingDp(
         topSystemInsetDp = currentStatusBarPaddingDp,
         focusMode = focusMode,
+        settings = effectiveSettings,
     ).dp
     val onSasayakiTopToggle = sasayakiPlayer
         ?.takeIf { showSasayakiTopToggle && it.hasAudio }
@@ -2066,7 +2068,7 @@ fun ReaderWebView(
             onSasayakiToggle = onSasayakiTopToggle,
             sasayakiPlaying = sasayakiPlayer?.isPlaying == true || sasayakiWasPausedByLookup,
             visibility = topInfoVisibility,
-            metrics = bottomChromeMetrics,
+            metrics = topChromeMetrics,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = topInfoPadding)

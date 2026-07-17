@@ -77,7 +77,7 @@ internal fun ReaderTopInfo(
     onSasayakiToggle: (() -> Unit)?,
     sasayakiPlaying: Boolean,
     visibility: ReaderChromeVisibility,
-    metrics: ReaderBottomChromeMetrics,
+    metrics: ReaderTopChromeMetrics,
     modifier: Modifier = Modifier,
 ) {
     val progress = state.progressText(settings, progressDisplay)
@@ -213,6 +213,7 @@ internal fun ReaderTopInfo(
                         contentDescription = stringResource(R.string.reader_jump_back),
                         colors = colors,
                         heightDp = metrics.topStatisticsButtonSizeDp,
+                        iconSizeDp = metrics.topJumpHistoryIconSizeDp,
                         onClick = requireNotNull(onJumpBack),
                     )
                 }
@@ -239,6 +240,7 @@ internal fun ReaderTopInfo(
                         contentDescription = stringResource(R.string.reader_jump_forward),
                         colors = colors,
                         heightDp = metrics.topSasayakiButtonSizeDp,
+                        iconSizeDp = metrics.topJumpHistoryIconSizeDp,
                         onClick = requireNotNull(onJumpForward),
                     )
                 }
@@ -277,6 +279,7 @@ private fun ReaderJumpHistoryButton(
     contentDescription: String,
     colors: ReaderChromeColors,
     heightDp: Int,
+    iconSizeDp: Int,
     onClick: () -> Unit,
 ) {
     Row(
@@ -291,7 +294,7 @@ private fun ReaderJumpHistoryButton(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(iconSizeDp.dp),
                 tint = Color(colors.infoText),
             )
         }
@@ -304,7 +307,7 @@ private fun ReaderJumpHistoryButton(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(iconSizeDp.dp),
                 tint = Color(colors.infoText),
             )
         }
