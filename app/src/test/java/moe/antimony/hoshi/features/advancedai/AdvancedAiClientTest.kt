@@ -86,9 +86,10 @@ class AdvancedAiClientTest {
         )
 
         assertTrue(body.contains("Translate the sentence into natural Chinese."))
-        assertFalse(body.contains("Output only the final Chinese translation."))
-        assertFalse(body.contains("Do not add explanations"))
-        assertTrue(body.contains("Sentence: Although it was raining, he still went out."))
+        assertTrue(body.contains("目标语言：简体中文"))
+        assertTrue(body.contains("只输出最终译文"))
+        assertTrue(body.contains("原文：Although it was raining, he still went out."))
+        assertFalse(body.contains("Sentence: Although it was raining, he still went out."))
     }
 
     @Test
@@ -104,7 +105,10 @@ class AdvancedAiClientTest {
 
         assertFalse(body.contains("只输出一句自然流畅的中文译文"))
         assertTrue(body.contains("完整翻译整段内容，按原顺序逐句输出，不要省略，不要概括。"))
-        assertTrue(body.contains("Paragraph: He nodded. Then he got into the car."))
+        assertTrue(body.contains("目标语言：简体中文"))
+        assertTrue(body.contains("只输出最终译文"))
+        assertTrue(body.contains("原文段落：He nodded. Then he got into the car."))
+        assertFalse(body.contains("Paragraph: He nodded. Then he got into the car."))
     }
 
     @Test

@@ -103,6 +103,21 @@
       });
       return JSON.stringify(targets);
     },
+    targetAtPoint: function(x, y) {
+      var touched = document.elementFromPoint(x, y);
+      var translationBlock = touched && touched.closest ? touched.closest('.' + TRANSLATION_CLASS) : null;
+      if (!translationBlock) return null;
+      var targetId = translationBlock.getAttribute('data-hoshi-translation-for') || '';
+      if (!targetId) return null;
+      var target = findTargetById(targetId);
+      if (!target) return null;
+      var text = extractTargetText(target);
+      if (!text) return null;
+      return JSON.stringify({
+        id: targetId,
+        text: text
+      });
+    },
     applyTranslation: function(targetId, translation) {
       var element = findTargetById(targetId);
       if (!element) return false;

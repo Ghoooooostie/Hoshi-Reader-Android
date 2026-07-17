@@ -17,6 +17,10 @@ import org.junit.rules.TemporaryFolder
 class AdvancedAiSettingsRepositoryTest {
     private val legacyWordPrompt =
         "请用简洁中文分析所选词在句中的作用。只输出纯文本，不要 Markdown、星号、编号或引号。固定三行：词性：... 作用：... 补充：..."
+    private val legacySentenceTranslationPrompt =
+        "Translate the sentence into natural Chinese."
+    private val legacyPageParagraphTranslationPrompt =
+        "Translate the full paragraph into natural Chinese without skipping any sentence."
 
     @get:Rule
     val tempFolder = TemporaryFolder()
@@ -96,6 +100,32 @@ class AdvancedAiSettingsRepositoryTest {
             val saved = handle.repository.settings.first()
 
             assertEquals("word-default", saved.wordPrompt)
+        }
+    }
+
+    @Test
+    fun migratesLegacySentenceTranslationPromptToCurrentDefault() = runBlocking {
+        repository().use { handle ->
+            handle.repository.update {
+                it.copy(sentenceTranslationPrompt = legacySentenceTranslationPrompt)
+            }
+
+            val saved = handle.repository.settings.first()
+
+            assertEquals("sentence-translation-default", saved.sentenceTranslationPrompt)
+        }
+    }
+
+    @Test
+    fun migratesLegacyPageParagraphTranslationPromptToCurrentDefault() = runBlocking {
+        repository().use { handle ->
+            handle.repository.update {
+                it.copy(pageParagraphTranslationPrompt = legacyPageParagraphTranslationPrompt)
+            }
+
+            val saved = handle.repository.settings.first()
+
+            assertEquals("paragraph-translation-default", saved.pageParagraphTranslationPrompt)
         }
     }
 

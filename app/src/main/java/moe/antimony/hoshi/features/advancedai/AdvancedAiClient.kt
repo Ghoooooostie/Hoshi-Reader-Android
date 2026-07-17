@@ -159,7 +159,10 @@ internal fun buildSentenceTranslationRequestBody(
 ): String = buildChatCompletionsRequest(
     model = settings.model,
     prompt = buildConfiguredPrompt(settings.sentenceTranslationPrompt),
-    userContent = "Sentence: $sentence",
+    userContent = buildTranslationUserContent(
+        sourceLabel = "原文",
+        sourceText = sentence,
+    ),
 )
 
 /** 构造全文翻译段落请求体，强制整段逐句完整翻译。 */
@@ -169,7 +172,10 @@ internal fun buildPageParagraphTranslationRequestBody(
 ): String = buildChatCompletionsRequest(
     model = settings.model,
     prompt = buildConfiguredPrompt(settings.pageParagraphTranslationPrompt),
-    userContent = "Paragraph: $paragraph",
+    userContent = buildTranslationUserContent(
+        sourceLabel = "原文段落",
+        sourceText = paragraph,
+    ),
 )
 
 /** 构造长难句分析请求体。 */
@@ -184,6 +190,18 @@ internal fun buildSentenceAnalysisRequestBody(
 
 /** 直接使用用户当前保存的提示词，避免隐式追加额外要求。 */
 private fun buildConfiguredPrompt(prompt: String): String = prompt.trim()
+
+/** 给翻译请求补足明确的中文目标和输出约束，减少模型偏回原文语言。 */
+private fun buildTranslationUserContent(
+    sourceLabel: String,
+    sourceText: String,
+): String = buildString {
+    appendLine("目标语言：简体中文")
+    appendLine("输出要求：只输出最终译文，不要输出原文，不要解释。")
+    append(sourceLabel)
+    append('：')
+    append(sourceText)
+}
 
 /** 解析 chat completions 的首条文本返回。 */
 internal fun parseCompletionText(responseText: String): String {

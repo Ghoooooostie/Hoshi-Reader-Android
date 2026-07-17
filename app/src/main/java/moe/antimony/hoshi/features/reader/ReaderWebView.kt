@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -223,12 +224,13 @@ fun ReaderWebView(
             audioSettings = settings
         }
     }
-    LaunchedEffect(advancedAiSettingsRepository, context) {
+    val pageTranslationUnavailableHint = stringResource(moe.antimony.hoshi.R.string.reader_translation_ai_unavailable_hint)
+    LaunchedEffect(advancedAiSettingsRepository, pageTranslationUnavailableHint) {
         advancedAiSettingsRepository.settings.collect { settings ->
             pageTranslationAvailabilityHint = if (settings.pageParagraphTranslationAvailability() is AdvancedAiAvailability.Ready) {
                 null
             } else {
-                context.getString(moe.antimony.hoshi.R.string.reader_translation_ai_unavailable_hint)
+                pageTranslationUnavailableHint
             }
         }
     }
@@ -245,6 +247,7 @@ fun ReaderWebView(
     var rootSelectionHighlight by remember { mutableStateOf<ReaderRootSelectionHighlight?>(null) }
     var readerAiPopupModes by remember(book) { mutableStateOf<Map<String, ReaderAiLongPressMode>>(emptyMap()) }
     var readerPageTranslationJob by remember { mutableStateOf<Job?>(null) }
+    val readerPageTranslationRefreshJobs = remember { linkedMapOf<String, Job>() }
     var fullscreenImage by remember { mutableStateOf<ReaderFullscreenImage?>(null) }
     val ankiViewModel: AnkiViewModel = hiltViewModel()
     val ankiUiState by ankiViewModel.uiState.collectAsStateWithLifecycle()
@@ -615,6 +618,8 @@ fun ReaderWebView(
     fun clearReaderPageTranslations() {
         readerPageTranslationJob?.cancel()
         readerPageTranslationJob = null
+        readerPageTranslationRefreshJobs.values.forEach(Job::cancel)
+        readerPageTranslationRefreshJobs.clear()
         pageTranslationCoordinator.clear()
         webView?.evaluateJavascript(ReaderPageTranslationCommand.clearTranslations(), null)
     }
@@ -673,8 +678,39 @@ fun ReaderWebView(
         if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel) return
         if (stateHolder.isWebViewRestoring) return
         collectVisibleReaderPageTranslationTargets { targets ->
+            targets.forEach { target ->
+                pageTranslationCoordinator.cachedTranslation(currentPageTranslationChapterKey, target.id)?.let { cached ->
+                    applyReaderPageTranslation(target.id, cached)
+                }
+            }
             pageTranslationCoordinator.enqueue(currentPageTranslationChapterKey, targets)
             pumpReaderPageTranslationQueue()
+        }
+    }
+    fun requestSingleReaderPageTranslation(
+        target: ReaderPageTranslationTarget,
+        chapterKey: String = currentPageTranslationChapterKey,
+    ) {
+        val requestKey = "$chapterKey:${target.id}"
+        readerPageTranslationRefreshJobs.remove(requestKey)?.cancel()
+        val refreshJob = scope.launch {
+            val ready = advancedAiSettingsRepository.settings.first().pageParagraphTranslationAvailability()
+                as? AdvancedAiAvailability.Ready
+                ?: return@launch
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    advancedAiClient.translatePageParagraph(ready.settings, target.text)
+                }
+            }.onSuccess { translation ->
+                pageTranslationCoordinator.cacheTranslation(chapterKey, target.id, translation)
+                if (currentPageTranslationChapterKey == chapterKey) {
+                    applyReaderPageTranslation(target.id, translation)
+                }
+            }
+        }
+        readerPageTranslationRefreshJobs[requestKey] = refreshJob
+        refreshJob.invokeOnCompletion {
+            readerPageTranslationRefreshJobs.remove(requestKey, refreshJob)
         }
     }
     fun requestReaderPopupSentenceAi(
@@ -1151,6 +1187,14 @@ fun ReaderWebView(
                     rects = displayRects,
                 )
             }
+        }
+    val handlePageTranslationLongPressed: (ReaderPageTranslationTarget) -> Unit =
+        { target ->
+            cancelSasayakiAutoPage()
+            stateHolder.enterFocusModeForReaderInteraction()
+            rootSelectionHighlight = null
+            setLookupPopups(emptyList())
+            requestSingleReaderPageTranslation(target)
         }
     fun handleReaderTapOutside() {
         cancelSasayakiAutoPage()
@@ -1857,6 +1901,11 @@ fun ReaderWebView(
             ),
     )
     val restoreLoadingPresentation = readerRestoreLoadingPresentation(stateHolder.isWebViewRestoring)
+    LaunchedEffect(currentPageTranslationChapterKey) {
+        readerPageTranslationJob?.cancel()
+        readerPageTranslationJob = null
+        pageTranslationCoordinator.clearActiveWork()
+    }
     LaunchedEffect(
         effectiveSettings.readerAiFullPageTranslationEnabled,
         effectiveSettings.viewMode,
@@ -1878,7 +1927,6 @@ fun ReaderWebView(
         if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel) return@LaunchedEffect
         if (stateHolder.isWebViewRestoring) return@LaunchedEffect
         if (webView == null) return@LaunchedEffect
-        clearReaderPageTranslations()
         delay(350)
         requestVisibleReaderPageTranslations()
     }
@@ -2005,6 +2053,7 @@ fun ReaderWebView(
                         sasayakiBackgroundColor = currentSasayakiColors.backgroundColor,
                         onTextSelected = handleTextSelected,
                         onSentenceLongPressed = handleSentenceLongPressed,
+                        onPageTranslationLongPressed = handlePageTranslationLongPressed,
                         onClearLookupPopup = ::closeLookupPopupsAndSelection,
                         onReaderTapOutside = ::handleReaderTapOutside,
                         onReaderInteraction = ::handleReaderInteraction,

@@ -6,7 +6,18 @@ import org.junit.Test
 
 class ReaderPageTranslationCoordinatorTest {
     @Test
-    fun translatedTargetsAreQueuedOnlyOnceUntilWorkIsCleared() {
+    fun cachedTranslationCanBeOverwrittenForRetranslate() {
+        val coordinator = ReaderPageTranslationCoordinator()
+        val chapterKey = "book-1:0"
+
+        coordinator.cacheTranslation(chapterKey, "p-1", "旧译文")
+        coordinator.cacheTranslation(chapterKey, "p-1", "新译文")
+
+        assertEquals("新译文", coordinator.cachedTranslation(chapterKey, "p-1"))
+    }
+
+    @Test
+    fun translatedTargetsAreQueuedOnlyOnceAndCachedAfterSuccess() {
         val coordinator = ReaderPageTranslationCoordinator()
         val chapterKey = "book-1:0"
         val first = ReaderPageTranslationTarget(id = "p-1", text = "第一段")
@@ -19,13 +30,9 @@ class ReaderPageTranslationCoordinatorTest {
 
         coordinator.enqueue(chapterKey, listOf(first, second))
 
+        assertEquals("translation-1", coordinator.cachedTranslation(chapterKey, first.id))
         assertEquals(second, coordinator.pollNext(chapterKey))
         assertNull(coordinator.pollNext(chapterKey))
-
-        coordinator.clear()
-        coordinator.enqueue(chapterKey, listOf(first))
-
-        assertEquals(first, coordinator.pollNext(chapterKey))
     }
 
     @Test
@@ -45,7 +52,7 @@ class ReaderPageTranslationCoordinatorTest {
     }
 
     @Test
-    fun changingChapterLetsPreviousChapterQueueAgainWhenRevisited() {
+    fun changingChapterClearsPendingQueueButKeepsChapterCacheForRevisit() {
         val coordinator = ReaderPageTranslationCoordinator()
         val firstChapter = "book-1:0"
         val secondChapter = "book-1:1"
@@ -58,10 +65,31 @@ class ReaderPageTranslationCoordinatorTest {
 
         coordinator.enqueue(secondChapter, listOf(secondTarget))
 
+        assertEquals("translation-1", coordinator.cachedTranslation(firstChapter, firstTarget.id))
+        assertNull(coordinator.cachedTranslation(secondChapter, firstTarget.id))
+        assertEquals(secondTarget, coordinator.pollNext(secondChapter))
+        assertNull(coordinator.pollNext(firstChapter))
+    }
+
+    @Test
+    fun clearRemovesCachedTranslationsFromEveryChapter() {
+        val coordinator = ReaderPageTranslationCoordinator()
+        val firstChapter = "book-1:0"
+        val secondChapter = "book-1:1"
+        val firstTarget = ReaderPageTranslationTarget(id = "p-1", text = "第一段")
+        val secondTarget = ReaderPageTranslationTarget(id = "p-2", text = "第二段")
+
+        coordinator.enqueue(firstChapter, listOf(firstTarget))
+        assertEquals(firstTarget, coordinator.pollNext(firstChapter))
+        coordinator.markSuccess(firstChapter, firstTarget.id, "translation-1")
+
+        coordinator.enqueue(secondChapter, listOf(secondTarget))
         assertEquals(secondTarget, coordinator.pollNext(secondChapter))
         coordinator.markSuccess(secondChapter, secondTarget.id, "translation-2")
-        coordinator.enqueue(firstChapter, listOf(firstTarget))
 
-        assertEquals(firstTarget, coordinator.pollNext(firstChapter))
+        coordinator.clear()
+
+        assertNull(coordinator.cachedTranslation(firstChapter, firstTarget.id))
+        assertNull(coordinator.cachedTranslation(secondChapter, secondTarget.id))
     }
 }

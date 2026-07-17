@@ -313,7 +313,7 @@
     <string name="reader_translation_ai_long_press_section">长按配置</string>
     <string name="reader_translation_ai_default_mode">默认长按模式</string>
     <string name="reader_translation_ai_mode_translation">整句翻译</string>
-    <string name="reader_translation_ai_mode_analysis">长难句分析</string>
+    <string name="reader_translation_ai_mode_analysis" comment="Reader long-press mode label, intentionally matching the Advanced AI sentence analysis card title.">长难句分析</string>
     <string name="reader_translation_ai_loading">AI 处理中</string>
     <string name="reader_translation_ai_request_failed">AI 翻译加载失败。</string>
     <string name="reader_translation_ai_style_section">样式组</string>
@@ -540,7 +540,7 @@
     <string name="advanced_ai_test_success">API 连接成功。</string>
     <string name="advanced_ai_test_failed">API 连接失败。</string>
     <string name="advanced_ai_word_analysis_title">AI 词语分析</string>
-    <string name="advanced_ai_sentence_analysis_title">长难句分析</string>
+    <string name="advanced_ai_sentence_analysis_title" comment="Advanced AI card title, intentionally matching the Reader sentence analysis mode label.">长难句分析</string>
     <string name="advanced_ai_loading">分析中</string>
     <string name="advanced_ai_request_failed">AI 分析加载失败。</string>
     <string name="advanced_ai_default_word_prompt">请像日语老师一样，用简洁中文分析所选词在原句中的具体意思和用法。优先说清这个词在这里是什么意思、是什么词性、在句子里起什么作用；如果有必要，再补充更自然的中文理解、常见搭配或近义表达。</string>

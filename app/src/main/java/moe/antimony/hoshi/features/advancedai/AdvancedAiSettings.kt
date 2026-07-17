@@ -31,6 +31,8 @@ internal class AdvancedAiSettingsRepository(
     private val defaultPageParagraphTranslationPrompt: String,
     private val defaultSentencePrompt: String,
     private val legacyWordPrompts: Set<String> = LEGACY_WORD_PROMPTS,
+    private val legacySentenceTranslationPrompts: Set<String> = LEGACY_SENTENCE_TRANSLATION_PROMPTS,
+    private val legacyPageParagraphTranslationPrompts: Set<String> = LEGACY_PAGE_PARAGRAPH_TRANSLATION_PROMPTS,
 ) {
     val settings: Flow<AdvancedAiSettings> = dataStore.data
         .map { preferences -> preferences.toAdvancedAiSettings() }
@@ -58,8 +60,16 @@ internal class AdvancedAiSettingsRepository(
             apiKey = this[KEY_API_KEY].orEmpty(),
             model = this[KEY_MODEL].orEmpty(),
             wordPrompt = migrateLegacyPrompt(this[KEY_WORD_PROMPT], defaultWordPrompt, legacyWordPrompts),
-            sentenceTranslationPrompt = this[KEY_SENTENCE_TRANSLATION_PROMPT] ?: defaultSentenceTranslationPrompt,
-            pageParagraphTranslationPrompt = this[KEY_PAGE_PARAGRAPH_TRANSLATION_PROMPT] ?: defaultPageParagraphTranslationPrompt,
+            sentenceTranslationPrompt = migrateLegacyPrompt(
+                this[KEY_SENTENCE_TRANSLATION_PROMPT],
+                defaultSentenceTranslationPrompt,
+                legacySentenceTranslationPrompts,
+            ),
+            pageParagraphTranslationPrompt = migrateLegacyPrompt(
+                this[KEY_PAGE_PARAGRAPH_TRANSLATION_PROMPT],
+                defaultPageParagraphTranslationPrompt,
+                legacyPageParagraphTranslationPrompts,
+            ),
             sentencePrompt = this[KEY_SENTENCE_PROMPT] ?: defaultSentencePrompt,
         )
 
@@ -80,6 +90,12 @@ internal class AdvancedAiSettingsRepository(
         private val LEGACY_WORD_PROMPTS = setOf(
             "请用简洁中文分析所选词在句中的作用。只输出纯文本，不要 Markdown、星号、编号或引号。固定三行：词性：... 作用：... 补充：...",
             "Explain the selected word's role inside the sentence in concise Chinese. Output plain Chinese text only with exactly three lines: 词性：... 作用：... 补充：... Do not use Markdown, bullets, numbering, or quotes.",
+        )
+        private val LEGACY_SENTENCE_TRANSLATION_PROMPTS = setOf(
+            "Translate the sentence into natural Chinese.",
+        )
+        private val LEGACY_PAGE_PARAGRAPH_TRANSLATION_PROMPTS = setOf(
+            "Translate the full paragraph into natural Chinese without skipping any sentence.",
         )
 
         private val KEY_ENABLED = booleanPreferencesKey("enabled")

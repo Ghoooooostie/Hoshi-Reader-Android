@@ -86,6 +86,7 @@ internal fun ChapterWebView(
     sasayakiBackgroundColor: Long,
     onTextSelected: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit,
     onSentenceLongPressed: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit,
+    onPageTranslationLongPressed: (ReaderPageTranslationTarget) -> Unit,
     onClearLookupPopup: () -> Unit,
     onReaderTapOutside: () -> Unit,
     onReaderInteraction: () -> Unit,
@@ -101,6 +102,7 @@ internal fun ChapterWebView(
 ) {
     val currentOnTextSelected = rememberUpdatedState(onTextSelected)
     val currentOnSentenceLongPressed = rememberUpdatedState(onSentenceLongPressed)
+    val currentOnPageTranslationLongPressed = rememberUpdatedState(onPageTranslationLongPressed)
     val currentOnSaveBookmark = rememberUpdatedState(onSaveBookmark)
     val currentOnDisplayProgress = rememberUpdatedState(onDisplayProgress)
     val currentOnContinuousScrollDisplayProgress = rememberUpdatedState(onContinuousScrollDisplayProgress)
@@ -239,6 +241,9 @@ internal fun ChapterWebView(
                 }
                 this.onSentenceLongPressed = { selection, selectionRects ->
                     currentOnSentenceLongPressed.value(selection, selectionRects)
+                }
+                this.onPageTranslationLongPressed = { target ->
+                    currentOnPageTranslationLongPressed.value(target)
                 }
                 hideForReaderRestore()
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
@@ -590,6 +595,7 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
     var onHighlightCreated: (HighlightColor, String, ReaderHighlightCreationResult) -> Unit = { _, _, _ -> }
     var onSentenceLongPressed: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit =
         { _, _ -> }
+    var onPageTranslationLongPressed: (ReaderPageTranslationTarget) -> Unit = {}
     private var nativeSelectionActionModeActive = false
     private var nativeSelectionActionMode: ActionMode? = null
     private var nativeSelectionContentRect: Rect? = null
@@ -726,21 +732,29 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
 
     fun handleSentenceLongPress(): Boolean {
         val density = resources.displayMetrics.density
+        val x = androidPixelsToCssPixels(lastTouchX, density)
+        val y = androidPixelsToCssPixels(lastTouchY, density)
         evaluateJavascript(
-            ReaderSelectionCommand.SelectSentence(
-                x = androidPixelsToCssPixels(lastTouchX, density),
-                y = androidPixelsToCssPixels(lastTouchY, density),
-            ).source,
-        ) { result ->
+            ReaderPageTranslationCommand.targetAtPoint(x, y),
+        ) { translationTargetResult ->
+            val translationTarget = ReaderPageTranslationBridgePayload.targetFromJavascriptResult(translationTargetResult)
+            if (translationTarget != null) {
+                onPageTranslationLongPressed(translationTarget)
+                return@evaluateJavascript
+            }
+            evaluateJavascript(
+                ReaderSelectionCommand.SelectSentence(x = x, y = y).source,
+            ) { result ->
             val selectionResult = ReaderSelectionResult.fromWebViewResult(result)
             if (selectionResult.selectedNothing || selectionResult.isImageTap || selectionResult.isLinkTap) {
-                return@evaluateJavascript
+                    return@evaluateJavascript
             }
             val selection = ReaderSelectionBridgePayload.fromJson(result) ?: return@evaluateJavascript
             onSentenceLongPressed(selection) { highlightCount, onRectsLoaded ->
                 evaluateJavascript(ReaderSelectionCommand.SelectionRects(highlightCount).source) { rectsResult ->
                     onRectsLoaded(ReaderSelectionBridgePayload.rectsFromJavascriptResult(rectsResult))
                 }
+            }
             }
         }
         return true
@@ -770,6 +784,7 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         setNativeSelectionActionMode(null)
         onHighlightCreated = { _, _, _ -> }
         onSentenceLongPressed = { _, _ -> }
+        onPageTranslationLongPressed = {}
     }
 }
 

@@ -315,7 +315,7 @@
     <string name="reader_translation_ai_long_press_section">Long press</string>
     <string name="reader_translation_ai_default_mode">Default long-press mode</string>
     <string name="reader_translation_ai_mode_translation">Sentence Translation</string>
-    <string name="reader_translation_ai_mode_analysis">Sentence Analysis</string>
+    <string name="reader_translation_ai_mode_analysis" comment="Reader long-press mode label, intentionally matching the Advanced AI sentence analysis card title.">Sentence Analysis</string>
     <string name="reader_translation_ai_loading">Loading AI response...</string>
     <string name="reader_translation_ai_request_failed">Unable to load AI translation.</string>
     <string name="reader_translation_ai_style_section">Style</string>
@@ -542,7 +542,7 @@
     <string name="advanced_ai_test_success">API connection succeeded.</string>
     <string name="advanced_ai_test_failed">API connection failed.</string>
     <string name="advanced_ai_word_analysis_title">AI Word Analysis</string>
-    <string name="advanced_ai_sentence_analysis_title">Sentence Analysis</string>
+    <string name="advanced_ai_sentence_analysis_title" comment="Advanced AI card title, intentionally matching the Reader sentence analysis mode label.">Sentence Analysis</string>
     <string name="advanced_ai_loading">Loading analysis…</string>
     <string name="advanced_ai_request_failed">Unable to load AI analysis.</string>
     <string name="advanced_ai_default_word_prompt">Act like a Japanese teacher and explain the selected word in concise Chinese. Prioritize what the word means in this sentence, its part of speech, and why it is used here; add a more natural Chinese rendering, collocations, or near-synonyms only when helpful.</string>
