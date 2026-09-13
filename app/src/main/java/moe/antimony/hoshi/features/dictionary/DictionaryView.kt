@@ -111,8 +111,12 @@ import moe.antimony.hoshi.dictionary.recommendedDictionariesForLanguage
 import moe.antimony.hoshi.features.settings.SettingsDetailScaffold
 import moe.antimony.hoshi.features.reader.ReaderFontManager
 import moe.antimony.hoshi.importing.ImportFileType
+import moe.antimony.hoshi.importing.DirectoryImportContent
+import moe.antimony.hoshi.importing.ImportFolderEntryKind
 import moe.antimony.hoshi.importing.MultipleFileImportContent
+import moe.antimony.hoshi.importing.SafImportDirectoryScanner
 import moe.antimony.hoshi.importing.importDisplayName
+import moe.antimony.hoshi.dictionary.isImportedDictionaryDirectory
 import moe.antimony.hoshi.ui.HoshiBlockingProgressOverlay
 import moe.antimony.hoshi.ui.asString
 import moe.antimony.hoshi.ui.hoshiTextFieldCursorBrush
@@ -164,6 +168,30 @@ fun DictionaryView(
             }
         }
         dictionaryViewModel.importDictionaries(importItems)
+    }
+
+    val folderScanner = remember { SafImportDirectoryScanner(context.contentResolver) }
+    val folderImporter = rememberLauncherForActivityResult(DirectoryImportContent()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
+        }
+        dictionaryViewModel.importDictionaryFolder {
+            folderScanner
+                .scanFolder(uri, ImportFileType.DictionaryArchive) { childNames ->
+                    isImportedDictionaryDirectory(childNames)
+                }
+                .map { entry ->
+                    DictionaryImportItem(
+                        displayName = entry.displayName,
+                        uri = entry.key,
+                        isDirectory = entry.kind == ImportFolderEntryKind.ImportedDirectory,
+                    )
+                }
+        }
     }
 
     val selectedType = uiState.selectedType
@@ -368,16 +396,38 @@ fun DictionaryView(
                     contentDescription = stringResource(R.string.dictionary_custom_css),
                 )
             }
-            IconButton(
-                onClick = { importer.launch(ImportFileType.DictionaryArchive.mimeTypes) },
-                enabled = !isBusy,
-            ) {
-                if (isBusy) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                } else {
-                    Icon(
-                        imageVector = Icons.Rounded.Add,
-                        contentDescription = stringResource(R.string.dictionary_import_action),
+            var importMenuExpanded by remember { mutableStateOf(false) }
+            Box {
+                IconButton(
+                    onClick = { importMenuExpanded = true },
+                    enabled = !isBusy,
+                ) {
+                    if (isBusy) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    } else {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = stringResource(R.string.dictionary_import_action),
+                        )
+                    }
+                }
+                DropdownMenu(
+                    expanded = importMenuExpanded,
+                    onDismissRequest = { importMenuExpanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.dictionary_import_files)) },
+                        onClick = {
+                            importMenuExpanded = false
+                            importer.launch(ImportFileType.DictionaryArchive.mimeTypes)
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.dictionary_import_folder)) },
+                        onClick = {
+                            importMenuExpanded = false
+                            folderImporter.launch(Unit)
+                        },
                     )
                 }
             }

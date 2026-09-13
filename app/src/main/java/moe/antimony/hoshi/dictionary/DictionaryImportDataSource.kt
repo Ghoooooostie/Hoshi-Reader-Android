@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.net.Uri
 import kotlinx.serialization.json.Json
 import moe.antimony.hoshi.importing.ImportFileType
+import moe.antimony.hoshi.importing.SafDirectoryCopier
 import moe.antimony.hoshi.importing.validateImportFile
 import java.io.File
 import java.io.InputStream
@@ -96,6 +97,36 @@ internal class DictionaryImportDataSource(
         }
     }
 
+    fun importNativeDictionaryDirectory(
+        contentResolver: ContentResolver,
+        uri: Uri,
+        displayName: String,
+        importRootDirectory: File,
+        typeDirectories: Map<DictionaryType, File>,
+        shouldSkip: (DictionaryType, DictionaryIndex) -> Boolean = { _, _ -> false },
+    ): Map<DictionaryType, List<ImportedDictionary>> {
+        importRootDirectory.mkdirs()
+        val importId = UUID.randomUUID()
+        val stagingRoot = importRootDirectory.resolve(".dictionary-import-$importId")
+        val stagedDictionary = stagingRoot.resolve(StagingDictionaryName)
+        try {
+            stagingRoot.mkdirs()
+            SafDirectoryCopier(contentResolver).copy(uri, stagedDictionary)
+            val inspection = nativeBridge.inspectDictionary(stagedDictionary.absolutePath)
+            requireNotNull(inspection) { "Unable to read dictionary." }
+            require(inspection.types.isNotEmpty()) { "Failed to detect dictionary type." }
+            val namedDictionary = stagingRoot.resolve(
+                dictionaryDirectoryName(title = inspection.title, displayName = displayName),
+            )
+            if (namedDictionary != stagedDictionary) {
+                moveReplacing(stagedDictionary, namedDictionary)
+            }
+            return commitStagedDictionariesByType(stagingRoot, typeDirectories, inspection.types, shouldSkip)
+        } finally {
+            stagingRoot.deleteRecursively()
+        }
+    }
+
     fun importDictionaryWithResult(
         input: InputStream,
         typeDirectory: File,
@@ -153,6 +184,9 @@ internal class DictionaryImportDataSource(
     ): Map<DictionaryType, List<ImportedDictionary>> {
         val stagedDictionaries = stagingRoot.listFiles()?.filter(File::isDirectory).orEmpty()
         require(stagedDictionaries.isNotEmpty()) { "Failed to import dictionary." }
+        // A single target type can be committed by moving the staged directory, which avoids
+        // duplicating large dictionaries on disk.
+        val moveStagedDictionary = targetTypes.size == 1
         return targetTypes.associateWith { type ->
             val typeDirectory = requireNotNull(typeDirectories[type]) { "Missing ${type.directoryName} dictionary directory." }
             typeDirectory.mkdirs()
@@ -164,9 +198,14 @@ internal class DictionaryImportDataSource(
                 if (shouldSkip(type, imported.index)) {
                     null
                 } else {
-                    val copyRoot = typeDirectory.resolve(".${stagedDictionary.name}-copy-${UUID.randomUUID()}")
-                    copyDirectory(stagedDictionary.toPath(), copyRoot.toPath())
-                    commitStagedDictionary(copyRoot, typeDirectory.resolve(stagedDictionary.name))
+                    val target = typeDirectory.resolve(stagedDictionary.name)
+                    if (moveStagedDictionary) {
+                        commitStagedDictionary(stagedDictionary, target)
+                    } else {
+                        val copyRoot = typeDirectory.resolve(".${stagedDictionary.name}-copy-${UUID.randomUUID()}")
+                        copyDirectory(stagedDictionary.toPath(), copyRoot.toPath())
+                        commitStagedDictionary(copyRoot, target)
+                    }
                     imported
                 }
             }
@@ -224,6 +263,21 @@ internal class DictionaryImportDataSource(
         }.getOrThrow()
     }
 }
+
+internal fun isImportedDictionaryDirectory(childNames: List<String>): Boolean =
+    childNames.any { it == "index.json" } && childNames.any(DictionaryMarkerPattern::matches)
+
+private fun dictionaryDirectoryName(title: String, displayName: String): String =
+    sequenceOf(title, displayName.substringAfterLast('/'), StagingDictionaryName)
+        .map(String::trim)
+        .first { it.isSafeDirectoryName() }
+
+private fun String.isSafeDirectoryName(): Boolean =
+    isNotEmpty() && none { it == '/' || it == '\\' || it.code < 0x20 }
+
+private const val StagingDictionaryName = "dictionary"
+
+private val DictionaryMarkerPattern = Regex("""^\.hoshidicts_\d+$""")
 
 private fun NativeDictionaryImportResult.detectedTypes(): Set<DictionaryType> =
     buildSet {

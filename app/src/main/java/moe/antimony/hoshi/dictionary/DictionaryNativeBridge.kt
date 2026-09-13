@@ -16,8 +16,15 @@ internal data class NativeDictionaryImportResult(
     val mediaCount: Long,
 )
 
+internal data class NativeDictionaryInspection(
+    val title: String,
+    val types: Set<DictionaryType>,
+)
+
 internal interface DictionaryNativeBridge {
     fun importDictionary(zipPath: String, outputDir: String, lowRam: Boolean): NativeDictionaryImportResult
+
+    fun inspectDictionary(directoryPath: String): NativeDictionaryInspection? = null
 
     fun createLookupObject(languageId: String): Long = 0L
 
@@ -50,6 +57,22 @@ internal class HoshiDictionaryNativeBridge @Inject constructor() : DictionaryNat
                 pitchCount = result.pitchCount,
                 mediaCount = result.mediaCount,
             )
+        }
+
+    override fun inspectDictionary(directoryPath: String): NativeDictionaryInspection? =
+        HoshiDicts.inspectDictionary(directoryPath).let { result ->
+            if (!result.success) {
+                null
+            } else {
+                NativeDictionaryInspection(
+                    title = result.title,
+                    types = buildSet {
+                        if (result.hasTerms) add(DictionaryType.Term)
+                        if (result.hasFrequencies) add(DictionaryType.Frequency)
+                        if (result.hasPitches) add(DictionaryType.Pitch)
+                    },
+                )
+            }
         }
 
     override fun createLookupObject(languageId: String): Long =

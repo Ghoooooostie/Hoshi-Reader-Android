@@ -219,7 +219,7 @@
     <string name="dictionary_importing_named_format">正在导入 %1$s</string>
     <string name="dictionary_importing_default">正在导入辞典</string>
     <string name="dictionary_download_recommended">下载推荐辞典</string>
-    <string name="dictionary_supported_archive_types">支持 Yomitan 词条、词频和音调辞典（.zip）</string>
+    <string name="dictionary_supported_archive_types">支持 Yomitan 词条、词频和音调辞典（.zip）及已导入的辞典文件夹</string>
     <string name="dictionary_default_tab">默认打开查词标签页</string>
     <string name="dictionary_empty_type_format">没有%1$s辞典</string>
     <string name="dictionary_updates_section" comment="Dictionary settings section label for installed dictionary update controls; intentionally matches the About update section label.">更新</string>
@@ -241,6 +241,11 @@
     <string name="dictionary_type_pitch">音调</string>
     <string name="dictionary_custom_css">自定义 CSS</string>
     <string name="dictionary_import_action">导入辞典</string>
+    <string name="dictionary_import_files">导入文件</string>
+    <string name="dictionary_import_folder">导入文件夹</string>
+    <string name="dictionary_scanning_folder">正在扫描文件夹…</string>
+    <string name="dictionary_folder_scan_failed">无法读取所选文件夹。</string>
+    <string name="dictionary_no_dictionaries_found">所选文件夹中没有可用辞典。</string>
     <string name="dictionary_delete_action">删除辞典</string>
     <string name="dictionary_reorder_action">重新排序辞典</string>
     <string name="dictionary_settings_lookup">查词</string>

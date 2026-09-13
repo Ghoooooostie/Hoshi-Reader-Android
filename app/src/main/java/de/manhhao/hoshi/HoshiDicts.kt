@@ -10,6 +10,14 @@ class ImportResult(
     val mediaCount: Long,
 )
 
+class InspectResult(
+    val success: Boolean,
+    val title: String,
+    val hasTerms: Boolean,
+    val hasFrequencies: Boolean,
+    val hasPitches: Boolean,
+)
+
 class DictionaryStyle(
     val dictName: String,
     val styles: String,
@@ -107,6 +115,7 @@ object HoshiDicts {
     }
 
     external fun importDictionary(zipPath: String, outputDir: String, lowRam: Boolean = false): ImportResult
+    external fun inspectDictionary(dictionaryDir: String): InspectResult
     external fun createLookupObject(languageId: String): Long
     external fun destroyLookupObject(session: Long)
     external fun rebuildQuery(

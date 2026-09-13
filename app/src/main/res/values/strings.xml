@@ -221,7 +221,7 @@
     <string name="dictionary_importing_named_format">Importing %1$s</string>
     <string name="dictionary_importing_default">Importing dictionary</string>
     <string name="dictionary_download_recommended">Download Recommended Dictionaries</string>
-    <string name="dictionary_supported_archive_types">Yomitan term, frequency, and pitch dictionaries (.zip) are supported</string>
+    <string name="dictionary_supported_archive_types">Yomitan term, frequency, and pitch dictionaries (.zip) and already imported dictionary folders are supported</string>
     <string name="dictionary_default_tab">Default to Dictionary Tab</string>
     <string name="dictionary_empty_type_format">No %1$s Dictionaries</string>
     <string name="dictionary_updates_section" comment="Dictionary settings section label for installed dictionary update controls; intentionally matches the About update section label.">Updates</string>
@@ -243,6 +243,11 @@
     <string name="dictionary_type_pitch">Pitch</string>
     <string name="dictionary_custom_css">Custom CSS</string>
     <string name="dictionary_import_action">Import Dictionary</string>
+    <string name="dictionary_import_files">Import files</string>
+    <string name="dictionary_import_folder">Import folder</string>
+    <string name="dictionary_scanning_folder">Scanning folder…</string>
+    <string name="dictionary_folder_scan_failed">Failed to read the selected folder.</string>
+    <string name="dictionary_no_dictionaries_found">No dictionaries found in the selected folder.</string>
     <string name="dictionary_delete_action">Delete Dictionary</string>
     <string name="dictionary_reorder_action">Reorder Dictionary</string>
     <string name="dictionary_settings_lookup">Lookup</string>

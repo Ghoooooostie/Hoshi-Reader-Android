@@ -68,6 +68,22 @@ internal class DictionaryRepository @Inject constructor(
         return imported
     }
 
+    fun importDictionaryDirectory(contentResolver: ContentResolver, uri: Uri, displayName: String): Int {
+        val imported = importDataSource.importNativeDictionaryDirectory(
+            contentResolver = contentResolver,
+            uri = uri,
+            displayName = displayName,
+            importRootDirectory = storage.importRootDirectory(),
+            typeDirectories = typeDirectories(),
+            shouldSkip = { type, index -> storage.hasDictionaryWithIndex(type, index) },
+        ).values.sumOf { it.size }
+        if (imported > 0) {
+            storage.saveConfigFromStorage()
+            rebuildLookupQuery()
+        }
+        return imported
+    }
+
     fun importDictionary(input: InputStream, lowRamImport: Boolean = false): Int {
         val imported = importDataSource.importDictionaryByDetectedTypes(
             input = input,

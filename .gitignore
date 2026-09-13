@@ -10,6 +10,7 @@
 local.properties
 /testdata
 .codex/
+.codebuddy/
 /.superpowers/
 /docs/superpowers/
 .gradle-codex/

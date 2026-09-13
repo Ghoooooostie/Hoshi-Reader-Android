@@ -54,6 +54,7 @@ internal interface DictionaryViewModelRepository {
 internal data class DictionaryImportItem(
     val displayName: String,
     val uri: Uri? = null,
+    val isDirectory: Boolean = false,
 )
 
 internal data class DictionaryImportBatchResult(
@@ -90,11 +91,19 @@ internal class AndroidDictionaryViewModelRepository @Inject constructor(
                 report(DictionaryUpdateProgress(DictionaryUpdateStage.Importing, item.displayName))
                 onProgress(item)
                 try {
-                    importedCount += dictionaryRepository.importDictionary(
-                        contentResolver = contentResolver,
-                        uri = requireNotNull(item.uri),
-                        lowRamImport = lowRamImport,
-                    )
+                    importedCount += if (item.isDirectory) {
+                        dictionaryRepository.importDictionaryDirectory(
+                            contentResolver = contentResolver,
+                            uri = requireNotNull(item.uri),
+                            displayName = item.displayName,
+                        )
+                    } else {
+                        dictionaryRepository.importDictionary(
+                            contentResolver = contentResolver,
+                            uri = requireNotNull(item.uri),
+                            lowRamImport = lowRamImport,
+                        )
+                    }
                     imported += item
                 } catch (error: Throwable) {
                     if (error is CancellationException) throw error
@@ -267,6 +276,49 @@ internal class DictionaryViewModel : ViewModel {
                 repository.importDictionaries(items, onProgress)
             },
         )
+    }
+
+    fun importDictionaryFolder(itemsProvider: suspend () -> List<DictionaryImportItem>) {
+        scope.launch {
+            if (_uiState.value.isImporting) return@launch
+            _uiState.update {
+                it.copy(
+                    isImporting = true,
+                    currentImportMessage = UiText.Resource(R.string.dictionary_scanning_folder),
+                    errorMessage = null,
+                )
+            }
+            val items = try {
+                withContext(ioDispatcher) { itemsProvider() }
+            } catch (error: Throwable) {
+                if (error is CancellationException) throw error
+                _uiState.update {
+                    it.copy(
+                        isImporting = false,
+                        currentImportMessage = null,
+                        errorMessage = error.localizedMessage?.let(UiText::Literal)
+                            ?: UiText.Resource(R.string.dictionary_folder_scan_failed),
+                    )
+                }
+                return@launch
+            }
+            if (items.isEmpty()) {
+                _uiState.update {
+                    it.copy(
+                        isImporting = false,
+                        currentImportMessage = null,
+                        errorMessage = UiText.Resource(R.string.dictionary_no_dictionaries_found),
+                    )
+                }
+                return@launch
+            }
+            importDictionaries(
+                importItems = items,
+                importOperation = { onProgress ->
+                    repository.importDictionaries(items, onProgress)
+                },
+            )
+        }
     }
 
     fun updateDictionaries() {
