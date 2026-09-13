@@ -124,7 +124,7 @@ class ReaderSwipeGestureTrackerTest {
 
         tracker.onDown(240f, 100f, eventTime = 1_000L)
 
-        val result = tracker.onUp(242f, 103f, eventTime = 1_800L)
+        val result = tracker.onUp(242f, 103f, eventTime = 3_000L)
 
         assertTrue(result == ReaderSwipeGestureTracker.Result.None)
     }

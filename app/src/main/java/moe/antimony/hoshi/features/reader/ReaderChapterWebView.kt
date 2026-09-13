@@ -2,12 +2,15 @@ package moe.antimony.hoshi.features.reader
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.util.Log
 import android.graphics.Color as AndroidColor
 import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.InsetDrawable
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.view.ActionMode
 import android.view.Gravity
@@ -247,13 +250,10 @@ internal fun ChapterWebView(
                 }
                 hideForReaderRestore()
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                setOnLongClickListener {
-                    val handled = handleSentenceLongPress()
-                    if (handled) {
-                        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                    }
-                    handled
-                }
+                // The reader owns the tap vs long-press decision (see SwipePageTouchListener and
+                // ContinuousScrollTouchListener), so the platform long press must not start its own
+                // text selection first and shadow the app's single-tap lookup on sluggish panels.
+                isLongClickable = false
                 addJavascriptInterface(
                     ReaderSelectionBridge(this) { selection, selectionRects ->
                         currentOnTextSelected.value(selection, selectionRects)
@@ -291,6 +291,7 @@ internal fun ChapterWebView(
         update = { webView ->
             fun selectAt(x: Float, y: Float, onBlankTap: () -> Unit) {
                 val density = webView.resources.displayMetrics.density
+                Log.d("HoshiGesture", "selectAt x=$x y=$y cssX=${androidPixelsToCssPixels(x, density)} cssY=${androidPixelsToCssPixels(y, density)}")
                 webView.evaluateJavascript(
                     ReaderSelectionCommand.SelectText(
                         x = androidPixelsToCssPixels(x, density),
@@ -299,6 +300,7 @@ internal fun ChapterWebView(
                     ).source,
                 ) { result ->
                     val selectionResult = ReaderSelectionResult.fromWebViewResult(result)
+                    Log.d("HoshiGesture", "selectAt result isImage=${selectionResult.isImageTap} isLink=${selectionResult.isLinkTap} nothing=${selectionResult.selectedNothing}")
                     when {
                         selectionResult.isImageTap || selectionResult.isLinkTap -> Unit
                         selectionResult.selectedNothing -> onBlankTap()
@@ -306,15 +308,20 @@ internal fun ChapterWebView(
                 }
             }
             fun shouldIgnoreReaderGestureEvent(event: MotionEvent): Boolean {
-                if (currentIsWebViewRestoring.value || webView.isNativeSelectionActionModeActive()) {
+                val restoring = currentIsWebViewRestoring.value
+                val actionMode = webView.isNativeSelectionActionModeActive()
+                if (restoring || actionMode) {
+                    Log.d("HoshiGesture", "shouldIgnore=true restoring=$restoring actionMode=$actionMode action=${event.actionMasked}")
                     return true
                 }
                 val density = webView.resources.displayMetrics.density
-                return readerLookupPopupTouchBlocksReaderGesture(
+                val blocked = readerLookupPopupTouchBlocksReaderGesture(
                     popups = currentReaderPopupFrames.value,
                     x = androidPixelsToCssPixels(event.x, density).toDouble(),
                     y = androidPixelsToCssPixels(event.y, density).toDouble(),
                 )
+                Log.d("HoshiGesture", "shouldIgnore=$blocked popupBlocks action=${event.actionMasked}")
+                return blocked
             }
             when (readerSettings.viewMode) {
                 ReaderViewMode.Continuous -> {
@@ -324,6 +331,11 @@ internal fun ChapterWebView(
                             shouldIgnoreReaderGesture = ::shouldIgnoreReaderGestureEvent,
                             onTap = { x, y -> selectAt(x, y) { currentOnReaderTapOutside.value() } },
                             onScrollGesture = currentOnReaderInteraction.value,
+                            onLongPress = { x, y ->
+                                Log.d("HoshiGesture", "Continuous onLongPress x=$x y=$y")
+                                webView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                webView.handleSentenceLongPress(x, y)
+                            },
                             onNextChapter = {
                                 currentOnReaderInteraction.value()
                                 currentOnClearLookupPopup.value()
@@ -411,6 +423,12 @@ internal fun ChapterWebView(
                                     currentOnReaderTapOutside.value()
                                 }
                             }
+                        }
+
+                        override fun onLongPress(x: Float, y: Float) {
+                            Log.d("HoshiGesture", "Swipe onLongPress x=$x y=$y")
+                            webView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            webView.handleSentenceLongPress(x, y)
                         }
 
                         override fun onLeftSwipe() {
@@ -730,12 +748,12 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         highlightColorPopup = null
     }
 
-    fun handleSentenceLongPress(): Boolean {
+    fun handleSentenceLongPress(x: Float? = null, y: Float? = null): Boolean {
         val density = resources.displayMetrics.density
-        val x = androidPixelsToCssPixels(lastTouchX, density)
-        val y = androidPixelsToCssPixels(lastTouchY, density)
+        val cssX = androidPixelsToCssPixels(x ?: lastTouchX, density)
+        val cssY = androidPixelsToCssPixels(y ?: lastTouchY, density)
         evaluateJavascript(
-            ReaderPageTranslationCommand.targetAtPoint(x, y),
+            ReaderPageTranslationCommand.targetAtPoint(cssX, cssY),
         ) { translationTargetResult ->
             val translationTarget = ReaderPageTranslationBridgePayload.targetFromJavascriptResult(translationTargetResult)
             if (translationTarget != null) {
@@ -743,7 +761,7 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
                 return@evaluateJavascript
             }
             evaluateJavascript(
-                ReaderSelectionCommand.SelectSentence(x = x, y = y).source,
+                ReaderSelectionCommand.SelectSentence(x = cssX, y = cssY).source,
             ) { result ->
             val selectionResult = ReaderSelectionResult.fromWebViewResult(result)
             if (selectionResult.selectedNothing || selectionResult.isImageTap || selectionResult.isLinkTap) {
@@ -1132,6 +1150,7 @@ private class ContinuousScrollTouchListener(
     private val shouldIgnoreReaderGesture: (MotionEvent) -> Boolean,
     private val onTap: (Float, Float) -> Unit,
     private val onScrollGesture: () -> Unit,
+    private val onLongPress: (Float, Float) -> Unit,
     private val onNextChapter: () -> Boolean,
     private val onPreviousChapter: () -> Boolean,
 ) : View.OnTouchListener {
@@ -1141,12 +1160,20 @@ private class ContinuousScrollTouchListener(
     private var downTapDurationMillis = ReaderTapDurationFloorMillis
     private var downTapSlopPx = ReaderTapSlopFloorPx
     private var currentGestureIgnored = false
+    private var longPressFired = false
+    private val handler = Handler(Looper.getMainLooper())
+    private val longPressRunnable = Runnable {
+        longPressFired = true
+        onLongPress(downX, downY)
+    }
     private val focusTracker = ReaderContinuousScrollFocusTracker()
 
     override fun onTouch(view: View, event: MotionEvent): Boolean {
         val webView = view as? WebView ?: return false
         if (shouldIgnoreReaderGesture(event)) {
+            Log.d("HoshiGesture", "Continuous IGNORED action=${event.actionMasked} x=${event.x} y=${event.y}")
             currentGestureIgnored = true
+            cancelLongPress()
             return false
         }
         when (event.actionMasked) {
@@ -1157,20 +1184,31 @@ private class ContinuousScrollTouchListener(
                 downTapDurationMillis = readerTapDurationMillis()
                 downTapSlopPx = readerTapSlopPx(view.context)
                 currentGestureIgnored = false
+                longPressFired = false
                 focusTracker.onDown(downTapSlopPx)
+                handler.postDelayed(longPressRunnable, downTapDurationMillis)
             }
             MotionEvent.ACTION_CANCEL -> {
                 currentGestureIgnored = false
+                cancelLongPress()
                 focusTracker.onCancel()
             }
             MotionEvent.ACTION_MOVE -> {
+                if (abs(event.x - downX) >= downTapSlopPx || abs(event.y - downY) >= downTapSlopPx) {
+                    cancelLongPress()
+                }
                 if (focusTracker.onMove(event.x - downX, event.y - downY)) {
                     onScrollGesture()
                 }
             }
             MotionEvent.ACTION_UP -> {
+                cancelLongPress()
                 if (currentGestureIgnored) {
                     currentGestureIgnored = false
+                    focusTracker.onCancel()
+                    return false
+                }
+                if (longPressFired) {
                     focusTracker.onCancel()
                     return false
                 }
@@ -1182,14 +1220,20 @@ private class ContinuousScrollTouchListener(
                     abs(dx) < downTapSlopPx &&
                     abs(dy) < downTapSlopPx
                 ) {
+                    Log.d("HoshiGesture", "Continuous TAP x=${event.x} y=${event.y} dx=$dx dy=$dy elapsed=$elapsedMs slop=$downTapSlopPx")
                     onTap(event.x, event.y)
                     return false
                 }
+                Log.d("HoshiGesture", "Continuous no-tap dx=$dx dy=$dy elapsed=$elapsedMs slop=$downTapSlopPx")
                 handleBoundarySwipe(webView, dx, dy)
                 focusTracker.onCancel()
             }
         }
         return false
+    }
+
+    private fun cancelLongPress() {
+        handler.removeCallbacks(longPressRunnable)
     }
 
     private fun handleBoundarySwipe(webView: WebView, dx: Float, dy: Float) {

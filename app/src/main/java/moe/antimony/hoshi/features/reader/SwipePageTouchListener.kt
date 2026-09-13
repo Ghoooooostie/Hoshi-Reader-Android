@@ -1,16 +1,21 @@
 package moe.antimony.hoshi.features.reader
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import kotlin.math.abs
 
 /**
- * A reader tap opens lookup while the platform long press owns native selection and the
- * sentence/translation actions, so the tap window has to end where the system touch-and-hold
- * delay begins. Slow and E-ink devices raise that delay and report longer presses, and a fixed
- * window drops those taps: they are too long for a tap and too short for the long press.
+ * The reader owns the tap vs long-press decision with a single threshold. A tap opens lookup,
+ * a deliberate long press owns native sentence/translation selection. Owning the decision (instead
+ * of letting the platform long press fire first) is what keeps slow taps reported by sluggish
+ * panels (E-ink readers) from being stolen by the system long press, which would otherwise open a
+ * selection action mode and shadow the app's tap. The threshold is at least the system
+ * touch-and-hold delay plus a floor long enough for the sluggish taps E-ink panels report.
  */
 internal fun readerTapDurationMillis(): Long =
     maxOf(ReaderTapDurationFloorMillis, ViewConfiguration.getLongPressTimeout().toLong())
@@ -23,7 +28,7 @@ internal fun readerTapDurationMillis(): Long =
 internal fun readerTapSlopPx(context: Context): Float =
     maxOf(ReaderTapSlopFloorPx, ViewConfiguration.get(context).scaledTouchSlop.toFloat())
 
-internal const val ReaderTapDurationFloorMillis = 500L
+internal const val ReaderTapDurationFloorMillis = 1500L
 
 internal const val ReaderTapSlopFloorPx = 12f
 
@@ -32,24 +37,66 @@ abstract class SwipePageTouchListener : View.OnTouchListener {
         minDistance = MIN_DISTANCE,
         tapDurationMillis = ::readerTapDurationMillis,
     )
+    private val handler = Handler(Looper.getMainLooper())
+    private var downX = 0f
+    private var downY = 0f
+    private var longPressFired = false
+    private val longPressRunnable = Runnable {
+        longPressFired = true
+        onLongPress(downX, downY)
+    }
 
     override fun onTouch(view: View, event: MotionEvent): Boolean {
         if (shouldIgnoreReaderGesture(event)) {
+            Log.d("HoshiGesture", "Swipe IGNORED action=${event.actionMasked} x=${event.x} y=${event.y}")
+            cancelLongPress()
             tracker.suppressCurrentGesture()
             return false
         }
         when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> tracker.onDown(event.x, event.y, event.eventTime)
-            MotionEvent.ACTION_MOVE -> dispatch(tracker.onMove(event.x, event.y, event.eventTime))
-            MotionEvent.ACTION_UP -> dispatch(tracker.onUp(event.x, event.y, event.eventTime))
-            MotionEvent.ACTION_CANCEL -> tracker.onCancel()
+            MotionEvent.ACTION_DOWN -> {
+                downX = event.x
+                downY = event.y
+                longPressFired = false
+                tracker.onDown(event.x, event.y, event.eventTime)
+                handler.postDelayed(longPressRunnable, readerTapDurationMillis())
+                Log.d("HoshiGesture", "Swipe DOWN x=$downX y=$downY t=${event.eventTime} tapMs=${readerTapDurationMillis()}")
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (exceedsLongPressSlop(view, event)) cancelLongPress()
+                dispatch(tracker.onMove(event.x, event.y, event.eventTime))
+            }
+            MotionEvent.ACTION_UP -> {
+                cancelLongPress()
+                if (!longPressFired) {
+                    val r = tracker.onUp(event.x, event.y, event.eventTime)
+                    Log.d("HoshiGesture", "Swipe UP result=$r dx=${event.x - downX} dy=${event.y - downY} longPressFired=$longPressFired")
+                    dispatch(r)
+                } else {
+                    Log.d("HoshiGesture", "Swipe UP after longPressFired")
+                }
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                cancelLongPress()
+                tracker.onCancel()
+            }
         }
         return false
+    }
+
+    private fun exceedsLongPressSlop(view: View, event: MotionEvent): Boolean {
+        val slop = readerTapSlopPx(view.context)
+        return abs(event.x - downX) >= slop || abs(event.y - downY) >= slop
+    }
+
+    private fun cancelLongPress() {
+        handler.removeCallbacks(longPressRunnable)
     }
 
     open fun onLeftSwipe() = Unit
     open fun onRightSwipe() = Unit
     open fun onTap(x: Float, y: Float) = Unit
+    open fun onLongPress(x: Float, y: Float) = Unit
     open fun shouldIgnoreReaderGesture(event: MotionEvent): Boolean = false
 
     private fun dispatch(result: ReaderSwipeGestureTracker.Result) {

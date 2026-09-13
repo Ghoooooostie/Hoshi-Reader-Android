@@ -15,6 +15,17 @@ __HOSHI_PARAGRAPH_SPACING_CSS__
 html {
     -webkit-line-box-contain: block glyphs replaced;
 }
+/* The reader owns tap (word lookup) vs long-press (sentence/translation) itself, so the
+   platform must not start its own native text selection on a long press. Disabling native
+   selection keeps the sluggish taps E-ink panels report from being stolen by a system
+   selection action mode that would shadow the app's single-tap lookup. The app's own
+   lookup/sentence selection is JS-driven (window.hoshiSelection.*) and renders via
+   CSS Custom Highlights, so it does not depend on native selection. */
+body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
 __HOSHI_LAYOUT_CSS__
 img.block-img {
     max-width: var(--hoshi-image-max-width, __HOSHI_IMAGE_MAX_WIDTH_FALLBACK__) !important;
