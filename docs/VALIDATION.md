@@ -106,6 +106,9 @@ Manual reader validation should cover:
   absence of invisible touch blockers after dismissal.
 - E-ink selection marks, horizontal and vertical lookup underlines, reduced
   motion popup scrolling, and slow-device first-visible-content behavior.
+- single-tap lookup on devices that report longer presses or noisier taps than a
+  phone, such as E-ink readers with a raised system touch-and-hold delay or a
+  raised touch slop, confirming a tap opens lookup and a long press does not.
 - reader chrome behavior: focus mode, transient system bars, Android Back
   revealing chrome before closing, bottom progress band, title/back-button
   settings, compact bottom buttons, and progress indicators hidden from the text

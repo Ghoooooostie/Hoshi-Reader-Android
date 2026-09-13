@@ -128,4 +128,51 @@ class ReaderSwipeGestureTrackerTest {
 
         assertTrue(result == ReaderSwipeGestureTracker.Result.None)
     }
+
+    @Test
+    fun tapWindowFollowsDeviceTouchAndHoldDelay() {
+        val tracker = ReaderSwipeGestureTracker(
+            minDistance = 72f,
+            tapDurationMillis = { 1_000L },
+        )
+
+        tracker.onDown(240f, 100f, eventTime = 1_000L)
+
+        val result = tracker.onUp(242f, 103f, eventTime = 1_760L)
+
+        assertTrue(result is ReaderSwipeGestureTracker.Result.Tap)
+    }
+
+    @Test
+    fun tapWindowIsCapturedWhenGestureStarts() {
+        var tapDurationMillis = 500L
+        val tracker = ReaderSwipeGestureTracker(
+            minDistance = 72f,
+            tapDurationMillis = { tapDurationMillis },
+        )
+
+        tracker.onDown(240f, 100f, eventTime = 1_000L)
+        tapDurationMillis = 1_500L
+
+        assertTrue(tracker.onUp(242f, 103f, eventTime = 1_700L) == ReaderSwipeGestureTracker.Result.None)
+
+        tracker.onDown(240f, 100f, eventTime = 2_000L)
+        val nextResult = tracker.onUp(242f, 103f, eventTime = 2_700L)
+
+        assertTrue(nextResult is ReaderSwipeGestureTracker.Result.Tap)
+    }
+
+    @Test
+    fun pressPastDeviceTapWindowIsNotReportedAsTap() {
+        val tracker = ReaderSwipeGestureTracker(
+            minDistance = 72f,
+            tapDurationMillis = { 1_000L },
+        )
+
+        tracker.onDown(240f, 100f, eventTime = 1_000L)
+
+        val result = tracker.onUp(242f, 103f, eventTime = 2_400L)
+
+        assertTrue(result == ReaderSwipeGestureTracker.Result.None)
+    }
 }

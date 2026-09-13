@@ -1138,6 +1138,8 @@ private class ContinuousScrollTouchListener(
     private var downX = 0f
     private var downY = 0f
     private var downTime = 0L
+    private var downTapDurationMillis = ReaderTapDurationFloorMillis
+    private var downTapSlopPx = ReaderTapSlopFloorPx
     private var currentGestureIgnored = false
     private val focusTracker = ReaderContinuousScrollFocusTracker()
 
@@ -1152,8 +1154,10 @@ private class ContinuousScrollTouchListener(
                 downX = event.x
                 downY = event.y
                 downTime = event.eventTime
+                downTapDurationMillis = readerTapDurationMillis()
+                downTapSlopPx = readerTapSlopPx(view.context)
                 currentGestureIgnored = false
-                focusTracker.onDown()
+                focusTracker.onDown(downTapSlopPx)
             }
             MotionEvent.ACTION_CANCEL -> {
                 currentGestureIgnored = false
@@ -1174,9 +1178,9 @@ private class ContinuousScrollTouchListener(
                 val dy = event.y - downY
                 val elapsedMs = event.eventTime - downTime
                 if (
-                    elapsedMs <= CONTINUOUS_READER_MAX_TAP_DURATION_MS &&
-                    abs(dx) < CONTINUOUS_READER_TAP_SLOP &&
-                    abs(dy) < CONTINUOUS_READER_TAP_SLOP
+                    elapsedMs <= downTapDurationMillis &&
+                    abs(dx) < downTapSlopPx &&
+                    abs(dy) < downTapSlopPx
                 ) {
                     onTap(event.x, event.y)
                     return false
@@ -1321,14 +1325,13 @@ internal class ReaderContinuousScrollProgressScheduler(
     )
 }
 
-private const val CONTINUOUS_READER_TAP_SLOP = 12f
-private const val CONTINUOUS_READER_MAX_TAP_DURATION_MS = 500L
-
 internal class ReaderContinuousScrollFocusTracker {
     private var scrollGestureStarted = false
+    private var tapSlopPx = ReaderTapSlopFloorPx
 
-    fun onDown() {
+    fun onDown(tapSlopPx: Float = ReaderTapSlopFloorPx) {
         scrollGestureStarted = false
+        this.tapSlopPx = tapSlopPx
     }
 
     fun onCancel() {
@@ -1337,7 +1340,7 @@ internal class ReaderContinuousScrollFocusTracker {
 
     fun onMove(dx: Float, dy: Float): Boolean {
         if (scrollGestureStarted) return false
-        if (abs(dx) < CONTINUOUS_READER_TAP_SLOP && abs(dy) < CONTINUOUS_READER_TAP_SLOP) return false
+        if (abs(dx) < tapSlopPx && abs(dy) < tapSlopPx) return false
         scrollGestureStarted = true
         return true
     }

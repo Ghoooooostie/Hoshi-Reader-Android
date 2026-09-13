@@ -1,11 +1,37 @@
 package moe.antimony.hoshi.features.reader
 
+import android.content.Context
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import kotlin.math.abs
 
+/**
+ * A reader tap opens lookup while the platform long press owns native selection and the
+ * sentence/translation actions, so the tap window has to end where the system touch-and-hold
+ * delay begins. Slow and E-ink devices raise that delay and report longer presses, and a fixed
+ * window drops those taps: they are too long for a tap and too short for the long press.
+ */
+internal fun readerTapDurationMillis(): Long =
+    maxOf(ReaderTapDurationFloorMillis, ViewConfiguration.getLongPressTimeout().toLong())
+
+/**
+ * Movement tolerance of a reader tap, taken from the platform so that devices with a noisier
+ * touch panel (E-ink readers) or a different density keep Android's own tap tolerance instead
+ * of a hardcoded pixel value.
+ */
+internal fun readerTapSlopPx(context: Context): Float =
+    maxOf(ReaderTapSlopFloorPx, ViewConfiguration.get(context).scaledTouchSlop.toFloat())
+
+internal const val ReaderTapDurationFloorMillis = 500L
+
+internal const val ReaderTapSlopFloorPx = 12f
+
 abstract class SwipePageTouchListener : View.OnTouchListener {
-    private val tracker = ReaderSwipeGestureTracker(minDistance = MIN_DISTANCE)
+    private val tracker = ReaderSwipeGestureTracker(
+        minDistance = MIN_DISTANCE,
+        tapDurationMillis = ::readerTapDurationMillis,
+    )
 
     override fun onTouch(view: View, event: MotionEvent): Boolean {
         if (shouldIgnoreReaderGesture(event)) {
@@ -42,10 +68,12 @@ abstract class SwipePageTouchListener : View.OnTouchListener {
 
 internal class ReaderSwipeGestureTracker(
     private val minDistance: Float,
+    private val tapDurationMillis: () -> Long = { ReaderTapDurationFloorMillis },
 ) {
     private var downX = 0f
     private var downY = 0f
     private var downTime = 0L
+    private var downTapDurationMillis = ReaderTapDurationFloorMillis
     private var hasDown = false
     private var swipeDispatched = false
 
@@ -53,6 +81,7 @@ internal class ReaderSwipeGestureTracker(
         downX = x
         downY = y
         downTime = eventTime
+        downTapDurationMillis = tapDurationMillis()
         hasDown = true
         swipeDispatched = false
     }
@@ -83,11 +112,12 @@ internal class ReaderSwipeGestureTracker(
         val dx = x - downX
         val dy = y - downY
         val elapsedMs = eventTime - downTime
+        val activeTapDurationMillis = downTapDurationMillis
         val wasSwipeDispatched = swipeDispatched
         onCancel()
         return if (
             !wasSwipeDispatched &&
-            elapsedMs <= MAX_TAP_DURATION_MS &&
+            elapsedMs <= activeTapDurationMillis &&
             abs(dx) < minDistance &&
             abs(dy) < minDistance
         ) {
@@ -117,7 +147,6 @@ internal class ReaderSwipeGestureTracker(
         const val MIN_FAST_FLICK_DISTANCE = 36f
         const val MIN_FAST_FLICK_VELOCITY_PX_PER_SECOND = 900f
         const val MAX_EARLY_SWIPE_DURATION_MS = 300L
-        const val MAX_TAP_DURATION_MS = 500L
         const val MIN_EARLY_SWIPE_VELOCITY_PX_PER_SECOND = 360f
     }
 }

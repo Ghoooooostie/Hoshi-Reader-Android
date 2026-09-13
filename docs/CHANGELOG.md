@@ -12,12 +12,18 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   above lookup popup dictionaries, show AI sentence Chinese analysis in Process
   Text lookup, and let Anki templates render `{sentence-cn}` and
   `{advanced-ai-word}` when configured.
+- Add folder import in the dictionary screen. Selecting a folder recursively
+  imports standard Yomitan `.zip` archives and already imported native dictionary
+  directories (those carrying an `index.json` and a `.hoshidicts_*` marker).
 - Add a Reader Translation (AI) panel with profile-scoped long-press mode,
   in-reader sentence translation and sentence analysis cards, and visible-page
   paragraph translation that fills in directly under the source text.
 
 ### Fixed
 
+- Keep Reader single-tap lookup working on slow and E-ink devices that report
+  longer presses or noisier taps, by taking the tap window and movement tolerance
+  from the system touch-and-hold delay and touch slop instead of fixed values.
 - Keep dictionary definitions in the configured dictionary order when an
   inflected lookup merges multiple deinflection candidates.
 
