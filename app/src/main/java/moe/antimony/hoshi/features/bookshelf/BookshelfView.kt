@@ -287,6 +287,7 @@ fun BookshelfView(
         shelves = uiState.shelves,
         isSelecting = uiState.isSelecting,
         selectedBookIds = uiState.selectedBookIds,
+        totalBookCount = uiState.bookEntries.size,
         shelfExpansionState = uiState.shelfExpansionState,
         sortMenuExpanded = sortMenuExpanded,
         onSortMenuExpandedChange = { sortMenuExpanded = it },
@@ -296,6 +297,7 @@ fun BookshelfView(
         },
         onStartSelecting = booksViewModel::startSelecting,
         onClearSelection = booksViewModel::clearSelection,
+        onSelectAll = booksViewModel::selectAllBooks,
         onToggleSelectedBook = booksViewModel::toggleSelectedBook,
         onShelfExpandedChange = booksViewModel::setShelfExpanded,
         onMoveSelectedBooks = booksViewModel::moveSelectedBooks,
@@ -818,12 +820,14 @@ private fun BooksTab(
     shelves: List<BookShelf>,
     isSelecting: Boolean,
     selectedBookIds: Set<String>,
+    totalBookCount: Int,
     shelfExpansionState: Map<String, Boolean>,
     sortMenuExpanded: Boolean,
     onSortMenuExpandedChange: (Boolean) -> Unit,
     onSortChange: (BookSortOption) -> Unit,
     onStartSelecting: () -> Unit,
     onClearSelection: () -> Unit,
+    onSelectAll: () -> Unit,
     onToggleSelectedBook: (BookEntry) -> Unit,
     onShelfExpandedChange: (String, Boolean) -> Unit,
     onMoveSelectedBooks: (String?) -> Unit,
@@ -867,9 +871,11 @@ private fun BooksTab(
                 shelves = shelves,
                 isSelecting = isSelecting,
                 selectedCount = selectedBookIds.size,
+                totalBookCount = totalBookCount,
                 enabled = !fileTaskBlocked,
                 onStartSelecting = onStartSelecting,
                 onClearSelection = onClearSelection,
+                onSelectAll = onSelectAll,
                 onMoveSelectedBooks = onMoveSelectedBooks,
                 onDeleteSelectedBooks = onDeleteSelectedBooks,
                 onManageShelves = onManageShelves,
@@ -1104,9 +1110,11 @@ private fun BooksTopAppBar(
     shelves: List<BookShelf>,
     isSelecting: Boolean,
     selectedCount: Int,
+    totalBookCount: Int,
     enabled: Boolean,
     onStartSelecting: () -> Unit,
     onClearSelection: () -> Unit,
+    onSelectAll: () -> Unit,
     onMoveSelectedBooks: (String?) -> Unit,
     onDeleteSelectedBooks: () -> Unit,
     onManageShelves: () -> Unit,
@@ -1173,6 +1181,21 @@ private fun BooksTopAppBar(
         },
         actions = {
             if (isSelecting) {
+                TextButton(
+                    onClick = onSelectAll,
+                    enabled = enabled && totalBookCount > 0,
+                ) {
+                    Text(
+                        text = stringResource(
+                            if (selectedCount > 0 && selectedCount >= totalBookCount) {
+                                R.string.bookshelf_deselect_all
+                            } else {
+                                R.string.bookshelf_select_all
+                            },
+                        ),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
                 Box {
                     IconButton(
                         onClick = { moveMenuExpanded = true },

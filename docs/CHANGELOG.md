@@ -18,12 +18,15 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 - Add a Reader Translation (AI) panel with profile-scoped long-press mode,
   in-reader sentence translation and sentence analysis cards, and visible-page
   paragraph translation that fills in directly under the source text.
+- Add Select all and Deselect all actions to the bookshelf multi-select mode.
 
 ### Fixed
 
-- Keep Reader single-tap lookup working on slow and E-ink devices that report
-  longer presses or noisier taps, by taking the tap window and movement tolerance
-  from the system touch-and-hold delay and touch slop instead of fixed values.
+- Keep Reader single-tap word lookup working on slow and E-ink panels. The reader now
+  owns the tap vs long-press decision with a single threshold and disables the WebView's
+  platform long press, so a sluggish press is still treated as a tap instead of being
+  swallowed by the system long press (which opened a selection action mode and shadowed
+  the lookup).
 - Keep dictionary definitions in the configured dictionary order when an
   inflected lookup merges multiple deinflection candidates.
 

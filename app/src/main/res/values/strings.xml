@@ -179,6 +179,8 @@
     <string name="bookshelf_sort_recent">Recent</string>
     <string name="bookshelf_sort_title" comment="Sort option label, intentionally matching the title text-field label.">Title</string>
     <string name="bookshelf_select_books">Select books</string>
+    <string name="bookshelf_select_all">Select all</string>
+    <string name="bookshelf_deselect_all">Deselect all</string>
     <string name="bookshelf_move_selected_books">Move selected books</string>
     <string name="bookshelf_no_shelf" comment="Shelf picker empty value, intentionally matching generic none.">None</string>
     <string name="bookshelf_delete_selected_books">Delete selected books</string>

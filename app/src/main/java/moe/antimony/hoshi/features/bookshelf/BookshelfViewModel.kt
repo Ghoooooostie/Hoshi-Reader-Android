@@ -496,6 +496,14 @@ internal class BookshelfViewModel : ViewModel {
         }
     }
 
+    fun selectAllBooks() {
+        _uiState.update { state ->
+            val allIds = state.bookEntries.mapTo(mutableSetOf()) { it.metadata.id }
+            val allSelected = allIds.isNotEmpty() && state.selectedBookIds.containsAll(allIds)
+            state.copy(selectedBookIds = if (allSelected) emptySet() else allIds)
+        }
+    }
+
     fun setShelfExpanded(collapseKey: String, isExpanded: Boolean) {
         _uiState.update { state ->
             state.copy(shelfExpansionState = state.shelfExpansionState + (collapseKey to isExpanded))
