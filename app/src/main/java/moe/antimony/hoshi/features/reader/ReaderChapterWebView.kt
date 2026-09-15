@@ -791,11 +791,17 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         return super.onTouchEvent(event)
     }
 
-    override fun startActionMode(callback: ActionMode.Callback): ActionMode? =
-        super.startActionMode(ReaderHighlightActionModeCallback(this, callback))
+    // The reader owns the tap-vs-long-press decision and drives all selection through JS
+    // (window.hoshiSelection.*, rendered with CSS Custom Highlights). We must not let
+    // Chromium start its own native text-selection action mode: on sluggish E-ink panels a
+    // slow tap outlasts the platform long-press timer, Chromium opens a native selection,
+    // and the resulting action mode makes isNativeSelectionActionModeActive() true, which
+    // shadows the app's single-tap word lookup. Declining every action mode keeps native
+    // selection out of the way; the selection highlight and highlight-menu features are
+    // provided by the app's own JS popups (e.g. readerAiRootPopup / highlightSelection).
+    override fun startActionMode(callback: ActionMode.Callback): ActionMode? = null
 
-    override fun startActionMode(callback: ActionMode.Callback, type: Int): ActionMode? =
-        super.startActionMode(ReaderHighlightActionModeCallback(this, callback), type)
+    override fun startActionMode(callback: ActionMode.Callback, type: Int): ActionMode? = null
 
     fun releaseForDestroy() {
         dismissHighlightColorPopup()
@@ -803,65 +809,6 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         onHighlightCreated = { _, _, _ -> }
         onSentenceLongPressed = { _, _ -> }
         onPageTranslationLongPressed = {}
-    }
-}
-
-private class ReaderHighlightActionModeCallback(
-    private val webView: HoshiReaderWebView,
-    private val delegate: ActionMode.Callback,
-) : ActionMode.Callback2() {
-    override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-        addHighlightMenu(menu)
-        val created = delegate.onCreateActionMode(mode, menu)
-        if (created) {
-            webView.setNativeSelectionActionMode(mode)
-            addHighlightMenu(menu)
-        }
-        return created
-    }
-
-    override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
-        addHighlightMenu(menu)
-        return delegate.onPrepareActionMode(mode, menu)
-    }
-
-    override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
-        if (item.itemId == ReaderHighlightSelectionMenu.parentItemId) {
-            webView.prepareHighlightColorPicker(mode)
-            return true
-        }
-        val color = ReaderHighlightSelectionMenu.colorForItemId(item.itemId)
-        if (color != null) {
-            webView.createHighlightFromNativeSelection(color)
-            return true
-        }
-        return delegate.onActionItemClicked(mode, item)
-    }
-
-    override fun onDestroyActionMode(mode: ActionMode) {
-        webView.setNativeSelectionActionMode(null)
-        delegate.onDestroyActionMode(mode)
-    }
-
-    override fun onGetContentRect(mode: ActionMode, view: View, outRect: Rect) {
-        if (delegate is ActionMode.Callback2) {
-            delegate.onGetContentRect(mode, view, outRect)
-        } else {
-            super.onGetContentRect(mode, view, outRect)
-        }
-        webView.setNativeSelectionContentRect(outRect)
-    }
-
-    private fun addHighlightMenu(menu: Menu) {
-        if (menu.findItem(ReaderHighlightSelectionMenu.parentItemId) != null) return
-        ReaderHighlightSelectionMenu.actionModeItems.forEach { item ->
-            menu.add(
-                ReaderHighlightSelectionMenu.groupId,
-                item.id,
-                item.order,
-                webView.context.getString(R.string.reader_highlight_action),
-            ).setShowAsAction(item.showAsAction)
-        }
     }
 }
 

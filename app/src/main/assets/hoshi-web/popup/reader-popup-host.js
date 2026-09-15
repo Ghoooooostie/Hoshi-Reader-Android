@@ -19,7 +19,12 @@
         layer.id = LAYER_ID;
         layer.style.cssText = [
             'position:fixed',
-            'inset:0',
+            'top:0',
+            'right:0',
+            'bottom:0',
+            'left:0',
+            'width:100%',
+            'height:100%',
             'z-index:2147483640',
             'pointer-events:none',
             'contain:layout style paint',
@@ -54,6 +59,19 @@
     function postNative(message) {
         if (!window.HoshiReaderPopup?.postMessage) return;
         window.HoshiReaderPopup.postMessage(JSON.stringify(message));
+    }
+
+    // Older Android WebViews do not implement Element.replaceChildren().
+    function replaceElementChildren(element, ...children) {
+        if (!element) return;
+        if (typeof element.replaceChildren === 'function') {
+            element.replaceChildren(...children);
+            return;
+        }
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
+        children.forEach(child => element.appendChild(child));
     }
 
     function icon(name) {
@@ -217,6 +235,11 @@
         shell.dataset.popupId = payload.id;
         shell.dataset.darkMode = String(!!payload.darkMode);
         shell.dataset.eInkMode = String(!!payload.eInkMode);
+        if (payload.eInkMode) {
+            shell.style.visibility = 'visible';
+            shell.style.opacity = '1';
+            shell.style.pointerEvents = 'auto';
+        }
     }
 
     function iframeRenderMessage(payload) {
@@ -263,12 +286,22 @@
     function setContentReady(record, ready) {
         record.contentReady = ready;
         record.shell.dataset.contentReady = String(ready);
+        applyVisibility(record);
         syncRootReveal();
     }
 
     function setRevealReady(record, ready) {
         record.revealReady = ready;
         record.shell.dataset.revealReady = String(ready);
+        applyVisibility(record);
+    }
+
+    function applyVisibility(record) {
+        if (!record?.shell) return;
+        const visible = !!record.payload && (record.payload.eInkMode || (record.contentReady && record.revealReady));
+        record.shell.style.visibility = visible ? 'visible' : 'hidden';
+        record.shell.style.opacity = visible ? '1' : '0';
+        record.shell.style.pointerEvents = visible ? 'auto' : 'none';
     }
 
     function resetIframe(record) {
@@ -494,7 +527,7 @@
         sasayakiHighlight = payload || null;
         const existingLayer = document.getElementById(LAYER_ID)?.querySelector('.hoshi-reader-sasayaki-highlight-layer');
         if (!hasSasayakiHighlight() || !readerEInkMode()) {
-            existingLayer?.replaceChildren();
+            replaceElementChildren(existingLayer);
             cleanupLayerIfIdle();
             return;
         }
@@ -505,7 +538,7 @@
             sasayakiHighlight.rects.filter(rect => rect && rect.width > 0 && rect.height > 0),
             verticalWriting,
         );
-        layer.replaceChildren();
+        replaceElementChildren(layer);
         rects.forEach((rect) => {
             const snapped = snapHighlightRect(rect);
             const lineSize = highlightLineSize();
@@ -535,9 +568,10 @@
 
     function clearSasayakiHighlight() {
         sasayakiHighlight = null;
-        document.getElementById(LAYER_ID)
-            ?.querySelector('.hoshi-reader-sasayaki-highlight-layer')
-            ?.replaceChildren();
+        replaceElementChildren(
+            document.getElementById(LAYER_ID)
+                ?.querySelector('.hoshi-reader-sasayaki-highlight-layer'),
+        );
         cleanupLayerIfIdle();
     }
 
@@ -660,13 +694,14 @@
 
     function renderRootHighlight(visible) {
         if (!visible || !rootHighlight || rootHighlight.pending || !Array.isArray(rootHighlight.rects)) {
-            document.getElementById(LAYER_ID)
-                ?.querySelector('.hoshi-reader-selection-highlight-layer')
-                ?.replaceChildren();
+            replaceElementChildren(
+                document.getElementById(LAYER_ID)
+                    ?.querySelector('.hoshi-reader-selection-highlight-layer'),
+            );
             return;
         }
         const layer = ensureHighlightLayer();
-        layer.replaceChildren();
+        replaceElementChildren(layer);
         const color = rootHighlight.eInkMode
             ? (rootHighlight.darkMode ? '#fff' : '#000')
             : (rootHighlight.darkMode ? 'rgba(255, 255, 255, 0.32)' : 'rgba(160, 160, 160, 0.32)');
@@ -792,7 +827,7 @@
     const style = document.createElement('style');
     style.textContent = `
         #${LAYER_ID} .hoshi-reader-popup-shell {
-            position: fixed;
+            position: absolute;
             box-sizing: border-box;
             overflow: hidden;
             pointer-events: auto;
@@ -813,13 +848,13 @@
             pointer-events: auto;
         }
         #${LAYER_ID} .hoshi-reader-selection-highlight-layer {
-            position: fixed;
+            position: absolute;
             inset: 0;
             pointer-events: none;
             contain: layout style paint;
         }
         #${LAYER_ID} .hoshi-reader-sasayaki-highlight-layer {
-            position: fixed;
+            position: absolute;
             inset: 0;
             pointer-events: none;
             contain: layout style paint;

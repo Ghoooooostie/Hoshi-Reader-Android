@@ -94,6 +94,19 @@ function openExternalLink(url) {
     webkit.messageHandlers.openLink.postMessage(url);
 }
 
+// 兼容不支持 Element.replaceChildren() 的旧版 Android WebView。
+function replaceElementChildren(element, ...children) {
+    if (!element) return;
+    if (typeof element.replaceChildren === 'function') {
+        element.replaceChildren(...children);
+        return;
+    }
+    while (element.firstChild) {
+        element.removeChild(element.firstChild);
+    }
+    children.forEach(child => element.appendChild(child));
+}
+
 function showDescription(element) {
     const description = element.getAttribute('data-description');
     if (!description) {
@@ -1659,7 +1672,7 @@ window.resetPopupResults = function() {
     audioUrls = {};
     selectedDictionaries = {};
     resetDictionaryMediaObserver();
-    document.getElementById('entries-container')?.replaceChildren();
+    replaceElementChildren(document.getElementById('entries-container'));
     document.scrollingElement.scrollTop = 0;
 };
 
@@ -1746,12 +1759,12 @@ function restore(snapshot) {
     const nodes = [...snapshot.nodes];
     const shouldDeferOffscreenNodes = snapshot.scrollTop === 0 && nodes.length > 6;
     if (shouldDeferOffscreenNodes) {
-        container.replaceChildren(...nodes.splice(0, 4));
+        replaceElementChildren(container, ...nodes.splice(0, 4));
         observePendingDictionaryMedia(container);
         pendingHistoryRestore = { container, nodes };
         setTimeout(() => appendPendingHistoryRestore(), 50);
     } else {
-        container.replaceChildren(...nodes);
+        replaceElementChildren(container, ...nodes);
         observePendingDictionaryMedia(container);
     }
     window.lookupEntries = snapshot.lookupEntries;
@@ -1919,7 +1932,7 @@ window.renderPopup = function() {
             if (generation !== renderGeneration) return;
             if (!entry) continue;
 
-            window.lookupEntries ??= [];
+            window.lookupEntries = window.lookupEntries ?? [];
             window.lookupEntries[idx] = entry;
 
             if (idx > 0) {
@@ -1944,7 +1957,7 @@ window.renderPopup = function() {
 
             const grouped = {};
             entry.glossaries.forEach(g => {
-                (grouped[g.dictionary] ??= []).push({
+                (grouped[g.dictionary] = grouped[g.dictionary] ?? []).push({
                     content: g.content,
                     definitionTags: g.definitionTags,
                     termTags: g.termTags

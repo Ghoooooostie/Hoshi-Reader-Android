@@ -16,7 +16,8 @@ internal class ReaderSelectionBridge(
         webView.post {
             onTextSelected(data) { highlightCount, onRectsLoaded ->
                 webView.evaluateJavascript(ReaderSelectionCommand.SelectionRects(highlightCount).source) { result ->
-                    onRectsLoaded(ReaderSelectionBridgePayload.rectsFromJavascriptResult(result))
+                    val rects = ReaderSelectionBridgePayload.rectsFromJavascriptResult(result)
+                    onRectsLoaded(rects)
                 }
             }
         }

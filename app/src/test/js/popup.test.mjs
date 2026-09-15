@@ -68,6 +68,17 @@ class FakeElement {
         return child;
     }
 
+    get firstChild() {
+        return this.children[0] ?? null;
+    }
+
+    removeChild(child) {
+        const index = this.children.indexOf(child);
+        if (index >= 0) this.children.splice(index, 1);
+        child.parentElement = null;
+        return child;
+    }
+
     insertBefore(child, before) {
         child.parentElement = this;
         const index = this.children.indexOf(before);
@@ -139,12 +150,14 @@ class FakeElement {
 function popupContext({
     loadJapaneseLanguageAsset = false,
     loadSelectionAssets = false,
+    legacyReplaceChildren = false,
     htmlZoom = '1',
     htmlProbeWidth = 100,
     bodyProbeWidth = 100,
 } = {}) {
     const documentElement = new FakeElement();
     const entriesContainer = new FakeElement([], 'div');
+    if (legacyReplaceChildren) entriesContainer.replaceChildren = undefined;
     documentElement.childProbeWidth = htmlProbeWidth;
     const body = new FakeContainer();
     body.children = [];
@@ -169,7 +182,9 @@ function popupContext({
             (documentListeners.get(type) ?? []).forEach((listener) => listener(event));
         },
         createElement(tagName) {
-            return new FakeElement([], tagName);
+            const element = new FakeElement([], tagName);
+            if (legacyReplaceChildren) element.replaceChildren = undefined;
+            return element;
         },
         getElementById(id) {
             return id === 'entries-container' ? entriesContainer : null;
@@ -438,6 +453,15 @@ test('popup renders the advanced ai card even when there are no dictionary entri
     assert.equal(entriesContainer.children.length, 1);
     assert.equal(entriesContainer.children[0].className, 'advanced-ai-card');
     assert.equal(entriesContainer.children[0].children[0].textContent, '长难句分析');
+});
+
+test('popup reset works on legacy WebView without replaceChildren', () => {
+    const { context, entriesContainer } = popupContext({ legacyReplaceChildren: true });
+    const existing = new FakeElement([], 'div');
+    entriesContainer.appendChild(existing);
+
+    assert.doesNotThrow(() => context.window.resetPopupResults());
+    assert.equal(entriesContainer.children.length, 0);
 });
 
 test('popup renders each deinflection trace candidate as its own tag row', () => {

@@ -28,6 +28,17 @@ class FakeElement {
         return child;
     }
 
+    get firstChild() {
+        return this.children[0] ?? null;
+    }
+
+    removeChild(child) {
+        const index = this.children.indexOf(child);
+        if (index >= 0) this.children.splice(index, 1);
+        child.parentNode = null;
+        return child;
+    }
+
     insertBefore(child, before) {
         const index = this.children.indexOf(before);
         if (index < 0) return this.appendChild(child);
@@ -131,7 +142,14 @@ function popupHost(options = {}) {
     const document = {
         documentElement: root,
         body,
-        createElement: (tagName) => new FakeElement(tagName),
+        createElement: (tagName) => {
+            const element = new FakeElement(tagName);
+            if (options.legacyReplaceChildren) {
+                // Older Android WebViews do not expose Element.replaceChildren().
+                element.replaceChildren = undefined;
+            }
+            return element;
+        },
         getElementById: (id) => findById(root, id),
         querySelectorAll: (selector) => root.querySelectorAll(selector),
     };
@@ -1015,6 +1033,33 @@ test('horizontal e-ink sasayaki draws below the ruby-aware rect and clears expli
     scene.host.clearSasayakiHighlight();
     sasayakiHighlights = scene.layer.querySelector('.hoshi-reader-sasayaki-highlight-layer').children;
     assert.equal(sasayakiHighlights.length, 0);
+});
+
+test('legacy WebView without replaceChildren still renders lookup highlights', () => {
+    const scene = popupHost({ legacyReplaceChildren: true });
+
+    assert.doesNotThrow(() => {
+        scene.host.renderStack({
+            popups: [rootPopupPayload()],
+            rootHighlight: {
+                popupId: 'root',
+                pending: false,
+                eInkMode: true,
+                darkMode: false,
+                verticalWriting: false,
+                rects: [{ x: 12, y: 24, width: 30, height: 16 }],
+            },
+        });
+    });
+
+    scene.dispatchMessage({
+        source: 'hoshi-popup-iframe',
+        name: 'contentReady',
+        popupId: 'root',
+    });
+
+    const layer = scene.document.getElementById('hoshi-reader-popup-layer');
+    assert.equal(layer.querySelector('.hoshi-reader-selection-highlight-layer').children.length, 1);
 });
 
 test('horizontal e-ink sasayaki line follows the ruby-aware height for the whole line', () => {

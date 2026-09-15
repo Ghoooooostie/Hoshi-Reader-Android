@@ -22,6 +22,8 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ### Fixed
 
+- Keep Reader dictionary lookup popups visible on older E-ink WebViews that do not
+  implement the modern `Element.replaceChildren()` API.
 - Keep Reader single-tap word lookup working on slow and E-ink panels. The reader now
   owns the tap vs long-press decision with a single threshold and disables the WebView's
   platform long press, so a sluggish press is still treated as a tap instead of being
