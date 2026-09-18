@@ -110,6 +110,11 @@ html:not([data-hoshi-reader-eink-mode="true"]) .hoshi-sasayaki-cue.hoshi-sasayak
     -webkit-user-select: none;
     user-select: none;
 }
+.hoshi-reader-translation-failed {
+    opacity: 0.55;
+    font-style: italic;
+    color: var(--hoshi-subtle-text-color, #9a9a9a);
+}
 .hoshi-vn-stage {
     height: var(--hoshi-reader-visible-height, var(--page-height, 100vh));
     width: var(--page-width, 100vw);

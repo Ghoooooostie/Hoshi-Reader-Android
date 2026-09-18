@@ -17,7 +17,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   directories that carry an `index.json` and a `.hoshidicts_*` marker.
 - Add a Reader Translation (AI) panel with profile-scoped long-press mode,
   in-reader sentence translation and sentence analysis cards, and visible-page
-  paragraph translation that fills in directly under the source text.
+  paragraph translation that fills in directly under the source text, keeping
+  every paragraph Chinese by retrying once with a Chinese-only instruction and
+  leaving a paragraph untranslated when the model keeps echoing Japanese.
 - Add Select all and Deselect all actions to the bookshelf multi-select mode.
 - Add Show, Blur, and Hide privacy modes for bookshelf covers, plus deterministic
   title and author artwork when a book has no visible cover.
@@ -133,7 +135,7 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   while Reader sheets or fullscreen images are open.
 - Add optional current-book cover publishing for the Android lock screen and a
   fixed PNG file used by compatible E-ink sleep-screen tools, plus direct
-  integration with iReader’s built-in Book Cover screen saver on compatible
+  integration with iReader's built-in Book Cover screen saver on compatible
   domestic and Musnap overseas firmware using standard PNG output, with Fit,
   Fill, and Stretch scaling modes.
 

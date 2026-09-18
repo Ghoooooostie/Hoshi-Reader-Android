@@ -8,8 +8,10 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlin.concurrent.thread
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -109,6 +111,46 @@ class AdvancedAiClientTest {
         assertTrue(body.contains("只输出最终译文"))
         assertTrue(body.contains("原文段落：He nodded. Then he got into the car."))
         assertFalse(body.contains("Paragraph: He nodded. Then he got into the car."))
+    }
+
+    @Test
+    fun pageParagraphTranslationRetriesWhenModelEchoesSourceLanguage() = runBlocking {
+        val paragraph = "「何をしてるの？」と彼は聞いた。"
+        val requestBodies = mutableListOf<String>()
+        val client = OpenAiCompatibleAdvancedAiClient(
+            transport = AdvancedAiTransport { _, body, _, _ ->
+                requestBodies.add(body)
+                if (requestBodies.size == 1) {
+                    completionResponse(paragraph)
+                } else {
+                    completionResponse("他在问你在做什么。")
+                }
+            },
+        )
+
+        val translation = client.translatePageParagraph(settings, paragraph)
+
+        assertEquals("他在问你在做什么。", translation)
+        assertEquals(2, requestBodies.size)
+        assertFalse(requestBodies[0].contains("严格要求"))
+        assertTrue(requestBodies[1].contains("严格要求"))
+    }
+
+    @Test
+    fun pageParagraphTranslationFailsWhenModelKeepsEchoingSourceLanguage() = runBlocking {
+        val paragraph = "「何をしてるの？」と彼は聞いた。"
+        var requestCount = 0
+        val client = OpenAiCompatibleAdvancedAiClient(
+            transport = AdvancedAiTransport { _, _, _, _ ->
+                requestCount += 1
+                completionResponse(paragraph)
+            },
+        )
+
+        assertThrows(IllegalStateException::class.java) {
+            runBlocking { client.translatePageParagraph(settings, paragraph) }
+        }
+        assertEquals(2, requestCount)
     }
 
     @Test
@@ -221,4 +263,7 @@ class AdvancedAiClientTest {
             capturedUrl,
         )
     }
+
+    private fun completionResponse(content: String): String =
+        "{\"choices\":[{\"message\":{\"content\":\"$content\"}}]}"
 }

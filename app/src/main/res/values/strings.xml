@@ -346,6 +346,7 @@
     <string name="reader_translation_ai_page_supporting">Translate the next page only after turning to it.</string>
     <string name="reader_translation_ai_unsupported_vn">Full-page translation is not available in Visual Novel mode yet.</string>
     <string name="reader_translation_ai_unavailable_hint">Configure Advanced AI first to use translation here.</string>
+    <string name="reader_translation_ai_page_translation_failed">Translation failed. Long-press to retry.</string>
     <string name="reader_translation_ai_long_press_section">Long press</string>
     <string name="reader_translation_ai_default_mode">Default long-press mode</string>
     <string name="reader_translation_ai_mode_translation">Sentence Translation</string>
@@ -604,7 +605,7 @@
     <string name="advanced_ai_request_failed">Unable to load AI analysis.</string>
     <string name="advanced_ai_default_word_prompt">Act like a Japanese teacher and explain the selected word in concise Chinese. Prioritize what the word means in this sentence, its part of speech, and why it is used here; add a more natural Chinese rendering, collocations, or near-synonyms only when helpful.</string>
     <string name="advanced_ai_default_sentence_translation_prompt">Output only the final natural Chinese translation. Do not add explanations, labels, quotes, or line breaks.</string>
-    <string name="advanced_ai_default_page_paragraph_translation_prompt">Translate the full paragraph into natural Chinese. Keep every sentence in the original order. Do not omit, summarize, or merge sentences. Do not add explanations, labels, quotes, or unrelated commentary. Output only the final Chinese translation.</string>
+    <string name="advanced_ai_default_page_paragraph_translation_prompt">Translate the full paragraph into natural Simplified Chinese. Keep every sentence in the original order and translate every sentence, including interjections, onomatopoeia, headings, captions, and quoted speech. Never keep or quote Japanese source sentences, even when they are short or hard to translate; render them in Chinese instead. Do not use line numbers, source/translation labels, or a bilingual layout. Do not add explanations or unrelated commentary. Output only the final Chinese translation.</string>
     <string name="advanced_ai_default_sentence_prompt">Analyze the sentence structure and difficult points in concise Chinese. Output plain Chinese text only with exactly three lines: 结构：... 难点：... 补充：... Do not use Markdown, bullets, numbering, or quotes.</string>
     <string name="advanced_sasayaki_subtitle">Read along with matched audiobook subtitles</string>
     <string name="audio_sources">Sources</string>

@@ -344,6 +344,7 @@
     <string name="reader_translation_ai_page_supporting">翻到下一页后，再开始翻译下一页。</string>
     <string name="reader_translation_ai_unsupported_vn">当前模式暂不支持全文翻译。</string>
     <string name="reader_translation_ai_unavailable_hint">请先在高级 AI 里完成配置。</string>
+    <string name="reader_translation_ai_page_translation_failed">翻译失败，长按重试</string>
     <string name="reader_translation_ai_long_press_section">长按配置</string>
     <string name="reader_translation_ai_default_mode">默认长按模式</string>
     <string name="reader_translation_ai_mode_translation">整句翻译</string>
@@ -602,7 +603,7 @@
     <string name="advanced_ai_request_failed">AI 分析加载失败。</string>
     <string name="advanced_ai_default_word_prompt">请像日语老师一样，用简洁中文分析所选词在原句中的具体意思和用法。优先说清这个词在这里是什么意思、是什么词性、在句子里起什么作用；如果有必要，再补充更自然的中文理解、常见搭配或近义表达。</string>
     <string name="advanced_ai_default_sentence_translation_prompt">只输出一句自然流畅的中文译文，不要解释、前言、引号或换行。</string>
-    <string name="advanced_ai_default_page_paragraph_translation_prompt">完整翻译整段内容，按原顺序逐句输出，不要省略、不要概括、不要合并句子，不要添加解释、标题、引号或额外说明，只输出最终中文译文。</string>
+    <string name="advanced_ai_default_page_paragraph_translation_prompt">完整翻译整段内容，按原顺序逐句翻成简体中文，不要省略、不要概括、不要合并句子。语气词、拟声词、标题、图注和引语都必须给出中文译文，即使原文很短或难以翻译，也不得保留或引用日语原句。不要使用编号、逐句对照、原文/译文标签，不要添加解释或额外说明，只输出最终中文译文。</string>
     <string name="advanced_ai_default_sentence_prompt">请用简洁中文分析句子结构和难点。只输出纯文本，不要 Markdown、星号、编号或引号。固定三行：结构：... 难点：... 补充：...</string>
     <string name="advanced_sasayaki_subtitle">配合已匹配的有声书字幕阅读</string>
     <string name="audio_sources">来源</string>

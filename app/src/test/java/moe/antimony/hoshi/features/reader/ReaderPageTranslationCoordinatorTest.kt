@@ -25,34 +25,37 @@ class ReaderPageTranslationCoordinatorTest {
 
         coordinator.enqueue(chapterKey, listOf(first, second, first))
 
-        assertEquals(first, coordinator.pollNext(chapterKey))
-        coordinator.markSuccess(chapterKey, first.id, "translation-1")
+        assertEquals(first, coordinator.pollNext())
+        coordinator.markSuccess(first.id, "translation-1")
 
         coordinator.enqueue(chapterKey, listOf(first, second))
 
         assertEquals("translation-1", coordinator.cachedTranslation(chapterKey, first.id))
-        assertEquals(second, coordinator.pollNext(chapterKey))
-        assertNull(coordinator.pollNext(chapterKey))
+        assertEquals(second, coordinator.pollNext())
+        assertNull(coordinator.pollNext())
     }
 
     @Test
-    fun failedTargetCanBeQueuedAgain() {
+    fun failedTargetEntersBackoffThenCanBeRetried() {
         val coordinator = ReaderPageTranslationCoordinator()
         val chapterKey = "book-1:0"
         val target = ReaderPageTranslationTarget(id = "p-1", text = "第一段")
 
         coordinator.enqueue(chapterKey, listOf(target))
+        assertEquals(target, coordinator.pollNext())
+        coordinator.markFailure(target.id, nowMillis = 0)
 
-        assertEquals(target, coordinator.pollNext(chapterKey))
-        coordinator.markFailure(chapterKey, target.id)
+        // 退避期内自动重排被阻止。
+        coordinator.enqueue(chapterKey, listOf(target), nowMillis = 1_000)
+        assertNull(coordinator.pollNext())
 
-        coordinator.enqueue(chapterKey, listOf(target))
-
-        assertEquals(target, coordinator.pollNext(chapterKey))
+        // 退避结束后可再次排队。
+        coordinator.enqueue(chapterKey, listOf(target), nowMillis = 60_000)
+        assertEquals(target, coordinator.pollNext())
     }
 
     @Test
-    fun changingChapterClearsPendingQueueButKeepsChapterCacheForRevisit() {
+    fun changingChapterKeepsChapterCacheForRevisit() {
         val coordinator = ReaderPageTranslationCoordinator()
         val firstChapter = "book-1:0"
         val secondChapter = "book-1:1"
@@ -60,15 +63,45 @@ class ReaderPageTranslationCoordinatorTest {
         val secondTarget = ReaderPageTranslationTarget(id = "p-2", text = "第二段")
 
         coordinator.enqueue(firstChapter, listOf(firstTarget))
-        assertEquals(firstTarget, coordinator.pollNext(firstChapter))
-        coordinator.markSuccess(firstChapter, firstTarget.id, "translation-1")
+        assertEquals(firstTarget, coordinator.pollNext())
+        coordinator.markSuccess(firstTarget.id, "translation-1")
 
         coordinator.enqueue(secondChapter, listOf(secondTarget))
 
         assertEquals("translation-1", coordinator.cachedTranslation(firstChapter, firstTarget.id))
         assertNull(coordinator.cachedTranslation(secondChapter, firstTarget.id))
-        assertEquals(secondTarget, coordinator.pollNext(secondChapter))
-        assertNull(coordinator.pollNext(firstChapter))
+        assertEquals(secondTarget, coordinator.pollNext())
+        assertNull(coordinator.pollNext())
+    }
+
+    @Test
+    fun inflightRequestCachesToOriginatingChapterAfterChapterSwitch() {
+        val coordinator = ReaderPageTranslationCoordinator()
+        val firstChapter = "book-1:0"
+        val secondChapter = "book-1:1"
+        val target = ReaderPageTranslationTarget(id = "p-1", text = "第一段")
+
+        coordinator.enqueue(firstChapter, listOf(target))
+        assertEquals(target, coordinator.pollNext())
+        assertEquals(firstChapter, coordinator.inFlightChapter())
+
+        // 翻页：切换到另一章节，但不打断在途请求。
+        coordinator.setActiveChapter(secondChapter)
+
+        coordinator.markSuccess(target.id, "translation-1")
+
+        // 译文应按发起章节（firstChapter）缓存，而不是被丢弃或落到新章节。
+        assertEquals("translation-1", coordinator.cachedTranslation(firstChapter, target.id))
+        assertNull(coordinator.cachedTranslation(secondChapter, target.id))
+    }
+
+    @Test
+    fun markSuccessIsIgnoredWithoutMatchingInflight() {
+        val coordinator = ReaderPageTranslationCoordinator()
+        val chapterKey = "book-1:0"
+
+        coordinator.markSuccess("p-1", "stale")
+        assertNull(coordinator.cachedTranslation(chapterKey, "p-1"))
     }
 
     @Test
@@ -80,12 +113,12 @@ class ReaderPageTranslationCoordinatorTest {
         val secondTarget = ReaderPageTranslationTarget(id = "p-2", text = "第二段")
 
         coordinator.enqueue(firstChapter, listOf(firstTarget))
-        assertEquals(firstTarget, coordinator.pollNext(firstChapter))
-        coordinator.markSuccess(firstChapter, firstTarget.id, "translation-1")
+        assertEquals(firstTarget, coordinator.pollNext())
+        coordinator.markSuccess(firstTarget.id, "translation-1")
 
         coordinator.enqueue(secondChapter, listOf(secondTarget))
-        assertEquals(secondTarget, coordinator.pollNext(secondChapter))
-        coordinator.markSuccess(secondChapter, secondTarget.id, "translation-2")
+        assertEquals(secondTarget, coordinator.pollNext())
+        coordinator.markSuccess(secondTarget.id, "translation-2")
 
         coordinator.clear()
 

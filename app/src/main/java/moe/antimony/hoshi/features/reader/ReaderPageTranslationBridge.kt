@@ -21,6 +21,23 @@ internal object ReaderPageTranslationCommand {
         "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.applyTranslation(" +
             "${readerJavaScriptStringLiteral(targetId)}, ${readerJavaScriptStringLiteral(translation)})"
 
+    fun applyFailure(
+        targetId: String,
+        message: String,
+    ): String =
+        "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.applyFailure(" +
+            "${readerJavaScriptStringLiteral(targetId)}, ${readerJavaScriptStringLiteral(message)})"
+
+    fun flushTranslationLayout(): String =
+        "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.flushTranslationLayout()"
+
+    fun applyTranslations(items: List<Pair<String, String>>): String {
+        val json = items.joinToString(prefix = "[", postfix = "]", separator = ",") { (id, translation) ->
+            "{\"id\":${readerJavaScriptStringLiteral(id)},\"translation\":${readerJavaScriptStringLiteral(translation)}}"
+        }
+        return "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.applyTranslations($json)"
+    }
+
     fun clearTranslations(): String =
         "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.clearTranslations()"
 }

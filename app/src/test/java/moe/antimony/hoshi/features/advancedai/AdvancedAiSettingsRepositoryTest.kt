@@ -21,6 +21,13 @@ class AdvancedAiSettingsRepositoryTest {
         "Translate the sentence into natural Chinese."
     private val legacyPageParagraphTranslationPrompt =
         "Translate the full paragraph into natural Chinese without skipping any sentence."
+    private val previousPageParagraphTranslationDefaults = listOf(
+        "Translate the full paragraph into natural Chinese. Keep every sentence in the original order. " +
+            "Do not omit, summarize, or merge sentences. Do not add explanations, labels, quotes, " +
+            "or unrelated commentary. Output only the final Chinese translation.",
+        "完整翻译整段内容，按原顺序逐句输出，不要省略、不要概括、不要合并句子，" +
+            "不要添加解释、标题、引号或额外说明，只输出最终中文译文。",
+    )
 
     @get:Rule
     val tempFolder = TemporaryFolder()
@@ -113,6 +120,19 @@ class AdvancedAiSettingsRepositoryTest {
             val saved = handle.repository.settings.first()
 
             assertEquals("sentence-translation-default", saved.sentenceTranslationPrompt)
+        }
+    }
+
+    @Test
+    fun migratesPreviousPageParagraphTranslationDefaultsToCurrentDefault() = runBlocking {
+        repository().use { handle ->
+            previousPageParagraphTranslationDefaults.forEach { prompt ->
+                handle.repository.update { it.copy(pageParagraphTranslationPrompt = prompt) }
+
+                val saved = handle.repository.settings.first()
+
+                assertEquals("paragraph-translation-default", saved.pageParagraphTranslationPrompt)
+            }
         }
     }
 

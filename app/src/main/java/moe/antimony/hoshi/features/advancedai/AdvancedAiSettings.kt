@@ -96,6 +96,11 @@ internal class AdvancedAiSettingsRepository(
         )
         private val LEGACY_PAGE_PARAGRAPH_TRANSLATION_PROMPTS = setOf(
             "Translate the full paragraph into natural Chinese without skipping any sentence.",
+            "Translate the full paragraph into natural Chinese. Keep every sentence in the original order. " +
+                "Do not omit, summarize, or merge sentences. Do not add explanations, labels, quotes, " +
+                "or unrelated commentary. Output only the final Chinese translation.",
+            "完整翻译整段内容，按原顺序逐句输出，不要省略、不要概括、不要合并句子，" +
+                "不要添加解释、标题、引号或额外说明，只输出最终中文译文。",
         )
 
         private val KEY_ENABLED = booleanPreferencesKey("enabled")

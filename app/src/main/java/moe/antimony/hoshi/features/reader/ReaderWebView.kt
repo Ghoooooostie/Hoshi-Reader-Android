@@ -223,6 +223,7 @@ fun ReaderWebView(
         }
     }
     val pageTranslationUnavailableHint = stringResource(moe.antimony.hoshi.R.string.reader_translation_ai_unavailable_hint)
+    val pageTranslationFailureHint = stringResource(moe.antimony.hoshi.R.string.reader_translation_ai_page_translation_failed)
     LaunchedEffect(advancedAiSettingsRepository, pageTranslationUnavailableHint) {
         advancedAiSettingsRepository.settings.collect { settings ->
             pageTranslationAvailabilityHint = if (
@@ -246,7 +247,7 @@ fun ReaderWebView(
     var readerPopupHistories by remember { mutableStateOf<Map<String, ReaderPopupHistoryCounts>>(emptyMap()) }
     var rootSelectionHighlight by remember { mutableStateOf<ReaderRootSelectionHighlight?>(null) }
     var readerAiPopupModes by remember(book) { mutableStateOf<Map<String, ReaderAiLongPressMode>>(emptyMap()) }
-    var readerPageTranslationJob by remember { mutableStateOf<Job?>(null) }
+    val readerPageTranslationWorkers = remember { linkedSetOf<Job>() }
     val readerPageTranslationRefreshJobs = remember { linkedMapOf<String, Job>() }
     var fullscreenImage by remember { mutableStateOf<ReaderFullscreenImage?>(null) }
     val ankiViewModel: AnkiViewModel = hiltViewModel()
@@ -629,8 +630,8 @@ fun ReaderWebView(
         stateHolder.setLookupPopups(nextPopups, ::resumeSasayakiAfterLookupIfNeeded)
     }
     fun clearReaderPageTranslations() {
-        readerPageTranslationJob?.cancel()
-        readerPageTranslationJob = null
+        readerPageTranslationWorkers.forEach { it.cancel() }
+        readerPageTranslationWorkers.clear()
         readerPageTranslationRefreshJobs.values.forEach(Job::cancel)
         readerPageTranslationRefreshJobs.clear()
         pageTranslationCoordinator.clear()
@@ -639,6 +640,19 @@ fun ReaderWebView(
     fun applyReaderPageTranslation(targetId: String, translation: String) {
         webView?.evaluateJavascript(
             ReaderPageTranslationCommand.applyTranslation(targetId, translation),
+            null,
+        )
+    }
+    fun applyReaderPageTranslationFailure(targetId: String) {
+        webView?.evaluateJavascript(
+            ReaderPageTranslationCommand.applyFailure(targetId, pageTranslationFailureHint),
+            null,
+        )
+    }
+    fun applyReaderPageTranslations(items: List<Pair<String, String>>) {
+        if (items.isEmpty()) return
+        webView?.evaluateJavascript(
+            ReaderPageTranslationCommand.applyTranslations(items),
             null,
         )
     }
@@ -654,32 +668,36 @@ fun ReaderWebView(
             onLoaded(ReaderPageTranslationBridgePayload.targetsFromJavascriptResult(result))
         }
     }
-    fun pumpReaderPageTranslationQueue(chapterKey: String = currentPageTranslationChapterKey) {
-        if (readerPageTranslationJob != null) return
-        readerPageTranslationJob = scope.launch {
+    fun pumpReaderPageTranslationQueue() {
+        val worker = scope.launch(Dispatchers.IO) {
             val ready = advancedAiSettingsRepository.settings.first().pageParagraphTranslationAvailability()
                 as? AdvancedAiAvailability.Ready
-                ?: run {
-                    readerPageTranslationJob = null
-                    return@launch
-                }
+                ?: return@launch
             while (true) {
-                val next = pageTranslationCoordinator.pollNext(chapterKey) ?: break
-                val result = runCatching {
-                    withContext(Dispatchers.IO) {
-                        advancedAiClient.translatePageParagraph(ready.settings, next.text)
-                    }
+                val next = pageTranslationCoordinator.pollNext() ?: break
+                val inFlightChapter = pageTranslationCoordinator.inFlightChapter()
+                val translation = runCatching {
+                    advancedAiClient.translatePageParagraph(ready.settings, next.text)
                 }
-                result.onSuccess { translation ->
-                    pageTranslationCoordinator.markSuccess(chapterKey, next.id, translation)
-                    if (currentPageTranslationChapterKey == chapterKey) {
-                        applyReaderPageTranslation(next.id, translation)
+                if (translation.isSuccess) {
+                    pageTranslationCoordinator.markSuccess(next.id, translation.getOrThrow())
+                } else {
+                    pageTranslationCoordinator.markFailure(next.id)
+                }
+                if (inFlightChapter != null && currentPageTranslationChapterKey == inFlightChapter) {
+                    withContext(Dispatchers.Main.immediate) {
+                        if (translation.isSuccess) {
+                            applyReaderPageTranslation(next.id, translation.getOrThrow())
+                        } else {
+                            applyReaderPageTranslationFailure(next.id)
+                        }
                     }
-                }.onFailure {
-                    pageTranslationCoordinator.markFailure(chapterKey, next.id)
                 }
             }
-            readerPageTranslationJob = null
+        }
+        readerPageTranslationWorkers.add(worker)
+        worker.invokeOnCompletion {
+            readerPageTranslationWorkers.remove(worker)
         }
     }
     fun requestVisibleReaderPageTranslations() {
@@ -687,11 +705,12 @@ fun ReaderWebView(
         if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel) return
         if (stateHolder.isWebViewRestoring) return
         collectVisibleReaderPageTranslationTargets { targets ->
-            targets.forEach { target ->
-                pageTranslationCoordinator.cachedTranslation(currentPageTranslationChapterKey, target.id)?.let { cached ->
-                    applyReaderPageTranslation(target.id, cached)
-                }
+            val cachedItems = targets.mapNotNull { target ->
+                pageTranslationCoordinator
+                    .cachedTranslation(currentPageTranslationChapterKey, target.id)
+                    ?.let { target.id to it }
             }
+            applyReaderPageTranslations(cachedItems)
             pageTranslationCoordinator.enqueue(currentPageTranslationChapterKey, targets)
             pumpReaderPageTranslationQueue()
         }
@@ -702,18 +721,26 @@ fun ReaderWebView(
     ) {
         val requestKey = "$chapterKey:${target.id}"
         readerPageTranslationRefreshJobs.remove(requestKey)?.cancel()
-        val refreshJob = scope.launch {
+        val refreshJob = scope.launch(Dispatchers.IO) {
             val ready = advancedAiSettingsRepository.settings.first().pageParagraphTranslationAvailability()
                 as? AdvancedAiAvailability.Ready
                 ?: return@launch
-            runCatching {
-                withContext(Dispatchers.IO) {
-                    advancedAiClient.translatePageParagraph(ready.settings, target.text)
-                }
-            }.onSuccess { translation ->
-                pageTranslationCoordinator.cacheTranslation(chapterKey, target.id, translation)
-                if (currentPageTranslationChapterKey == chapterKey) {
-                    applyReaderPageTranslation(target.id, translation)
+            // 手动重试信任用户意图：直接请求强制中文译文，不走自动 guard 判定。
+            val translation = runCatching {
+                advancedAiClient.requestPageParagraphTranslation(
+                    settings = ready.settings,
+                    paragraph = target.text,
+                    strictChineseRendering = true,
+                )
+            }
+            if (currentPageTranslationChapterKey == chapterKey) {
+                withContext(Dispatchers.Main.immediate) {
+                    translation.onSuccess { value ->
+                        pageTranslationCoordinator.cacheTranslation(chapterKey, target.id, value)
+                        applyReaderPageTranslation(target.id, value)
+                    }.onFailure {
+                        applyReaderPageTranslationFailure(target.id)
+                    }
                 }
             }
         }
@@ -1947,8 +1974,6 @@ fun ReaderWebView(
     )
     val restoreLoadingPresentation = readerRestoreLoadingPresentation(stateHolder.isWebViewRestoring)
     LaunchedEffect(currentPageTranslationChapterKey) {
-        readerPageTranslationJob?.cancel()
-        readerPageTranslationJob = null
         pageTranslationCoordinator.clearActiveWork()
     }
     LaunchedEffect(

@@ -52,6 +52,11 @@ internal interface AdvancedAiClient {
     suspend fun translateSentence(settings: AdvancedAiSettings, sentence: String): String
     suspend fun translatePageParagraph(settings: AdvancedAiSettings, paragraph: String): String =
         translateSentence(settings, paragraph)
+    suspend fun requestPageParagraphTranslation(
+        settings: AdvancedAiSettings,
+        paragraph: String,
+        strictChineseRendering: Boolean = false,
+    ): String = translatePageParagraph(settings, paragraph)
     suspend fun analyzeSentence(settings: AdvancedAiSettings, sentence: String): String
     suspend fun testConnection(settings: AdvancedAiSettings): Result<Unit>
 }
@@ -94,14 +99,42 @@ internal class OpenAiCompatibleAdvancedAiClient(
         paragraph: String,
     ): String =
         runLoggedRequest {
-            val response = transport.post(
-                url = chatCompletionsUrl(settings.baseUrl),
-                body = buildPageParagraphTranslationRequestBody(settings, paragraph),
-                apiKey = settings.apiKey,
-                timeoutMillis = timeoutMillis,
+            val primary = requestPageParagraphTranslation(
+                settings = settings,
+                paragraph = paragraph,
             )
-            parseCompletionText(response)
+            if (isChineseTargetTranslation(sourceText = paragraph, translation = primary)) {
+                return@runLoggedRequest primary
+            }
+            val strictRendering = requestPageParagraphTranslation(
+                settings = settings,
+                paragraph = paragraph,
+                strictChineseRendering = true,
+            )
+            if (isChineseTargetTranslation(sourceText = paragraph, translation = strictRendering)) {
+                return@runLoggedRequest strictRendering
+            }
+            error("Advanced AI returned Japanese source text instead of a Chinese translation.")
         }
+
+    /** 请求整段译文，必要时追加禁止回显原文的中文硬约束。 */
+    override suspend fun requestPageParagraphTranslation(
+        settings: AdvancedAiSettings,
+        paragraph: String,
+        strictChineseRendering: Boolean,
+    ): String {
+        val response = transport.post(
+            url = chatCompletionsUrl(settings.baseUrl),
+            body = buildPageParagraphTranslationRequestBody(
+                settings = settings,
+                paragraph = paragraph,
+                strictChineseRendering = strictChineseRendering,
+            ),
+            apiKey = settings.apiKey,
+            timeoutMillis = timeoutMillis,
+        )
+        return parseCompletionText(response)
+    }
 
     override suspend fun analyzeSentence(
         settings: AdvancedAiSettings,
@@ -133,7 +166,7 @@ internal class OpenAiCompatibleAdvancedAiClient(
         }
 
     /** 统一记录 AI 请求耗时和结果，便于定位卡在哪一层。 */
-    private suspend fun runLoggedRequest(block: () -> String): String =
+    private suspend fun runLoggedRequest(block: suspend () -> String): String =
         withContext(Dispatchers.IO) { block() }
 }
 
@@ -169,12 +202,14 @@ internal fun buildSentenceTranslationRequestBody(
 internal fun buildPageParagraphTranslationRequestBody(
     settings: AdvancedAiSettings,
     paragraph: String,
+    strictChineseRendering: Boolean = false,
 ): String = buildChatCompletionsRequest(
     model = settings.model,
     prompt = buildConfiguredPrompt(settings.pageParagraphTranslationPrompt),
     userContent = buildTranslationUserContent(
         sourceLabel = "原文段落",
         sourceText = paragraph,
+        strictChineseRendering = strictChineseRendering,
     ),
 )
 
@@ -195,13 +230,22 @@ private fun buildConfiguredPrompt(prompt: String): String = prompt.trim()
 private fun buildTranslationUserContent(
     sourceLabel: String,
     sourceText: String,
+    strictChineseRendering: Boolean = false,
 ): String = buildString {
     appendLine("目标语言：简体中文")
     appendLine("输出要求：只输出最终译文，不要输出原文，不要解释。")
+    if (strictChineseRendering) {
+        appendLine(STRICT_CHINESE_RENDERING_RULE)
+    }
     append(sourceLabel)
     append('：')
     append(sourceText)
 }
+
+/** 模型已经回原文时追加的中文硬约束。 */
+private const val STRICT_CHINESE_RENDERING_RULE: String =
+    "严格要求：每一句都必须翻成简体中文，语气词、拟声词、标题和引语也要有中文译文；" +
+        "禁止保留或引用日语原句，禁止编号、逐句对照或原文/译文标签。"
 
 /** 解析 chat completions 的首条文本返回。 */
 internal fun parseCompletionText(responseText: String): String {
