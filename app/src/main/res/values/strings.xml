@@ -341,6 +341,7 @@
     <string name="reader_menu">Reader Menu</string>
     <string name="reader_go_to">Contents</string>
     <string name="reader_translation_ai">Translation (AI)</string>
+    <string name="reader_refresh_screen">Refresh Screen</string>
     <string name="reader_translation_ai_page_section">Full-page translation</string>
     <string name="reader_translation_ai_enable">Translate this page paragraph by paragraph</string>
     <string name="reader_translation_ai_page_supporting">Translate the next page only after turning to it.</string>

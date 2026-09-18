@@ -29,6 +29,7 @@ import moe.antimony.hoshi.features.sasayaki.SasayakiPlaybackReturnAction
 import moe.antimony.hoshi.features.sasayaki.SasayakiPlaybackReturnBookIdExtra
 import moe.antimony.hoshi.features.update.DownloadedUpdatePrompt
 import moe.antimony.hoshi.navigation.AppShell
+import moe.antimony.hoshi.features.eink.EinkScreenRefresh
 import moe.antimony.hoshi.ui.theme.HoshiReaderTheme
 
 @AndroidEntryPoint
@@ -96,6 +97,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        EinkScreenRefresh.refresh(this)
     }
 
     @SuppressLint("RestrictedApi")

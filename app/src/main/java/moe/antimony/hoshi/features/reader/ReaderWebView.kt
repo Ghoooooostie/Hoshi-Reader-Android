@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import moe.antimony.hoshi.features.eink.EinkScreenRefresh
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -2248,6 +2249,7 @@ fun ReaderWebView(
             } else {
                 null
             },
+            onRefresh = { EinkScreenRefresh.refresh(context) },
             metrics = bottomChromeMetrics,
             modifier = Modifier.align(Alignment.BottomCenter),
         )

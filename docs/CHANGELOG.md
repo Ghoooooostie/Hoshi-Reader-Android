@@ -41,6 +41,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 - Add `hoshi://search?text=...` deep links for opening lookup results in the
   existing popup overlay, with `mode=app` support for opening the Dictionary
   tab instead.
+- Add a Reader menu action to manually refresh the e-ink screen on demand, and
+  automatically trigger a full e-ink screen refresh when the app returns to the
+  foreground to clear desktop ghosting/afterimages.
 
 ### Fixed
 

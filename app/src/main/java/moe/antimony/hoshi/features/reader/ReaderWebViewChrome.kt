@@ -35,6 +35,7 @@ import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.TravelExplore
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -387,6 +388,7 @@ internal fun BoxScope.ReaderBottomChrome(
     onAppearance: () -> Unit,
     onStatistics: (() -> Unit)?,
     onSasayaki: (() -> Unit)?,
+    onRefresh: (() -> Unit)?,
     metrics: ReaderBottomChromeMetrics,
     modifier: Modifier = Modifier,
 ) {
@@ -417,6 +419,7 @@ internal fun BoxScope.ReaderBottomChrome(
             onAppearance = onAppearance,
             onStatistics = onStatistics,
             onSasayaki = onSasayaki,
+            onRefresh = onRefresh,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = metrics.horizontalPaddingDp.dp, bottom = metrics.menuBottomOffsetDp.dp),
@@ -646,6 +649,7 @@ private fun ReaderMenuCard(
     onAppearance: () -> Unit,
     onStatistics: (() -> Unit)?,
     onSasayaki: (() -> Unit)?,
+    onRefresh: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -754,6 +758,20 @@ private fun ReaderMenuCard(
                         metrics = metrics,
                         onClick = onSasayaki ?: return@forEachIndexed,
                     )
+
+                    ReaderMenuDestination.Refresh -> ReaderMenuItem(
+                        text = stringResource(R.string.reader_refresh_screen),
+                        icon = {
+                            Icon(
+                                imageVector = readerBottomMenuIcon(ReaderMenuDestination.Refresh),
+                                contentDescription = null,
+                                tint = Color(colors.menuContent),
+                            )
+                        },
+                        colors = colors,
+                        metrics = metrics,
+                        onClick = onRefresh ?: return@forEachIndexed,
+                    )
                 }
             }
         }
@@ -767,6 +785,7 @@ internal fun readerBottomMenuIcon(destination: ReaderMenuDestination): ImageVect
         ReaderMenuDestination.TranslationAi -> Icons.Rounded.Translate
         ReaderMenuDestination.Statistics -> Icons.AutoMirrored.Rounded.ShowChart
         ReaderMenuDestination.Sasayaki -> Icons.Rounded.GraphicEq
+        ReaderMenuDestination.Refresh -> Icons.Rounded.Refresh
     }
 
 @Composable
