@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import moe.antimony.hoshi.ui.HoshiAlertDialog as AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -41,6 +44,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.findViewTreeLifecycleOwner
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -52,6 +56,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import moe.antimony.hoshi.LocalHoshiUiDependencies
+import moe.antimony.hoshi.R
 import moe.antimony.hoshi.content.ContentLanguageProfile
 import moe.antimony.hoshi.epub.BookEntry
 import moe.antimony.hoshi.epub.EpubBook
@@ -87,6 +92,7 @@ import moe.antimony.hoshi.features.dictionary.createLookupPopupItem
 import moe.antimony.hoshi.features.dictionary.dismissPopupAt
 import moe.antimony.hoshi.features.dictionary.openPopupExternalLink
 import moe.antimony.hoshi.features.dictionary.withLookupPopupVisualOptions
+import moe.antimony.hoshi.features.display.DisplaySettingsSheet
 import moe.antimony.hoshi.features.sasayaki.BookSasayakiPlaybackRepository
 import moe.antimony.hoshi.features.sasayaki.SasayakiAudioRepository
 import moe.antimony.hoshi.features.sasayaki.SasayakiAudiobookInfo
@@ -114,7 +120,7 @@ fun ReaderWebView(
     initialChapterIndex: Int = 0,
     initialProgress: Double = 0.0,
     readerSettings: ReaderSettings = ReaderSettings(),
-    onReaderSettingsChange: (ReaderSettings) -> Unit = {},
+    onReaderSettingsChange: ((ReaderSettings) -> ReaderSettings) -> Unit = {},
     onReaderKeyEventHandlerChange: (((KeyEvent) -> Boolean)?) -> Unit = {},
     onSaveBookmark: (chapterIndex: Int, progress: Double, statistics: List<ReadingStatistics>?) -> Unit = { _, _, _ -> },
     onFlushAutoSyncExport: () -> Unit = {},
@@ -127,6 +133,7 @@ fun ReaderWebView(
     var webView by remember { mutableStateOf<WebView?>(null) }
     val context = LocalContext.current
     val appContainer = LocalHoshiUiDependencies.current
+    val profileState by appContainer.profileRepository.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val fontManager = appContainer.readerFontManager
     val fontLibraryState by fontManager.libraryState.collectAsStateWithLifecycle()
@@ -258,6 +265,7 @@ fun ReaderWebView(
     val popupDarkMode = effectiveSettings.usesDarkInterface(systemDarkTheme)
     val popupContentLanguageProfile = contentLanguageProfile
     val progressDisplay = readerProgressDisplay(contentLanguageProfile)
+    val noAudioFoundText = stringResource(R.string.audio_no_audio_found)
     val readerPopupIframeDocument = remember(
         dictionaryStyles,
         dictionarySettings,
@@ -274,6 +282,7 @@ fun ReaderWebView(
         fontLibraryState.revision,
         effectiveSettings.popupScale,
         popupContentLanguageProfile,
+        noAudioFoundText,
     ) {
         LookupPopupHtml.renderIframeDocument(
             assets = null,
@@ -287,6 +296,7 @@ fun ReaderWebView(
             darkMode = popupDarkMode,
             eInkMode = effectiveSettings.eInkMode,
             audioSettings = audioSettings,
+            noAudioFoundText = noAudioFoundText,
             ankiSettings = ankiUiState.popupSettings,
             fontFaceCss = fontManager.popupFontFaceCss(),
             popupScale = effectiveSettings.popupScale,
@@ -338,6 +348,7 @@ fun ReaderWebView(
     }
     val showReaderMenu = stateHolder.showReaderMenu
     val showAppearance = stateHolder.showAppearance
+    val showDisplaySettings = stateHolder.showDisplaySettings
     val showGoTo = stateHolder.showGoTo
     val showTranslationAi = stateHolder.showTranslationAi
     val showSasayaki = stateHolder.showSasayaki
@@ -347,17 +358,20 @@ fun ReaderWebView(
     var persistedStatistics by remember(bookRoot) {
         mutableStateOf<List<ReadingStatistics>?>(if (bookRoot == null) emptyList() else null)
     }
-    LaunchedEffect(bookRoot, bookRepository, effectiveSettings.enableStatistics) {
-        persistedStatistics = if (bookRoot != null && effectiveSettings.enableStatistics) {
-            bookRepository.loadStatistics(bookRoot)
-        } else {
-            emptyList()
+    var statisticsLoadFailed by remember(bookRoot) { mutableStateOf(false) }
+    LaunchedEffect(bookRoot, bookRepository) {
+        try {
+            persistedStatistics = if (bookRoot != null) bookRepository.loadStatistics(bookRoot) else emptyList()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            // Leave the tracker unavailable so corrupt history cannot be overwritten.
+            statisticsLoadFailed = true
         }
     }
     val statisticsTracker = remember(
         bookRoot,
         book.title,
-        effectiveSettings.enableStatistics,
         effectiveSettings.statisticsResetMinutes,
         persistedStatistics,
     ) {
@@ -365,7 +379,6 @@ fun ReaderWebView(
             ReaderStatisticsTracker(
                 title = book.title,
                 initialStatistics = statistics,
-                enabled = effectiveSettings.enableStatistics,
                 resetMinutes = effectiveSettings.statisticsResetMinutes,
                 dateProvider = statisticsDateProvider,
             )
@@ -385,7 +398,7 @@ fun ReaderWebView(
         statisticsState = statisticsTracker?.state
     }
     fun startStatisticsForProgressChangeIfNeeded() {
-        if (effectiveSettings.statisticsAutostartMode == StatisticsAutostartMode.PageTurn) {
+        if (effectiveSettings.statisticsAutostartOnPageTurn) {
             statisticsTracker?.startForPageTurnIfNeeded(currentDisplayedCharacter())
             syncStatisticsState()
         }
@@ -502,8 +515,8 @@ fun ReaderWebView(
         )
         syncStatisticsState()
     }
-    LaunchedEffect(statisticsTracker, effectiveSettings.statisticsAutostartMode) {
-        if (effectiveSettings.enableStatistics && effectiveSettings.statisticsAutostartMode == StatisticsAutostartMode.On) {
+    LaunchedEffect(statisticsTracker, effectiveSettings.statisticsAutostartOnBookOpen) {
+        if (effectiveSettings.statisticsAutostartOnBookOpen) {
             statisticsTracker?.start(currentDisplayedCharacter())
             syncStatisticsState()
         }
@@ -1109,7 +1122,8 @@ fun ReaderWebView(
                     mode = message.mode,
                 )
             }
-            is ReaderLookupPopupBridgeMessage.ScrollState -> Unit
+            is ReaderLookupPopupBridgeMessage.ScrollState,
+            is ReaderLookupPopupBridgeMessage.SourceHistoryRestored -> Unit
             is ReaderLookupPopupBridgeMessage.NavigateBack -> {
                 val current = readerPopupHistories[message.popupId] ?: return
                 if (current.backCount > 0) {
@@ -1930,7 +1944,7 @@ fun ReaderWebView(
         state = chromeState,
         settings = effectiveSettings,
         showSasayakiToggle = reserveSasayakiTopToggle || showSasayakiTopToggle,
-        showStatisticsToggle = effectiveSettings.enableStatistics && effectiveSettings.showStatisticsToggle,
+        showStatisticsToggle = effectiveSettings.showStatisticsToggle,
         focusMode = focusMode,
         topSystemInsetDp = stableStatusBarPadding.value.roundToInt().coerceAtLeast(0),
     )
@@ -1955,12 +1969,12 @@ fun ReaderWebView(
         effectiveSettings,
         progressDisplay = progressDisplay,
         showSasayakiToggle = reserveSasayakiTopToggle || showSasayakiTopToggle,
-        showStatisticsToggle = effectiveSettings.enableStatistics && effectiveSettings.showStatisticsToggle,
+        showStatisticsToggle = effectiveSettings.showStatisticsToggle,
         focusMode = focusMode,
     )
     val chromeVisibility = readerChromeVisibility(
         focusMode = focusMode,
-        hasStatisticsToggle = effectiveSettings.enableStatistics && effectiveSettings.showStatisticsToggle,
+        hasStatisticsToggle = effectiveSettings.showStatisticsToggle,
         hasSasayakiToggle = onSasayakiTopToggle != null,
         hasBackJump = stateHolder.backTargetPosition != null,
         hasForwardJump = stateHolder.forwardTargetPosition != null,
@@ -2171,7 +2185,7 @@ fun ReaderWebView(
             settings = effectiveSettings,
             progressDisplay = progressDisplay,
             colors = readerChromeColors(effectiveSettings, systemDarkTheme),
-            onStatisticsToggle = if (effectiveSettings.enableStatistics && effectiveSettings.showStatisticsToggle) {
+            onStatisticsToggle = if (effectiveSettings.showStatisticsToggle) {
                 ::toggleStatisticsTracking
             } else {
                 null
@@ -2231,12 +2245,9 @@ fun ReaderWebView(
             onDismissMenu = stateHolder::dismissReaderMenu,
             onGoTo = stateHolder::openGoToFromMenu,
             onTranslationAi = stateHolder::openTranslationAiFromMenu,
-            onAppearance = stateHolder::openAppearanceFromMenu,
-            onStatistics = if (effectiveSettings.enableStatistics) {
-                stateHolder::openStatisticsFromMenu
-            } else {
-                null
-            },
+            onDisplaySettings = stateHolder::openDisplaySettingsFromMenu,
+            onReadingSettings = stateHolder::openAppearanceFromMenu,
+            onStatistics = stateHolder::openStatisticsFromMenu,
             onSasayaki = if (sasayakiSettings.enabled && bookRoot != null) {
                 {
                     stateHolder.openSasayakiFromMenu(
@@ -2258,9 +2269,9 @@ fun ReaderWebView(
                 settings = effectiveSettings,
                 fullPageTranslationSupported = effectiveSettings.viewMode != ReaderViewMode.VisualNovel,
                 availabilityHint = pageTranslationAvailabilityHint,
-                onSettingsChange = {
-                    stateHolder.applySettings(it)
-                    onReaderSettingsChange(it)
+                onSettingsChange = { settings ->
+                    stateHolder.applySettings(settings)
+                    onReaderSettingsChange { settings }
                 },
                 onDismiss = stateHolder::dismissTranslationAi,
             )
@@ -2268,16 +2279,20 @@ fun ReaderWebView(
         if (showAppearance) {
             ReaderAppearanceSheet(
                 settings = effectiveSettings,
+                profileName = profileState.effectiveProfile.name,
                 progressDisplay = progressDisplay,
-                onSettingsChange = {
-                    stateHolder.applySettings(it)
-                    onReaderSettingsChange(it)
+                onSettingsChange = { transform ->
+                    stateHolder.applySettings(transform(stateHolder.effectiveSettings))
+                    onReaderSettingsChange(transform)
                 },
                 sasayakiSettings = sasayakiSettings,
                 onSasayakiSettingsChange = ::updateSasayakiSettings,
                 fontManager = fontManager,
                 onDismiss = stateHolder::dismissAppearance,
             )
+        }
+        if (showDisplaySettings) {
+            DisplaySettingsSheet(onDismiss = stateHolder::dismissDisplaySettings)
         }
         if (showGoTo) {
             ReaderGoToSheet(
@@ -2342,6 +2357,15 @@ fun ReaderWebView(
                 },
                 onSettingsChange = ::updateSasayakiSettings,
                 onDismiss = stateHolder::dismissSasayaki,
+            )
+        }
+        if (statisticsLoadFailed) {
+            AlertDialog(
+                onDismissRequest = { statisticsLoadFailed = false },
+                text = { Text(stringResource(R.string.statistics_operation_failed)) },
+                confirmButton = {
+                    TextButton(onClick = { statisticsLoadFailed = false }) { Text(stringResource(R.string.action_ok)) }
+                },
             )
         }
         if (showStatistics && statisticsState != null) {

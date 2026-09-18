@@ -243,13 +243,18 @@
     }
 
     function iframeRenderMessage(payload) {
-        return {
+        const message = {
             type: 'renderPopup',
             popupId: payload.id,
             entriesCount: payload.entriesCount || 0,
             initialEntryJson: payload.initialEntryJson || null,
             advancedAi: payload.advancedAi || null
         };
+        if (payload.sourceText != null) {
+            message.sourceText = payload.sourceText;
+            message.sourceSentenceOffset = payload.sourceSentenceOffset ?? null;
+        }
+        return message;
     }
 
     function renderIframe(record) {

@@ -15,7 +15,6 @@ class AdvancedSettingsRowsTest {
             listOf(
                 listOf(
                     R.string.advanced_audio,
-                    R.string.advanced_statistics,
                     R.string.advanced_sasayaki_audiobooks,
                     R.string.advanced_ai,
                 ),

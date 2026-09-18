@@ -630,6 +630,8 @@ class ReaderWebViewStateHolderTest {
         val base = ReaderSettings()
 
         assertFalse(base.readerContentReloadKey() == base.copy(fontSize = 28).readerContentReloadKey())
+        val furiganaKeys = FuriganaMode.entries.map { base.copy(furiganaMode = it).readerContentReloadKey() }
+        assertEquals(4, furiganaKeys.toSet().size)
         assertFalse(base.readerContentReloadKey() == base.copy(verticalWriting = false).readerContentReloadKey())
         assertFalse(base.readerContentReloadKey() == base.copy(paragraphSpacing = 1.2).readerContentReloadKey())
     }
@@ -897,6 +899,12 @@ class ReaderWebViewStateHolderTest {
         assertTrue(holder.showAppearance)
 
         holder.dismissAppearance()
+        holder.showReaderMenu()
+        holder.openDisplaySettingsFromMenu()
+        assertFalse(holder.showReaderMenu)
+        assertTrue(holder.showDisplaySettings)
+
+        holder.dismissDisplaySettings()
         holder.showReaderMenu()
         holder.openGoToFromMenu()
         assertFalse(holder.showReaderMenu)

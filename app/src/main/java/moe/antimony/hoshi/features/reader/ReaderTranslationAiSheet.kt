@@ -301,7 +301,6 @@ internal fun translationAiPalette(): TranslationAiPalette {
         surfaceVariant = colorScheme.surfaceVariant,
         primaryContainer = colorScheme.primaryContainer,
         onPrimaryContainer = colorScheme.onPrimaryContainer,
-        outlineVariant = colorScheme.outlineVariant,
     )
     return TranslationAiPalette(
         background = colorScheme.background,
@@ -314,6 +313,6 @@ internal fun translationAiPalette(): TranslationAiPalette {
         segmentSelected = segmentedControlColors.selected,
         segmentSelectedContent = segmentedControlColors.selectedContent,
         segmentUnselectedContent = segmentedControlColors.unselectedContent,
-        segmentBorder = segmentedControlColors.border,
+        segmentBorder = colorScheme.outlineVariant,
     )
 }

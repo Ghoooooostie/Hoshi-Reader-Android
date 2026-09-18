@@ -24,6 +24,8 @@ internal fun dictionarySearchRootFramePayload(
     advancedAi: LookupPopupAdvancedAiPayload? = null,
     clearSelectionSignal: Int = 0,
     rootHistory: ReaderPopupHistoryCounts = ReaderPopupHistoryCounts(),
+    sourceText: String? = null,
+    sourceSentenceOffset: Int? = null,
 ): ReaderLookupPopupFramePayload {
     val top = searchBarBottomDp.coerceIn(0.0, viewport.height)
     return ReaderLookupPopupFramePayload(
@@ -48,17 +50,24 @@ internal fun dictionarySearchRootFramePayload(
         clearSelectionSignal = clearSelectionSignal,
         selectionOffsetY = top,
         iframeUrl = iframeUrl,
-        contentKey = lookupPopupContentKey(results, advancedAi),
+        contentKey = lookupPopupContentKey(results, advancedAi, sourceText),
         advancedAi = advancedAi,
+        sourceText = sourceText,
+        sourceSentenceOffset = sourceSentenceOffset,
     )
 }
 
 internal fun lookupPopupContentKey(
     results: List<LookupResult>,
     advancedAi: LookupPopupAdvancedAiPayload? = null,
+    sourceText: String? = null,
 ): String? {
     if (results.isEmpty() && advancedAi == null) return null
     val digest = MessageDigest.getInstance("SHA-256")
+    if (sourceText != null) {
+        digest.update(sourceText.toByteArray(Charsets.UTF_8))
+    }
+    digest.update(0)
     results.forEach { result ->
         val entry = LookupPopupHtml.entryJsonString(result).toByteArray(Charsets.UTF_8)
         digest.update(entry.size.toString().toByteArray(Charsets.UTF_8))
@@ -95,6 +104,8 @@ internal fun dictionarySearchIframePayloads(
     iframeUrl: String,
     rootClearSelectionSignal: Int = 0,
     resolveUiText: (UiText) -> String = { error("Unexpected popup UI text $it") },
+    sourceText: String? = null,
+    sourceSentenceOffset: Int? = null,
 ): List<ReaderLookupPopupFramePayload> {
     if (rootResults.isEmpty()) return emptyList()
     return listOf(
@@ -107,6 +118,8 @@ internal fun dictionarySearchIframePayloads(
             iframeUrl = iframeUrl,
             clearSelectionSignal = rootClearSelectionSignal,
             rootHistory = rootHistory,
+            sourceText = sourceText,
+            sourceSentenceOffset = sourceSentenceOffset,
         ),
     ) + childPopups.mapIndexed { index, popup ->
         val history = childHistories[popup.id] ?: ReaderPopupHistoryCounts()
