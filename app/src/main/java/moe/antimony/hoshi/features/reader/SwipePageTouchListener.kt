@@ -3,38 +3,27 @@ package moe.antimony.hoshi.features.reader
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import kotlin.math.abs
 
-/**
- * The reader owns the tap vs long-press decision with a single threshold. A tap opens lookup,
- * a deliberate long press owns native sentence/translation selection. Owning the decision (instead
- * of letting the platform long press fire first) is what keeps slow taps reported by sluggish
- * panels (E-ink readers) from being stolen by the system long press, which would otherwise open a
- * selection action mode and shadow the app's tap. The threshold is at least the system
- * touch-and-hold delay plus a floor long enough for the sluggish taps E-ink panels report.
- */
+// 统一使用系统长按阈值，并为墨水屏上报的慢点击保留足够时间。
 internal fun readerTapDurationMillis(): Long =
     maxOf(ReaderTapDurationFloorMillis, ViewConfiguration.getLongPressTimeout().toLong())
 
-/**
- * Movement tolerance of a reader tap, taken from the platform so that devices with a noisier
- * touch panel (E-ink readers) or a different density keep Android's own tap tolerance instead
- * of a hardcoded pixel value.
- */
+// 使用系统触摸容差，避免墨水屏触控抖动把按压误判为拖动。
 internal fun readerTapSlopPx(context: Context): Float =
     maxOf(ReaderTapSlopFloorPx, ViewConfiguration.get(context).scaledTouchSlop.toFloat())
 
 internal const val ReaderTapDurationFloorMillis = 1500L
-
 internal const val ReaderTapSlopFloorPx = 12f
 
-abstract class SwipePageTouchListener : View.OnTouchListener {
+abstract class SwipePageTouchListener(
+    swipeDistance: Float = DEFAULT_SWIPE_DISTANCE,
+) : View.OnTouchListener {
     private val tracker = ReaderSwipeGestureTracker(
-        minDistance = MIN_DISTANCE,
+        minDistance = swipeDistance,
         tapDurationMillis = ::readerTapDurationMillis,
     )
     private val handler = Handler(Looper.getMainLooper())
@@ -48,7 +37,6 @@ abstract class SwipePageTouchListener : View.OnTouchListener {
 
     override fun onTouch(view: View, event: MotionEvent): Boolean {
         if (shouldIgnoreReaderGesture(event)) {
-            Log.d("HoshiGesture", "Swipe IGNORED action=${event.actionMasked} x=${event.x} y=${event.y}")
             cancelLongPress()
             tracker.suppressCurrentGesture()
             return false
@@ -60,7 +48,10 @@ abstract class SwipePageTouchListener : View.OnTouchListener {
                 longPressFired = false
                 tracker.onDown(event.x, event.y, event.eventTime)
                 handler.postDelayed(longPressRunnable, readerTapDurationMillis())
-                Log.d("HoshiGesture", "Swipe DOWN x=$downX y=$downY t=${event.eventTime} tapMs=${readerTapDurationMillis()}")
+            }
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                cancelLongPress()
+                tracker.onAdditionalPointerDown()
             }
             MotionEvent.ACTION_MOVE -> {
                 if (exceedsLongPressSlop(view, event)) cancelLongPress()
@@ -69,11 +60,9 @@ abstract class SwipePageTouchListener : View.OnTouchListener {
             MotionEvent.ACTION_UP -> {
                 cancelLongPress()
                 if (!longPressFired) {
-                    val r = tracker.onUp(event.x, event.y, event.eventTime)
-                    Log.d("HoshiGesture", "Swipe UP result=$r dx=${event.x - downX} dy=${event.y - downY} longPressFired=$longPressFired")
-                    dispatch(r)
+                    dispatch(tracker.onUp(event.x, event.y, event.eventTime))
                 } else {
-                    Log.d("HoshiGesture", "Swipe UP after longPressFired")
+                    tracker.onCancel()
                 }
             }
             MotionEvent.ACTION_CANCEL -> {
@@ -109,7 +98,7 @@ abstract class SwipePageTouchListener : View.OnTouchListener {
     }
 
     private companion object {
-        const val MIN_DISTANCE = 72f
+        const val DEFAULT_SWIPE_DISTANCE = 72f
     }
 }
 
@@ -134,14 +123,13 @@ internal class ReaderSwipeGestureTracker(
     }
 
     fun onMove(x: Float, y: Float, eventTime: Long): Result {
-        if (!hasDown || swipeDispatched) return Result.None
+        if (!hasDown || swipeDispatched || minDistance <= 0f) return Result.None
         val dx = x - downX
         val dy = y - downY
-        if (abs(dx) <= abs(dy)) return Result.None
         val elapsedMs = (eventTime - downTime).coerceAtLeast(1L)
         val velocityX = abs(dx) * 1_000f / elapsedMs
         val hasPageDistance = abs(dx) >= minDistance
-        val hasFastFlickDistance = abs(dx) >= MIN_FAST_FLICK_DISTANCE &&
+        val hasFastFlickDistance = abs(dx) >= minDistance / 2f &&
             velocityX >= MIN_FAST_FLICK_VELOCITY_PX_PER_SECOND
         if (
             !hasPageDistance && !hasFastFlickDistance ||
@@ -165,8 +153,8 @@ internal class ReaderSwipeGestureTracker(
         return if (
             !wasSwipeDispatched &&
             elapsedMs <= activeTapDurationMillis &&
-            abs(dx) < minDistance &&
-            abs(dy) < minDistance
+            abs(dx) < TAP_SLOP &&
+            abs(dy) < TAP_SLOP
         ) {
             Result.Tap(x, y)
         } else {
@@ -183,6 +171,10 @@ internal class ReaderSwipeGestureTracker(
         onCancel()
     }
 
+    fun onAdditionalPointerDown() {
+        suppressCurrentGesture()
+    }
+
     sealed class Result {
         data object None : Result()
         data object LeftSwipe : Result()
@@ -191,7 +183,7 @@ internal class ReaderSwipeGestureTracker(
     }
 
     private companion object {
-        const val MIN_FAST_FLICK_DISTANCE = 36f
+        const val TAP_SLOP = 72f
         const val MIN_FAST_FLICK_VELOCITY_PX_PER_SECOND = 900f
         const val MAX_EARLY_SWIPE_DURATION_MS = 300L
         const val MIN_EARLY_SWIPE_VELOCITY_PX_PER_SECOND = 360f

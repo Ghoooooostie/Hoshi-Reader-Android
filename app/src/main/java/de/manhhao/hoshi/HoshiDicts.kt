@@ -7,6 +7,7 @@ class ImportResult(
     val metaCount: Long,
     val freqCount: Long,
     val pitchCount: Long,
+    val kanjiCount: Long,
     val mediaCount: Long,
 )
 
@@ -40,21 +41,37 @@ class FrequencyEntry(
     val frequencies: Array<Frequency>,
 )
 
+class Pitch(
+    val position: Int,
+    val pattern: String,
+    val nasal: IntArray,
+    val devoice: IntArray,
+)
+
 class PitchEntry(
     val dictName: String,
-    val pitchPositions: IntArray,
+    val pitches: Array<Pitch>,
     val transcriptions: Array<String>,
-) {
-    // 兼容旧版 JNI，只返回音高位置时补空转写。
-    constructor(
-        dictName: String,
-        pitchPositions: IntArray,
-    ) : this(
-        dictName = dictName,
-        pitchPositions = pitchPositions,
-        transcriptions = emptyArray(),
-    )
-}
+)
+
+class KanjiStat(
+    val key: String,
+    val value: String,
+)
+
+class KanjiEntry(
+    val dictName: String,
+    val onyomi: String,
+    val kunyomi: String,
+    val tags: String,
+    val definitions: Array<String>,
+    val stats: Array<KanjiStat>,
+)
+
+class KanjiResult(
+    val character: String,
+    val entries: Array<KanjiEntry>,
+)
 
 class TermResult(
     val expression: String,
@@ -87,27 +104,7 @@ class LookupResult(
     val matched: String,
     val term: TermResult,
     val traceCandidates: Array<TraceCandidate>,
-) {
-    // 兼容旧版 JNI，把旧的去活用结果折叠成算法来源的单条 trace candidate。
-    constructor(
-        matched: String,
-        deinflected: String,
-        process: Array<TransformGroup>,
-        term: TermResult,
-        preprocessorSteps: Int,
-    ) : this(
-        matched = matched,
-        term = term,
-        traceCandidates = arrayOf(
-            TraceCandidate(
-                deinflected = deinflected,
-                preprocessorSteps = preprocessorSteps,
-                source = TraceSource.ALGORITHM,
-                trace = process,
-            ),
-        ),
-    )
-}
+)
 
 object HoshiDicts {
     init {
@@ -123,9 +120,11 @@ object HoshiDicts {
         termPaths: Array<String>,
         freqPaths: Array<String>,
         pitchPaths: Array<String>,
+        kanjiPaths: Array<String>,
     )
 
     external fun lookup(session: Long, text: String, maxResults: Int, scanLength: Int): Array<LookupResult>
+    external fun queryKanji(session: Long, kanji: String): KanjiResult
     external fun getStyles(session: Long): Array<DictionaryStyle>
     external fun getMediaFile(session: Long, dictName: String, mediaPath: String): ByteArray?
 }

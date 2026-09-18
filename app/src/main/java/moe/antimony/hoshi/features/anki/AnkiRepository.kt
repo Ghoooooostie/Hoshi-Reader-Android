@@ -8,6 +8,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import moe.antimony.hoshi.R
 import moe.antimony.hoshi.dictionary.DictionaryRepository
+import moe.antimony.hoshi.dictionary.DictionaryType
 import moe.antimony.hoshi.features.advancedai.AdvancedAiAvailability
 import moe.antimony.hoshi.features.advancedai.AdvancedAiClient
 import moe.antimony.hoshi.features.advancedai.AdvancedAiSettingsRepository
@@ -22,6 +23,8 @@ import moe.antimony.hoshi.features.reader.ReaderSelectionRect
 import moe.antimony.hoshi.ui.UiText
 import java.io.File
 import java.net.URL
+import java.security.MessageDigest
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -35,6 +38,7 @@ internal class AnkiRepository(
     private val localAudioRepository: LocalAudioRepository,
     private val ankiConnectBackendFactory: (String, String) -> AnkiBackend,
     private val loadDictionaryMedia: (DictionaryMedia) -> ByteArray?,
+    private val loadTermDictionaries: () -> List<AnkiTermDictionary>,
     private val advancedAiSettingsRepository: AdvancedAiSettingsRepository?,
     private val advancedAiClient: AdvancedAiClient?,
 ) {
@@ -56,6 +60,14 @@ internal class AnkiRepository(
             AnkiConnectBackend(endpoint, apiKey = apiKey)
         },
         loadDictionaryMedia = { media -> dictionaryRepository.dictionaryMedia(media.dictionary, media.path) },
+        loadTermDictionaries = {
+            dictionaryRepository.loadDictionaries(DictionaryType.Term).map { dictionary ->
+                AnkiTermDictionary(
+                    name = dictionary.index.title,
+                    category = dictionary.category,
+                )
+            }
+        },
         advancedAiSettingsRepository = advancedAiSettingsRepository,
         advancedAiClient = advancedAiClient,
     )
@@ -68,6 +80,7 @@ internal class AnkiRepository(
         ankiConnectBackendFactory: (String, String) -> AnkiBackend = { endpoint: String, apiKey: String ->
             AnkiConnectBackend(endpoint, apiKey = apiKey)
         },
+        loadTermDictionaries: () -> List<AnkiTermDictionary> = { emptyList() },
         advancedAiSettingsRepository: AdvancedAiSettingsRepository? = null,
         advancedAiClient: AdvancedAiClient? = null,
     ) : this(
@@ -77,6 +90,7 @@ internal class AnkiRepository(
         localAudioRepository = localAudioRepository,
         ankiConnectBackendFactory = ankiConnectBackendFactory,
         loadDictionaryMedia = { null },
+        loadTermDictionaries = loadTermDictionaries,
         advancedAiSettingsRepository = advancedAiSettingsRepository,
         advancedAiClient = advancedAiClient,
     )
@@ -117,7 +131,7 @@ internal class AnkiRepository(
                 logAnkiFetchFailure("Unable to fetch Anki configuration: ${error.failure}", error)
                 return@withContext AnkiFetchResult.Error(
                     message = if (error.message != error.failure.userMessage) {
-                        UiText.Literal(error.message ?: error.failure.userMessage)
+                        UiText.Literal(error.message)
                     } else {
                         UiText.Resource(error.failure.userMessageRes)
                     },
@@ -154,16 +168,29 @@ internal class AnkiRepository(
             )
         }
         settingsRepository.update { current ->
-            val selectedDeck = selectDeckAfterFetch(decks, current)
-            val selectedNoteType = selectNoteTypeAfterFetch(noteTypes, current)
+            val selectedDeck = decks.firstOrNull { !it.name.equals("Default", ignoreCase = true) }
+                ?: decks.first()
+            val selectedNoteType = noteTypes.first()
+            val formats = current.cardFormats
+                .ifEmpty { listOf(defaultAnkiCardFormat(UUID.randomUUID().toString())) }
+                .map { format ->
+                    format.copy(
+                        selectedDeckId = selectedDeck.id,
+                        selectedDeckName = selectedDeck.name,
+                        selectedNoteTypeId = selectedNoteType.id,
+                        selectedNoteTypeName = selectedNoteType.name,
+                        fieldMappings = AnkiFieldTemplates.defaultMappings(selectedNoteType),
+                    )
+                }
             current.copy(
+                cardFormats = formats,
                 selectedDeckId = selectedDeck.id,
                 selectedDeckName = selectedDeck.name,
                 selectedNoteTypeId = selectedNoteType.id,
                 selectedNoteTypeName = selectedNoteType.name,
                 availableDecks = decks,
                 availableNoteTypes = noteTypes,
-                fieldMappings = fieldMappingsAfterFetch(selectedNoteType, current),
+                fieldMappings = formats.first().fieldMappings,
             )
         }
         AnkiFetchResult.Success(decks, noteTypes)
@@ -190,18 +217,22 @@ internal class AnkiRepository(
         context: AnkiMiningContext,
         decks: List<AnkiDeck>,
         noteTypes: List<AnkiNoteType>,
+        formatId: String? = null,
     ): Boolean = withContext(Dispatchers.IO) {
         val settings = settings.first()
+        val termDictionaries = loadTermDictionaries()
+        val format = settings.resolveAnkiCardFormat(formatId) ?: return@withContext false
         val activeBackend = activeBackendOrError(settings).getOrElse { return@withContext false }
+        if (!activeBackend.isAvailable()) return@withContext false
         val availableDecks = decks.ifEmpty { activeBackend.fetchDecks() }
         val availableNoteTypes = noteTypes.ifEmpty { activeBackend.fetchNoteTypes() }
-        val deck = availableDecks.firstOrNull { it.id == settings.selectedDeckId }
-            ?: settings.selectedDeckName?.let { name -> availableDecks.firstOrNull { it.name == name } }
+        val deck = availableDecks.firstOrNull { it.id == format.selectedDeckId }
+            ?: format.selectedDeckName?.let { name -> availableDecks.firstOrNull { it.name == name } }
             ?: return@withContext false
-        val noteType = availableNoteTypes.firstOrNull { it.id == settings.selectedNoteTypeId }
-            ?: settings.selectedNoteTypeName?.let { name -> availableNoteTypes.firstOrNull { it.name == name } }
+        val noteType = availableNoteTypes.firstOrNull { it.id == format.selectedNoteTypeId }
+            ?: format.selectedNoteTypeName?.let { name -> availableNoteTypes.firstOrNull { it.name == name } }
             ?: return@withContext false
-        val fieldMappings = settings.fieldMappings.activeAnkiFieldMappings(noteType)
+        val fieldMappings = format.fieldMappings.activeAnkiFieldMappings(noteType)
         val payload = runCatching { AnkiMiningPayload.fromJson(rawPayload) }.getOrNull()
             ?: return@withContext false
         val needsCover = fieldMappings.referencesAnkiHandlebar("{book-cover}")
@@ -226,16 +257,13 @@ internal class AnkiRepository(
         } else {
             context.wordAnalyze
         }
-        val mediaContext = AnkiMiningContext(
-            sentence = context.sentence,
-            documentTitle = context.documentTitle,
+        val mediaContext = context.copy(
             coverPath = context.coverPath?.takeIf { needsCover }?.let {
-                addMediaFile(it, "hoshi_cover_${File(it).name}", mimeTypeForPath(it), activeBackend, settings.backendKind)
+                addHashedMediaFile(it, "hoshi_cover", activeBackend, settings.backendKind)
             },
             sasayakiAudioPath = context.sasayakiAudioPath?.takeIf { needsSasayakiAudio }?.let {
-                addMediaFile(it, File(it).name, mimeTypeForPath(it), activeBackend, settings.backendKind)
+                addHashedMediaFile(it, "hoshi_sasayaki", activeBackend, settings.backendKind)
             },
-            sentenceOffset = context.sentenceOffset,
             sentenceCn = sentenceCn,
             sentenceAnalyze = sentenceAnalyze,
             wordAnalyze = wordAnalyze,
@@ -250,7 +278,13 @@ internal class AnkiRepository(
         }.filterValues { it.isNotBlank() }
         val fields = fieldMappings.mapValues { (_, template) ->
             dictionaryMediaTags.entries.fold(
-                AnkiHandlebarRenderer.render(template, mediaPayload, mediaContext),
+                AnkiHandlebarRenderer.render(
+                    template = template,
+                    payload = mediaPayload,
+                    context = mediaContext,
+                    selectedGlossaryFallback = settings.selectedGlossaryFallback,
+                    termDictionaries = termDictionaries,
+                ),
             ) { value, (filename, tag) -> value.replace(filename, tag) }
                 .let(::normalizeAnkiDictionaryHtml)
         }.filterValues { it.isNotBlank() }
@@ -259,7 +293,7 @@ internal class AnkiRepository(
             deck = deck,
             noteType = noteType,
             fieldsByName = fields,
-            tags = settings.tags.split(Regex("\\s+")).filter { it.isNotBlank() }.toSet(),
+            tags = format.tags.split(Regex("\\s+")).filter { it.isNotBlank() }.toSet(),
             allowDupes = settings.allowDupes,
             duplicateScope = settings.duplicateScope,
             checkDuplicatesAcrossAllModels = settings.checkDuplicatesAcrossAllModels,
@@ -273,28 +307,27 @@ internal class AnkiRepository(
         added
     }
 
+    /** 按卡片字段需要生成整句翻译。 */
     private suspend fun requestSentenceCn(sentence: String): String? {
         val settingsRepository = advancedAiSettingsRepository ?: return null
         val client = advancedAiClient ?: return null
         if (sentence.isBlank()) return null
-        val ready = settingsRepository.settings.first().sentenceTranslationAvailability() as? AdvancedAiAvailability.Ready
-            ?: return null
-        return runCatching { client.translateSentence(ready.settings, sentence) }
-            .getOrNull()
-            ?.takeIf { it.isNotBlank() }
+        val ready = settingsRepository.settings.first().sentenceTranslationAvailability()
+            as? AdvancedAiAvailability.Ready ?: return null
+        return client.translateSentence(ready.settings, sentence).takeIf { it.isNotBlank() }
     }
 
+    /** 按卡片字段需要生成长难句分析。 */
     private suspend fun requestSentenceAnalyze(sentence: String): String? {
         val settingsRepository = advancedAiSettingsRepository ?: return null
         val client = advancedAiClient ?: return null
         if (sentence.isBlank()) return null
-        val ready = settingsRepository.settings.first().sentenceAvailability() as? AdvancedAiAvailability.Ready
-            ?: return null
-        return runCatching { client.analyzeSentence(ready.settings, sentence) }
-            .getOrNull()
-            ?.takeIf { it.isNotBlank() }
+        val ready = settingsRepository.settings.first().sentenceAvailability()
+            as? AdvancedAiAvailability.Ready ?: return null
+        return client.analyzeSentence(ready.settings, sentence).takeIf { it.isNotBlank() }
     }
 
+    /** 按卡片字段需要生成词语在句中的分析。 */
     private suspend fun requestWordAnalyze(
         payload: AnkiMiningPayload,
         context: AnkiMiningContext,
@@ -306,18 +339,83 @@ internal class AnkiRepository(
             ?: payload.expression.takeIf { it.isNotBlank() }
             ?: payload.popupSelectionText.takeIf { it.isNotBlank() }
             ?: return null
-        val ready = settingsRepository.settings.first().wordAvailability() as? AdvancedAiAvailability.Ready
-            ?: return null
-        val selection = ReaderSelectionData(
-            text = word,
-            sentence = sentence,
-            rect = ReaderSelectionRect(0.0, 0.0, 1.0, 1.0),
-            normalizedOffset = context.sentenceOffset,
-            sentenceOffset = context.sentenceOffset,
+        val ready = settingsRepository.settings.first().wordAvailability()
+            as? AdvancedAiAvailability.Ready ?: return null
+        return client.analyzeWordInSentence(
+            settings = ready.settings,
+            selection = ReaderSelectionData(
+                text = word,
+                sentence = sentence,
+                rect = ReaderSelectionRect(0.0, 0.0, 1.0, 1.0),
+                normalizedOffset = context.sentenceOffset,
+                sentenceOffset = context.sentenceOffset,
+            ),
+        ).takeIf { it.isNotBlank() }
+    }
+
+    suspend fun duplicateStates(
+        valuesByHandlebar: Map<String, String>,
+        decks: List<AnkiDeck>,
+        noteTypes: List<AnkiNoteType>,
+    ): Map<String, Boolean> = withContext(Dispatchers.IO) {
+        val settings = settings.first()
+        val activeBackend = activeBackendOrError(settings).getOrElse {
+            return@withContext emptyMap()
+        }
+        if (!activeBackend.isAvailable()) return@withContext emptyMap()
+        val availableDecks = decks.ifEmpty { activeBackend.fetchDecks() }
+        val availableNoteTypes = noteTypes.ifEmpty { activeBackend.fetchNoteTypes() }
+        settings.cardFormats.associate { format ->
+            val deck = availableDecks.firstOrNull { it.id == format.selectedDeckId }
+                ?: format.selectedDeckName?.let { name -> availableDecks.firstOrNull { it.name == name } }
+            val noteType = availableNoteTypes.firstOrNull { it.id == format.selectedNoteTypeId }
+                ?: format.selectedNoteTypeName?.let { name -> availableNoteTypes.firstOrNull { it.name == name } }
+            val firstFieldHandlebar = noteType?.fields?.firstOrNull()?.let(format.fieldMappings::get)
+            val key = firstFieldHandlebar?.let(valuesByHandlebar::get).orEmpty()
+            val duplicate = if (deck == null || noteType == null || key.isBlank()) {
+                false
+            } else {
+                activeBackend.isDuplicate(
+                    deck = deck,
+                    noteType = noteType,
+                    key = key,
+                    duplicateScope = settings.duplicateScope,
+                    checkDuplicatesAcrossAllModels = settings.checkDuplicatesAcrossAllModels,
+                )
+            }
+            format.id to duplicate
+        }
+    }
+
+    suspend fun showNotes(
+        formatId: String,
+        valuesByHandlebar: Map<String, String>,
+        decks: List<AnkiDeck>,
+        noteTypes: List<AnkiNoteType>,
+    ): Boolean = withContext(Dispatchers.IO) {
+        val settings = settings.first()
+        val format = settings.resolveAnkiCardFormat(formatId) ?: return@withContext false
+        val activeBackend = activeBackendOrError(settings).getOrElse { return@withContext false }
+        if (!activeBackend.isAvailable()) return@withContext false
+        val availableDecks = decks.ifEmpty { activeBackend.fetchDecks() }
+        val availableNoteTypes = noteTypes.ifEmpty { activeBackend.fetchNoteTypes() }
+        val deck = availableDecks.firstOrNull { it.id == format.selectedDeckId }
+            ?: format.selectedDeckName?.let { name -> availableDecks.firstOrNull { it.name == name } }
+            ?: return@withContext false
+        val noteType = availableNoteTypes.firstOrNull { it.id == format.selectedNoteTypeId }
+            ?: format.selectedNoteTypeName?.let { name -> availableNoteTypes.firstOrNull { it.name == name } }
+            ?: return@withContext false
+        val firstField = noteType.fields.firstOrNull() ?: return@withContext false
+        val handlebar = format.fieldMappings[firstField] ?: return@withContext false
+        val key = valuesByHandlebar[handlebar].orEmpty()
+        if (key.isBlank()) return@withContext false
+        activeBackend.openNotes(
+            deck = deck,
+            noteType = noteType,
+            key = key,
+            duplicateScope = settings.duplicateScope,
+            checkDuplicatesAcrossAllModels = settings.checkDuplicatesAcrossAllModels,
         )
-        return runCatching { client.analyzeWordInSentence(ready.settings, selection) }
-            .getOrNull()
-            ?.takeIf { it.isNotBlank() }
     }
 
     suspend fun isDuplicate(
@@ -362,12 +460,23 @@ internal class AnkiRepository(
     private fun addDictionaryMedia(media: DictionaryMedia, activeBackend: AnkiBackend, backendKind: AnkiBackendKind): String? =
         runCatching {
             val data = loadDictionaryMedia(media) ?: return null
-            val file = mediaCacheFile("hoshi_dict_${data.contentHashCode()}.${media.path.substringAfterLast('.', "bin")}")
+            val file = mediaCacheFile("hoshi_dict_${sha1Hex(data)}.${media.path.substringAfterLast('.', "bin")}")
             file.writeBytes(data)
             addMediaFile(file.absolutePath, file.name, mimeTypeForPath(media.path), activeBackend, backendKind)
                 ?.let(::ankiInlineMediaReference)
         }.onFailure { Log.w(TAG, "Failed to add dictionary media ${media.path}", it) }
             .getOrNull()
+
+    private fun addHashedMediaFile(
+        path: String,
+        prefix: String,
+        activeBackend: AnkiBackend,
+        backendKind: AnkiBackendKind,
+    ): String? {
+        val file = File(path).takeIf { it.isFile } ?: return null
+        val name = "${prefix}_${sha1Hex(file.readBytes())}.${file.extension}"
+        return addMediaFile(path, name, mimeTypeForPath(path), activeBackend, backendKind)
+    }
 
     private fun addMediaFile(
         path: String,
@@ -404,6 +513,20 @@ internal class AnkiRepository(
         }
 }
 
+private fun AnkiSettings.resolveAnkiCardFormat(formatId: String?): AnkiCardFormat? {
+    if (formatId != null) return cardFormats.firstOrNull { it.id == formatId }
+    return cardFormats.firstOrNull() ?: AnkiCardFormat(
+        id = "legacy",
+        name = "Default",
+        selectedDeckId = selectedDeckId,
+        selectedDeckName = selectedDeckName,
+        selectedNoteTypeId = selectedNoteTypeId,
+        selectedNoteTypeName = selectedNoteTypeName,
+        fieldMappings = fieldMappings,
+        tags = tags,
+    )
+}
+
 internal fun readAnkiAudioBytes(
     url: String,
     readLocalAudio: (LocalAudioFile) -> ByteArray?,
@@ -424,7 +547,7 @@ internal data class AnkiAudioMediaFile(
 
 internal fun ankiAudioMediaFile(url: String, data: ByteArray): AnkiAudioMediaFile {
     val extension = ankiAudioExtension(url)
-    val preferredName = "hoshi_audio_${data.contentHashCode()}.$extension"
+    val preferredName = "hoshi_audio_${sha1Hex(data)}.$extension"
     return AnkiAudioMediaFile(
         preferredName = preferredName,
         mimeType = mimeTypeForPath(preferredName),
@@ -447,6 +570,9 @@ private fun ankiAudioExtension(url: String): String {
 
 private fun isSupportedAnkiAudioExtension(extension: String): Boolean =
     extension in setOf("mp3", "opus", "ogg", "aac", "m4a", "wav")
+
+private fun sha1Hex(data: ByteArray): String =
+    MessageDigest.getInstance("SHA-1").digest(data).joinToString("") { "%02x".format(it) }
 
 private const val TAG = "AnkiRepository"
 

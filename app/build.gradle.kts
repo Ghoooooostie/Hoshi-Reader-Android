@@ -40,10 +40,10 @@ if (isReleaseSigningRequested && !isReleaseSigningConfigured) {
     )
 }
 
-val hostLibExtension = when {
-    System.getProperty("os.name").lowercase().contains("mac") -> "dylib"
-    System.getProperty("os.name").lowercase().contains("win") -> "dll"
-    else -> "so"
+val hostLibFileName = when {
+    System.getProperty("os.name").lowercase().contains("mac") -> "libhoshiepub.dylib"
+    System.getProperty("os.name").lowercase().contains("win") -> "hoshiepub.dll"
+    else -> "libhoshiepub.so"
 }
 
 android {
@@ -59,8 +59,8 @@ android {
         applicationId = "moe.antimony.hoshi"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10301
-        versionName = "1.3.1"
+        versionCode = 10303
+        versionName = "1.3.3"
         releaseVersionCode?.let { versionCode = it }
         releaseVersionName?.let { versionName = it }
 
@@ -125,7 +125,7 @@ android {
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
+            version = "3.31.6"
         }
     }
     sourceSets["main"].java.directories.add(uniffiOutDir.absolutePath)
@@ -143,6 +143,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.coil.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.process)
@@ -168,6 +169,7 @@ dependencies {
     ksp(libs.androidx.hilt.compiler)
     ksp(libs.google.dagger.hilt.android.compiler)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     testRuntimeOnly("net.java.dev.jna:jna:${libs.versions.jna.get()}@jar")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
@@ -185,7 +187,7 @@ val buildRustHost by tasks.registering(Exec::class) {
         rustProjectDir.resolve("uniffi.toml"),
     )
     inputs.dir(rustProjectDir.resolve("src"))
-    outputs.file(rustProjectDir.resolve("target/debug/libhoshiepub.$hostLibExtension"))
+    outputs.file(rustProjectDir.resolve("target/debug/$hostLibFileName"))
 
     commandLine(cargo, "build", "--lib")
 }
@@ -194,7 +196,7 @@ val generateUniffiKotlin by tasks.registering(Exec::class) {
     dependsOn(buildRustHost)
     workingDir = rustProjectDir
 
-    val hostLibPath = rustProjectDir.resolve("target/debug/libhoshiepub.$hostLibExtension")
+    val hostLibPath = rustProjectDir.resolve("target/debug/$hostLibFileName")
 
     inputs.file(hostLibPath)
     inputs.file(rustProjectDir.resolve("uniffi.toml"))

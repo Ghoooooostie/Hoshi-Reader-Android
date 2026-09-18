@@ -3,6 +3,8 @@ package moe.antimony.hoshi.dictionary
 import de.manhhao.hoshi.DictionaryStyle
 import de.manhhao.hoshi.GlossaryEntry
 import de.manhhao.hoshi.LookupResult
+import de.manhhao.hoshi.KanjiEntry
+import de.manhhao.hoshi.KanjiResult
 import de.manhhao.hoshi.TermResult
 import java.io.File
 import java.util.concurrent.CountDownLatch
@@ -15,51 +17,55 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DictionaryLookupQueryServiceTest {
+    private fun nativePath(value: String): String = File(value).absolutePath
+
     @Test
     fun rebuildForwardsEnabledPathsByDictionaryTypeToNativeBridge() {
         val bridge = RecordingDictionaryNativeBridge()
         val service = DictionaryLookupQueryService(bridge)
-        val termPath = File("/dicts/Term/JMdict").absolutePath
-        val frequencyPath = File("/dicts/Frequency/Freq").absolutePath
-        val pitchPath = File("/dicts/Pitch/Pitch").absolutePath
 
         service.rebuild(
-            termDictionaries = listOf(File(termPath)),
-            frequencyDictionaries = listOf(File(frequencyPath)),
-            pitchDictionaries = listOf(File(pitchPath)),
+            termDictionaries = listOf(File("/dicts/Term/JMdict")),
+            frequencyDictionaries = listOf(File("/dicts/Frequency/Freq")),
+            pitchDictionaries = listOf(File("/dicts/Pitch/Pitch")),
+            kanjiDictionaries = listOf(File("/dicts/Kanji/KANJIDIC")),
             dictionaryLanguageId = "en",
         )
 
         assertEquals(listOf("en"), bridge.createdLanguageIds)
-        assertArrayEquals(arrayOf(termPath), bridge.termPaths)
-        assertArrayEquals(arrayOf(frequencyPath), bridge.freqPaths)
-        assertArrayEquals(arrayOf(pitchPath), bridge.pitchPaths)
+        assertArrayEquals(arrayOf(nativePath("/dicts/Term/JMdict")), bridge.termPaths)
+        assertArrayEquals(arrayOf(nativePath("/dicts/Frequency/Freq")), bridge.freqPaths)
+        assertArrayEquals(arrayOf(nativePath("/dicts/Pitch/Pitch")), bridge.pitchPaths)
+        assertArrayEquals(arrayOf(nativePath("/dicts/Kanji/KANJIDIC")), bridge.kanjiPaths)
     }
 
     @Test
     fun rebuildPublishesNewQueryWithoutMutatingCurrentQueryInPlace() {
         val bridge = RecordingDictionaryNativeBridge()
         val service = DictionaryLookupQueryService(bridge)
-        val oldPath = File("/dicts/Term/Old").absolutePath
-        val newPath = File("/dicts/Term/New").absolutePath
 
         service.rebuild(
-            termDictionaries = listOf(File(oldPath)),
+            termDictionaries = listOf(File("/dicts/Term/Old")),
             frequencyDictionaries = emptyList(),
             pitchDictionaries = emptyList(),
+            kanjiDictionaries = emptyList(),
             dictionaryLanguageId = "ja",
         )
         val oldResult = service.lookup("食べる").single().term.glossaries.single().glossary
 
         service.rebuild(
-            termDictionaries = listOf(File(newPath)),
+            termDictionaries = listOf(File("/dicts/Term/New")),
             frequencyDictionaries = emptyList(),
             pitchDictionaries = emptyList(),
+            kanjiDictionaries = emptyList(),
             dictionaryLanguageId = "en",
         )
 
-        assertEquals("session-1:$oldPath", oldResult)
-        assertEquals("session-2:$newPath", service.lookup("食べる").single().term.glossaries.single().glossary)
+        assertEquals("session-1:${nativePath("/dicts/Term/Old")}", oldResult)
+        assertEquals(
+            "session-2:${nativePath("/dicts/Term/New")}",
+            service.lookup("食べる").single().term.glossaries.single().glossary,
+        )
         assertEquals(listOf("ja", "en"), bridge.createdLanguageIds)
         assertEquals(listOf(1L), bridge.destroyedSessions)
     }
@@ -68,28 +74,31 @@ class DictionaryLookupQueryServiceTest {
     fun failedRebuildKeepsCurrentQueryAvailable() {
         val bridge = RecordingDictionaryNativeBridge()
         val service = DictionaryLookupQueryService(bridge)
-        val stablePath = File("/dicts/Term/Stable").absolutePath
-        val brokenPath = File("/dicts/Term/Broken").absolutePath
 
         service.rebuild(
-            termDictionaries = listOf(File(stablePath)),
+            termDictionaries = listOf(File("/dicts/Term/Stable")),
             frequencyDictionaries = emptyList(),
             pitchDictionaries = emptyList(),
+            kanjiDictionaries = emptyList(),
             dictionaryLanguageId = "ja",
         )
         bridge.failNextRebuild = true
 
         val failure = runCatching {
             service.rebuild(
-                termDictionaries = listOf(File(brokenPath)),
+                termDictionaries = listOf(File("/dicts/Term/Broken")),
                 frequencyDictionaries = emptyList(),
                 pitchDictionaries = emptyList(),
+                kanjiDictionaries = emptyList(),
                 dictionaryLanguageId = "en",
             )
         }
 
         assertTrue(failure.isFailure)
-        assertEquals("session-1:$stablePath", service.lookup("食べる").single().term.glossaries.single().glossary)
+        assertEquals(
+            "session-1:${nativePath("/dicts/Term/Stable")}",
+            service.lookup("食べる").single().term.glossaries.single().glossary,
+        )
         assertEquals(listOf(2L), bridge.destroyedSessions)
     }
 
@@ -97,8 +106,6 @@ class DictionaryLookupQueryServiceTest {
     fun rebuildDoesNotDestroyPreviousQueryWhileLookupIsReadingIt() {
         val lookupStarted = CountDownLatch(1)
         val releaseLookup = CountDownLatch(1)
-        val oldPath = File("/dicts/Term/Old").absolutePath
-        val newPath = File("/dicts/Term/New").absolutePath
         val bridge = RecordingDictionaryNativeBridge(
             onLookup = { session ->
                 if (session == 1L) {
@@ -109,9 +116,10 @@ class DictionaryLookupQueryServiceTest {
         )
         val service = DictionaryLookupQueryService(bridge)
         service.rebuild(
-            termDictionaries = listOf(File(oldPath)),
+            termDictionaries = listOf(File("/dicts/Term/Old")),
             frequencyDictionaries = emptyList(),
             pitchDictionaries = emptyList(),
+            kanjiDictionaries = emptyList(),
             dictionaryLanguageId = "ja",
         )
 
@@ -122,9 +130,10 @@ class DictionaryLookupQueryServiceTest {
 
         val rebuildThread = thread(start = true) {
             service.rebuild(
-                termDictionaries = listOf(File(newPath)),
+                termDictionaries = listOf(File("/dicts/Term/New")),
                 frequencyDictionaries = emptyList(),
                 pitchDictionaries = emptyList(),
+                kanjiDictionaries = emptyList(),
                 dictionaryLanguageId = "en",
             )
         }
@@ -135,7 +144,30 @@ class DictionaryLookupQueryServiceTest {
         lookupThread.join(5_000)
         rebuildThread.join(5_000)
         assertEquals(listOf(1L), bridge.destroyedSessions)
-        assertEquals("session-2:$newPath", service.lookup("食べる").single().term.glossaries.single().glossary)
+        assertEquals(
+            "session-2:${nativePath("/dicts/Term/New")}",
+            service.lookup("食べる").single().term.glossaries.single().glossary,
+        )
+    }
+
+    @Test
+    fun queryKanjiUsesCurrentAtomicSession() {
+        val bridge = RecordingDictionaryNativeBridge()
+        val service = DictionaryLookupQueryService(bridge)
+        service.rebuild(
+            termDictionaries = emptyList(),
+            frequencyDictionaries = emptyList(),
+            pitchDictionaries = emptyList(),
+            kanjiDictionaries = listOf(File("/dicts/Kanji/KANJIDIC")),
+        )
+
+        val result = service.queryKanji("星")
+
+        assertEquals("星", result.character)
+        assertEquals(
+            "session-1:${nativePath("/dicts/Kanji/KANJIDIC")}",
+            result.entries.single().definitions.single(),
+        )
     }
 
     private class RecordingDictionaryNativeBridge : DictionaryNativeBridge {
@@ -148,10 +180,12 @@ class DictionaryLookupQueryServiceTest {
         lateinit var termPaths: Array<String>
         lateinit var freqPaths: Array<String>
         lateinit var pitchPaths: Array<String>
+        lateinit var kanjiPaths: Array<String>
         val destroyedSessions = mutableListOf<Long>()
         var failNextRebuild = false
         private var nextSession = 1L
         private val sessionTermPaths = mutableMapOf<Long, Array<String>>()
+        private val sessionKanjiPaths = mutableMapOf<Long, Array<String>>()
         private var onLookup: (Long) -> Unit = {}
         val createdLanguageIds = mutableListOf<String>()
 
@@ -180,6 +214,7 @@ class DictionaryLookupQueryServiceTest {
             termPaths: Array<String>,
             freqPaths: Array<String>,
             pitchPaths: Array<String>,
+            kanjiPaths: Array<String>,
         ) {
             if (failNextRebuild) {
                 failNextRebuild = false
@@ -188,8 +223,25 @@ class DictionaryLookupQueryServiceTest {
             this.termPaths = termPaths
             this.freqPaths = freqPaths
             this.pitchPaths = pitchPaths
+            this.kanjiPaths = kanjiPaths
             sessionTermPaths[session] = termPaths
+            sessionKanjiPaths[session] = kanjiPaths
         }
+
+        override fun queryKanji(session: Long, kanji: String): KanjiResult =
+            KanjiResult(
+                character = kanji,
+                entries = arrayOf(
+                    KanjiEntry(
+                        dictName = "KANJIDIC",
+                        onyomi = "セイ",
+                        kunyomi = "ほし",
+                        tags = "",
+                        definitions = arrayOf("session-$session:${sessionKanjiPaths.getValue(session).single()}"),
+                        stats = emptyArray(),
+                    ),
+                ),
+            )
 
         override fun lookup(session: Long, text: String, maxResults: Int, scanLength: Int): List<LookupResult> {
             onLookup(session)

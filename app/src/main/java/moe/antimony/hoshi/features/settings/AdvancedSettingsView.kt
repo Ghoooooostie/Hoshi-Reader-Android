@@ -9,11 +9,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ShowChart
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Storage
-import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -38,6 +39,7 @@ import moe.antimony.hoshi.features.reader.ReaderSettings
 import moe.antimony.hoshi.features.reader.ReaderStatisticsSettingsView
 import moe.antimony.hoshi.features.sasayaki.SasayakiSettingsView
 import moe.antimony.hoshi.features.sync.SyncSettingsView
+import moe.antimony.hoshi.features.wallpaper.BookCoverWallpaperSettingsView
 
 @Composable
 fun AdvancedSettingsView(
@@ -100,6 +102,13 @@ fun AdvancedSettingsView(
         )
         return
     }
+    if (destination == AdvancedDestination.BookCoverWallpaper) {
+        BookCoverWallpaperSettingsView(
+            onClose = { destination = null },
+            modifier = modifier,
+        )
+        return
+    }
 
     val colorScheme = MaterialTheme.colorScheme
     SettingsDetailScaffold(
@@ -156,6 +165,7 @@ internal enum class AdvancedDestination {
     Backup,
     Syncing,
     AnkiConnect,
+    BookCoverWallpaper,
 }
 
 internal enum class AdvancedSettingsIcon {
@@ -166,6 +176,7 @@ internal enum class AdvancedSettingsIcon {
     Cloud,
     AnkiConnect,
     ExternalDrive,
+    Wallpaper,
 }
 
 internal data class AdvancedSettingsRow(
@@ -225,6 +236,16 @@ internal fun advancedSettingsSections(): List<AdvancedSettingsSection> =
         AdvancedSettingsSection(
             rows = listOf(
                 AdvancedSettingsRow(
+                    titleRes = R.string.settings_book_cover_wallpaper,
+                    destination = AdvancedDestination.BookCoverWallpaper,
+                    icon = AdvancedSettingsIcon.Wallpaper,
+                    subtitleRes = R.string.settings_book_cover_wallpaper_subtitle,
+                ),
+            ),
+        ),
+        AdvancedSettingsSection(
+            rows = listOf(
+                AdvancedSettingsRow(
                     titleRes = R.string.settings_backup,
                     destination = AdvancedDestination.Backup,
                     icon = AdvancedSettingsIcon.ExternalDrive,
@@ -242,4 +263,5 @@ private fun AdvancedSettingsIcon.imageVector(): ImageVector =
         AdvancedSettingsIcon.Cloud -> Icons.Rounded.Cloud
         AdvancedSettingsIcon.AnkiConnect -> Icons.Rounded.Link
         AdvancedSettingsIcon.ExternalDrive -> Icons.Rounded.Storage
+        AdvancedSettingsIcon.Wallpaper -> Icons.Rounded.Wallpaper
     }

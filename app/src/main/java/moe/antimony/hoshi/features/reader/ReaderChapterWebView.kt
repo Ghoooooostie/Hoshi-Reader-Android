@@ -2,7 +2,6 @@ package moe.antimony.hoshi.features.reader
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.util.Log
 import android.graphics.Color as AndroidColor
 import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
@@ -33,6 +32,7 @@ import android.widget.TextView
 import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -138,9 +138,20 @@ internal fun ChapterWebView(
     val continuousScrollProgressScheduler = remember { ReaderContinuousScrollProgressScheduler() }
     val chapter = book.chapters[chapterPosition.index]
     var readerWebView by remember { mutableStateOf<WebView?>(null) }
-    val fontFaceUrl = remember(readerSettings.selectedFont) {
-        fontManager.webViewFontUrl(readerSettings.selectedFont)
+    val fontLibraryState by fontManager.libraryState.collectAsState()
+    val fontRenderSpec = remember(
+        readerSettings.selectedFont,
+        readerSettings.selectedFontFamilyId,
+        readerSettings.selectedFontVariantId,
+        fontLibraryState.revision,
+    ) {
+        fontManager.resolveRenderSpec(
+            selectedFont = readerSettings.selectedFont,
+            familyId = readerSettings.selectedFontFamilyId,
+            variantId = readerSettings.selectedFontVariantId,
+        )
     }
+    val fontFaceUrl = fontRenderSpec.faces.firstOrNull()?.url
     val baseUrl = remember(chapter) { "https://appassets.androidplatform.net/epub/${chapter.href}" }
     val readerContentReloadKey = remember(readerSettings) {
         readerSettings.readerContentReloadKey()
@@ -160,6 +171,9 @@ internal fun ChapterWebView(
         scanNonJapaneseText,
         contentLanguageProfile,
         fontFaceUrl,
+        fontRenderSpec.familyId,
+        fontRenderSpec.variantId,
+        fontRenderSpec.revision,
     ) {
         ReaderWebViewSetupReloadKey(
             initialProgress = chapterPosition.progress,
@@ -167,6 +181,9 @@ internal fun ChapterWebView(
             scanNonJapaneseText = scanNonJapaneseText,
             contentLanguageProfile = contentLanguageProfile,
             fontFaceUrl = fontFaceUrl,
+            fontFamilyId = fontRenderSpec.familyId,
+            fontVariantId = fontRenderSpec.variantId,
+            fontRevision = fontRenderSpec.revision,
         )
     }
     val loadKey = readerWebViewLoadKey(
@@ -183,6 +200,7 @@ internal fun ChapterWebView(
         readerContentReloadKey,
         appearanceUpdateKey,
         fontFaceUrl,
+        fontRenderSpec,
         systemDark,
         scanNonJapaneseText,
         contentLanguageProfile,
@@ -199,6 +217,7 @@ internal fun ChapterWebView(
             initialFragment = chapterFragment,
             settings = readerSettings,
             fontFaceUrl = fontFaceUrl,
+            fontRenderSpec = fontRenderSpec,
             systemDark = systemDark,
             scanNonJapaneseText = scanNonJapaneseText,
             contentLanguageProfile = contentLanguageProfile,
@@ -250,9 +269,6 @@ internal fun ChapterWebView(
                 }
                 hideForReaderRestore()
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                // The reader owns the tap vs long-press decision (see SwipePageTouchListener and
-                // ContinuousScrollTouchListener), so the platform long press must not start its own
-                // text selection first and shadow the app's single-tap lookup on sluggish panels.
                 isLongClickable = false
                 addJavascriptInterface(
                     ReaderSelectionBridge(this) { selection, selectionRects ->
@@ -291,7 +307,6 @@ internal fun ChapterWebView(
         update = { webView ->
             fun selectAt(x: Float, y: Float, onBlankTap: () -> Unit) {
                 val density = webView.resources.displayMetrics.density
-                Log.d("HoshiGesture", "selectAt x=$x y=$y cssX=${androidPixelsToCssPixels(x, density)} cssY=${androidPixelsToCssPixels(y, density)}")
                 webView.evaluateJavascript(
                     ReaderSelectionCommand.SelectText(
                         x = androidPixelsToCssPixels(x, density),
@@ -300,7 +315,6 @@ internal fun ChapterWebView(
                     ).source,
                 ) { result ->
                     val selectionResult = ReaderSelectionResult.fromWebViewResult(result)
-                    Log.d("HoshiGesture", "selectAt result isImage=${selectionResult.isImageTap} isLink=${selectionResult.isLinkTap} nothing=${selectionResult.selectedNothing}")
                     when {
                         selectionResult.isImageTap || selectionResult.isLinkTap -> Unit
                         selectionResult.selectedNothing -> onBlankTap()
@@ -308,20 +322,15 @@ internal fun ChapterWebView(
                 }
             }
             fun shouldIgnoreReaderGestureEvent(event: MotionEvent): Boolean {
-                val restoring = currentIsWebViewRestoring.value
-                val actionMode = webView.isNativeSelectionActionModeActive()
-                if (restoring || actionMode) {
-                    Log.d("HoshiGesture", "shouldIgnore=true restoring=$restoring actionMode=$actionMode action=${event.actionMasked}")
+                if (currentIsWebViewRestoring.value || webView.isNativeSelectionActionModeActive()) {
                     return true
                 }
                 val density = webView.resources.displayMetrics.density
-                val blocked = readerLookupPopupTouchBlocksReaderGesture(
+                return readerLookupPopupTouchBlocksReaderGesture(
                     popups = currentReaderPopupFrames.value,
                     x = androidPixelsToCssPixels(event.x, density).toDouble(),
                     y = androidPixelsToCssPixels(event.y, density).toDouble(),
                 )
-                Log.d("HoshiGesture", "shouldIgnore=$blocked popupBlocks action=${event.actionMasked}")
-                return blocked
             }
             when (readerSettings.viewMode) {
                 ReaderViewMode.Continuous -> {
@@ -332,7 +341,6 @@ internal fun ChapterWebView(
                             onTap = { x, y -> selectAt(x, y) { currentOnReaderTapOutside.value() } },
                             onScrollGesture = currentOnReaderInteraction.value,
                             onLongPress = { x, y ->
-                                Log.d("HoshiGesture", "Continuous onLongPress x=$x y=$y")
                                 webView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                 webView.handleSentenceLongPress(x, y)
                             },
@@ -403,66 +411,69 @@ internal fun ChapterWebView(
                     continuousScrollProgressScheduler.reset(webView::removeCallbacks)
                     readerPendingProgressSaveCallbacks.remove(webView)?.let(webView::removeCallbacks)
                     webView.setOnScrollChangeListener(null)
-                    webView.setOnTouchListener(object : SwipePageTouchListener() {
-                        override fun shouldIgnoreReaderGesture(event: MotionEvent): Boolean =
-                            shouldIgnoreReaderGestureEvent(event)
+                    webView.setOnTouchListener(
+                        object : SwipePageTouchListener(
+                            swipeDistance = readerSettings.pageSwipeThresholdPx.toFloat(),
+                        ) {
+                            override fun shouldIgnoreReaderGesture(event: MotionEvent): Boolean =
+                                shouldIgnoreReaderGestureEvent(event)
 
-                        override fun onTap(x: Float, y: Float) {
-                            selectAt(x, y) {
-                                if (readerSettings.viewMode == ReaderViewMode.VisualNovel && readerSettings.visualNovelClickAdvance) {
-                                    currentOnReaderInteraction.value()
-                                    currentOnClearLookupPopup.value()
-                                    webView.navigatePageForDirection(
-                                        direction = ReaderNavigationDirection.Forward,
-                                        onNextChapter = currentOnNextChapter.value,
-                                        onPreviousChapter = currentOnPreviousChapter.value,
-                                        onDisplayedProgress = currentOnDisplayProgress.value,
-                                        onSaveProgress = currentOnSaveBookmark.value,
-                                    )
-                                } else {
-                                    currentOnReaderTapOutside.value()
+                            override fun onTap(x: Float, y: Float) {
+                                selectAt(x, y) {
+                                    if (readerSettings.viewMode == ReaderViewMode.VisualNovel && readerSettings.visualNovelClickAdvance) {
+                                        currentOnReaderInteraction.value()
+                                        currentOnClearLookupPopup.value()
+                                        webView.navigatePageForDirection(
+                                            direction = ReaderNavigationDirection.Forward,
+                                            onNextChapter = currentOnNextChapter.value,
+                                            onPreviousChapter = currentOnPreviousChapter.value,
+                                            onDisplayedProgress = currentOnDisplayProgress.value,
+                                            onSaveProgress = currentOnSaveBookmark.value,
+                                        )
+                                    } else {
+                                        currentOnReaderTapOutside.value()
+                                    }
                                 }
                             }
-                        }
 
-                        override fun onLongPress(x: Float, y: Float) {
-                            Log.d("HoshiGesture", "Swipe onLongPress x=$x y=$y")
-                            webView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            webView.handleSentenceLongPress(x, y)
-                        }
+                            override fun onLongPress(x: Float, y: Float) {
+                                webView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                webView.handleSentenceLongPress(x, y)
+                            }
 
-                        override fun onLeftSwipe() {
-                            currentOnReaderInteraction.value()
-                            currentOnClearLookupPopup.value()
-                            val direction = readerNavigationDirectionForSwipe(
-                                isVerticalWriting = readerSettings.verticalWriting,
-                                swipeDirection = ReaderSwipeDirection.Left,
-                            )
-                            webView.navigatePageForDirection(
-                                direction = direction,
-                                onNextChapter = currentOnNextChapter.value,
-                                onPreviousChapter = currentOnPreviousChapter.value,
-                                onDisplayedProgress = currentOnDisplayProgress.value,
-                                onSaveProgress = currentOnSaveBookmark.value,
-                            )
-                        }
+                            override fun onLeftSwipe() {
+                                currentOnReaderInteraction.value()
+                                currentOnClearLookupPopup.value()
+                                val direction = readerNavigationDirectionForSwipe(
+                                    isVerticalWriting = readerSettings.verticalWriting,
+                                    swipeDirection = ReaderSwipeDirection.Left,
+                                )
+                                webView.navigatePageForDirection(
+                                    direction = direction,
+                                    onNextChapter = currentOnNextChapter.value,
+                                    onPreviousChapter = currentOnPreviousChapter.value,
+                                    onDisplayedProgress = currentOnDisplayProgress.value,
+                                    onSaveProgress = currentOnSaveBookmark.value,
+                                )
+                            }
 
-                        override fun onRightSwipe() {
-                            currentOnReaderInteraction.value()
-                            currentOnClearLookupPopup.value()
-                            val direction = readerNavigationDirectionForSwipe(
-                                isVerticalWriting = readerSettings.verticalWriting,
-                                swipeDirection = ReaderSwipeDirection.Right,
-                            )
-                            webView.navigatePageForDirection(
-                                direction = direction,
-                                onNextChapter = currentOnNextChapter.value,
-                                onPreviousChapter = currentOnPreviousChapter.value,
-                                onDisplayedProgress = currentOnDisplayProgress.value,
-                                onSaveProgress = currentOnSaveBookmark.value,
-                            )
-                        }
-                    })
+                            override fun onRightSwipe() {
+                                currentOnReaderInteraction.value()
+                                currentOnClearLookupPopup.value()
+                                val direction = readerNavigationDirectionForSwipe(
+                                    isVerticalWriting = readerSettings.verticalWriting,
+                                    swipeDirection = ReaderSwipeDirection.Right,
+                                )
+                                webView.navigatePageForDirection(
+                                    direction = direction,
+                                    onNextChapter = currentOnNextChapter.value,
+                                    onPreviousChapter = currentOnPreviousChapter.value,
+                                    onDisplayedProgress = currentOnDisplayProgress.value,
+                                    onSaveProgress = currentOnSaveBookmark.value,
+                                )
+                            }
+                        },
+                    )
                 }
             }
             webView.evaluateJavascript(readerAppearanceScript, null)
@@ -536,6 +547,9 @@ internal data class ReaderWebViewSetupReloadKey(
     val scanNonJapaneseText: Boolean,
     val contentLanguageProfile: ContentLanguageProfile,
     val fontFaceUrl: String?,
+    val fontFamilyId: String? = null,
+    val fontVariantId: String? = null,
+    val fontRevision: Long = 0,
 )
 
 internal data class ReaderAppearanceUpdateKey(
@@ -577,30 +591,6 @@ internal fun readerWebViewLoadKey(
 internal fun readerWebViewRestoreToken(loadKey: String, restoreEpoch: Int): String =
     "$loadKey#$restoreEpoch"
 
-internal fun readerHtmlWithEarlyViewport(html: String): String {
-    val normalizedHtml = html.removeWhitespaceBeforeXmlDeclaration()
-    val withoutViewport = readerViewportMetaRegex.replace(normalizedHtml, "")
-    val head = readerHeadOpenTagRegex.find(withoutViewport)
-    val viewport = """<meta name="viewport" content="$ReaderViewportContent" />"""
-    if (head != null) {
-        val insertAt = head.range.last + 1
-        return withoutViewport.substring(0, insertAt) + "\n$viewport" + withoutViewport.substring(insertAt)
-    }
-    return withoutViewport
-}
-
-private fun String.removeWhitespaceBeforeXmlDeclaration(): String {
-    val trimmed = trimStart()
-    return if (trimmed.startsWith("<?xml", ignoreCase = true)) trimmed else this
-}
-
-private const val ReaderViewportContent = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-
-private val readerViewportMetaRegex =
-    Regex("""(?is)<meta\b(?=[^>]*\bname\s*=\s*(['"])viewport\1)[^>]*>""")
-
-private val readerHeadOpenTagRegex = Regex("""(?is)<head\b[^>]*>""")
-
 internal fun readerShouldReserveSasayakiTopToggle(bookRoot: File?, settings: SasayakiSettings): Boolean =
     settings.enabled &&
         settings.showReaderToggle &&
@@ -618,8 +608,6 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
     private var nativeSelectionActionMode: ActionMode? = null
     private var nativeSelectionContentRect: Rect? = null
     private var highlightColorPopup: PopupWindow? = null
-    private var lastTouchX = 0f
-    private var lastTouchY = 0f
 
     fun isNativeSelectionActionModeActive(): Boolean = nativeSelectionActionModeActive
     fun setNativeSelectionActionMode(mode: ActionMode?) {
@@ -748,14 +736,14 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         highlightColorPopup = null
     }
 
-    fun handleSentenceLongPress(x: Float? = null, y: Float? = null): Boolean {
+    // 长按优先刷新已显示的段落译文，否则选择完整句子交给 AI 弹窗。
+    fun handleSentenceLongPress(x: Float, y: Float): Boolean {
         val density = resources.displayMetrics.density
-        val cssX = androidPixelsToCssPixels(x ?: lastTouchX, density)
-        val cssY = androidPixelsToCssPixels(y ?: lastTouchY, density)
-        evaluateJavascript(
-            ReaderPageTranslationCommand.targetAtPoint(cssX, cssY),
-        ) { translationTargetResult ->
-            val translationTarget = ReaderPageTranslationBridgePayload.targetFromJavascriptResult(translationTargetResult)
+        val cssX = androidPixelsToCssPixels(x, density)
+        val cssY = androidPixelsToCssPixels(y, density)
+        evaluateJavascript(ReaderPageTranslationCommand.targetAtPoint(cssX, cssY)) { translationTargetResult ->
+            val translationTarget =
+                ReaderPageTranslationBridgePayload.targetFromJavascriptResult(translationTargetResult)
             if (translationTarget != null) {
                 onPageTranslationLongPressed(translationTarget)
                 return@evaluateJavascript
@@ -763,42 +751,26 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
             evaluateJavascript(
                 ReaderSelectionCommand.SelectSentence(x = cssX, y = cssY).source,
             ) { result ->
-            val selectionResult = ReaderSelectionResult.fromWebViewResult(result)
-            if (selectionResult.selectedNothing || selectionResult.isImageTap || selectionResult.isLinkTap) {
+                val selectionResult = ReaderSelectionResult.fromWebViewResult(result)
+                if (
+                    selectionResult.selectedNothing ||
+                    selectionResult.isImageTap ||
+                    selectionResult.isLinkTap
+                ) {
                     return@evaluateJavascript
-            }
-            val selection = ReaderSelectionBridgePayload.fromJson(result) ?: return@evaluateJavascript
-            onSentenceLongPressed(selection) { highlightCount, onRectsLoaded ->
-                evaluateJavascript(ReaderSelectionCommand.SelectionRects(highlightCount).source) { rectsResult ->
-                    onRectsLoaded(ReaderSelectionBridgePayload.rectsFromJavascriptResult(rectsResult))
                 }
-            }
+                val selection = ReaderSelectionBridgePayload.fromJson(result) ?: return@evaluateJavascript
+                onSentenceLongPressed(selection) { highlightCount, onRectsLoaded ->
+                    evaluateJavascript(ReaderSelectionCommand.SelectionRects(highlightCount).source) { rectsResult ->
+                        onRectsLoaded(ReaderSelectionBridgePayload.rectsFromJavascriptResult(rectsResult))
+                    }
+                }
             }
         }
         return true
     }
 
-    override fun onTouchEvent(event: MotionEvent): Boolean {
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN,
-            MotionEvent.ACTION_MOVE,
-            MotionEvent.ACTION_UP,
-            -> {
-                lastTouchX = event.x
-                lastTouchY = event.y
-            }
-        }
-        return super.onTouchEvent(event)
-    }
-
-    // The reader owns the tap-vs-long-press decision and drives all selection through JS
-    // (window.hoshiSelection.*, rendered with CSS Custom Highlights). We must not let
-    // Chromium start its own native text-selection action mode: on sluggish E-ink panels a
-    // slow tap outlasts the platform long-press timer, Chromium opens a native selection,
-    // and the resulting action mode makes isNativeSelectionActionModeActive() true, which
-    // shadows the app's single-tap word lookup. Declining every action mode keeps native
-    // selection out of the way; the selection highlight and highlight-menu features are
-    // provided by the app's own JS popups (e.g. readerAiRootPopup / highlightSelection).
+    // 阅读器由 JS 自己处理点击和长按，禁止旧版 WebView 弹出原生选择菜单抢走单击查词。
     override fun startActionMode(callback: ActionMode.Callback): ActionMode? = null
 
     override fun startActionMode(callback: ActionMode.Callback, type: Int): ActionMode? = null
@@ -809,6 +781,65 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         onHighlightCreated = { _, _, _ -> }
         onSentenceLongPressed = { _, _ -> }
         onPageTranslationLongPressed = {}
+    }
+}
+
+private class ReaderHighlightActionModeCallback(
+    private val webView: HoshiReaderWebView,
+    private val delegate: ActionMode.Callback,
+) : ActionMode.Callback2() {
+    override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+        addHighlightMenu(menu)
+        val created = delegate.onCreateActionMode(mode, menu)
+        if (created) {
+            webView.setNativeSelectionActionMode(mode)
+            addHighlightMenu(menu)
+        }
+        return created
+    }
+
+    override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
+        addHighlightMenu(menu)
+        return delegate.onPrepareActionMode(mode, menu)
+    }
+
+    override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+        if (item.itemId == ReaderHighlightSelectionMenu.parentItemId) {
+            webView.prepareHighlightColorPicker(mode)
+            return true
+        }
+        val color = ReaderHighlightSelectionMenu.colorForItemId(item.itemId)
+        if (color != null) {
+            webView.createHighlightFromNativeSelection(color)
+            return true
+        }
+        return delegate.onActionItemClicked(mode, item)
+    }
+
+    override fun onDestroyActionMode(mode: ActionMode) {
+        webView.setNativeSelectionActionMode(null)
+        delegate.onDestroyActionMode(mode)
+    }
+
+    override fun onGetContentRect(mode: ActionMode, view: View, outRect: Rect) {
+        if (delegate is ActionMode.Callback2) {
+            delegate.onGetContentRect(mode, view, outRect)
+        } else {
+            super.onGetContentRect(mode, view, outRect)
+        }
+        webView.setNativeSelectionContentRect(outRect)
+    }
+
+    private fun addHighlightMenu(menu: Menu) {
+        if (menu.findItem(ReaderHighlightSelectionMenu.parentItemId) != null) return
+        ReaderHighlightSelectionMenu.actionModeItems.forEach { item ->
+            menu.add(
+                ReaderHighlightSelectionMenu.groupId,
+                item.id,
+                item.order,
+                webView.context.getString(R.string.reader_highlight_action),
+            ).setShowAsAction(item.showAsAction)
+        }
     }
 }
 
@@ -851,6 +882,7 @@ private fun readerSetupScript(
     initialFragment: String?,
     settings: ReaderSettings,
     fontFaceUrl: String?,
+    fontRenderSpec: ReaderFontRenderSpec?,
     systemDark: Boolean,
     scanNonJapaneseText: Boolean,
     contentLanguageProfile: ContentLanguageProfile,
@@ -873,6 +905,7 @@ private fun readerSetupScript(
     val css = ReaderContentStyles.css(
         settings = settings,
         fontFaceUrl = fontFaceUrl,
+        fontRenderSpec = fontRenderSpec,
         systemDark = systemDark,
         sasayakiTextColor = sasayakiTextColor,
         sasayakiBackgroundColor = sasayakiBackgroundColor,
@@ -1118,7 +1151,6 @@ private class ContinuousScrollTouchListener(
     override fun onTouch(view: View, event: MotionEvent): Boolean {
         val webView = view as? WebView ?: return false
         if (shouldIgnoreReaderGesture(event)) {
-            Log.d("HoshiGesture", "Continuous IGNORED action=${event.actionMasked} x=${event.x} y=${event.y}")
             currentGestureIgnored = true
             cancelLongPress()
             return false
@@ -1137,6 +1169,11 @@ private class ContinuousScrollTouchListener(
             }
             MotionEvent.ACTION_CANCEL -> {
                 currentGestureIgnored = false
+                cancelLongPress()
+                focusTracker.onCancel()
+            }
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                currentGestureIgnored = true
                 cancelLongPress()
                 focusTracker.onCancel()
             }
@@ -1167,11 +1204,9 @@ private class ContinuousScrollTouchListener(
                     abs(dx) < downTapSlopPx &&
                     abs(dy) < downTapSlopPx
                 ) {
-                    Log.d("HoshiGesture", "Continuous TAP x=${event.x} y=${event.y} dx=$dx dy=$dy elapsed=$elapsedMs slop=$downTapSlopPx")
                     onTap(event.x, event.y)
                     return false
                 }
-                Log.d("HoshiGesture", "Continuous no-tap dx=$dx dy=$dy elapsed=$elapsedMs slop=$downTapSlopPx")
                 handleBoundarySwipe(webView, dx, dy)
                 focusTracker.onCancel()
             }

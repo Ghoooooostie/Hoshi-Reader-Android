@@ -9,28 +9,164 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 ### Added
 
 - Add an Advanced AI settings page that can show AI word-in-sentence analysis
-  above lookup popup dictionaries, show AI sentence Chinese analysis in Process
-  Text lookup, and let Anki templates render `{sentence-cn}` and
-  `{advanced-ai-word}` when configured.
-- Add folder import in the dictionary screen. Selecting a folder recursively
+  above lookup popup dictionaries, show sentence translation or analysis from
+  Reader and Process Text, and generate the matching Advanced AI Anki fields
+  for the selected card format.
+- Add folder import in the Dictionary screen. Selecting a folder recursively
   imports standard Yomitan `.zip` archives and already imported native dictionary
-  directories (those carrying an `index.json` and a `.hoshidicts_*` marker).
+  directories that carry an `index.json` and a `.hoshidicts_*` marker.
 - Add a Reader Translation (AI) panel with profile-scoped long-press mode,
   in-reader sentence translation and sentence analysis cards, and visible-page
   paragraph translation that fills in directly under the source text.
 - Add Select all and Deselect all actions to the bookshelf multi-select mode.
+- Add Show, Blur, and Hide privacy modes for bookshelf covers, plus deterministic
+  title and author artwork when a book has no visible cover.
+- Warn users before enabling AnkiConnect that most setups can create cards
+  directly through AnkiDroid and that an incorrect AnkiConnect configuration
+  prevents fetching decks and note types or creating cards.
+- Add term dictionary categories with category-aware Anki definition mappings
+  and iOS-aligned advanced category/fallback controls, Kanji dictionary
+  import/management and popup lookup, a verified one-tap
+  stroke-order font download for Kanji users, plus complete pitch data with H/L
+  patterns and nasal/devoice markers.
+- Add downloadable recommended Japanese font families to Reader Appearance,
+  including separate family and named variant selectors, real static and
+  variable weight selection, verified app-private downloads, and family/variant
+  grouping for imported TTF and OTF fonts, with compact one-level type grouping
+  in the font menu.
+- Add an optional Reader Behavior setting that uses the volume keys to jump
+  between terms in the topmost lookup popup.
+- Add `hoshi://search?text=...` deep links for opening lookup results in the
+  existing popup overlay, with `mode=app` support for opening the Dictionary
+  tab instead.
 
 ### Fixed
 
 - Keep Reader dictionary lookup popups visible on older E-ink WebViews that do not
   implement the modern `Element.replaceChildren()` API.
-- Keep Reader single-tap word lookup working on slow and E-ink panels. The reader now
-  owns the tap vs long-press decision with a single threshold and disables the WebView's
-  platform long press, so a sluggish press is still treated as a tap instead of being
-  swallowed by the system long press (which opened a selection action mode and shadowed
-  the lookup).
+- Keep Reader single-tap word lookup working on slow and E-ink panels by letting
+  the Reader own tap versus long-press timing instead of losing the tap to the
+  platform selection action mode.
+- Ask for confirmation before resetting Dictionary custom CSS to prevent
+  accidental clearing.
+- Keep text and images reachable in every Reader mode when publisher CSS wraps
+  paragraphs or empty layout struts in oversized inline blocks.
+- Restore book files and covers from iOS Books backups when equivalent Unicode
+  paths use different composed forms.
+- Match Sasayaki subtitles immediately after selecting an SRT, including unique
+  cues immediately before the stable starting sequence, combined-volume EPUBs,
+  and large text gaps, without requiring Search Window tuning or a separate
+  Match action.
+- Import EPUB and TTU bookdata with multibyte titles that exceed Android's
+  filename byte limit while preserving the complete visible title and cleaning
+  temporary EPUB data after failed imports.
+- Keep wide inline gaiji at the publisher's text-relative size, recognize any
+  publisher class containing `gaiji`, and render gaiji plus transparent
+  monochrome images embedded in text with the active Reader text color while
+  blending away their image backgrounds in standard and custom themes and
+  excluding gaiji from image navigation.
+- Use EPUB fallback text for failed inline gaiji images, while retaining a
+  broken-image marker and its inline space when no fallback text is available.
+- Open EPUB pages that use paired XHTML viewport metadata instead of remaining
+  on the Reader loading screen.
+- Keep oversized lookup popup frames fully inside the visible screen so their
+  bottom border and all scrollable content remain reachable.
+- Keep the Dictionary type selector's `Frequency` label on one line on compact
+  screens.
+- Prefer Arial throughout lookup popups before Android's Japanese font fallback
+  so pitch-accent markers stay aligned with their reading, and keep pitch
+  dictionary labels intact when compact entries wrap.
+
+## [v1.3.3] - 2026-08-13
+
+### Added
+
+- Automatically center the current chapter when opening the Reader Contents or
+  Sasayaki chapter list.
+- Add per-source enable controls for imported local audio databases while
+  preserving each source's configured priority.
+- Add Ogg Opus audiobook import with embedded title, artist, cover, and chapter
+  metadata in Sasayaki, load its artist without the platform-reader delay, and
+  show MP3, M4B, and Opus audiobook duration before playback starts.
+- Add a Reader Appearance swipe-threshold control for paginated and VN modes;
+  setting it to zero disables swipe page turns while preserving hardware page
+  keys.
+- Add up to three named Anki card formats with independent icons, decks, note
+  types, field mappings, tags, and duplicate states.
+- Add confirmation before deleting Anki formats and an edit-screen action that
+  duplicates a format and returns to the format list.
+- Add Anki duplicate-note search buttons that appear only for matching notes,
+  plus grouped per-format mining and search actions placed before audio.
+- Add precise cloze-part handlebars, numeric pitch accent graph handlebars, and
+  advanced glossary mapping options for Anki cards.
+
+### Changed
+
+- Increase the default lookup popup size to 500 × 500 dp and allow its
+  height to be adjusted up to 1000 dp.
+- Align the built-in Lapis, Kiku, and Senren field presets with iOS by no longer
+  setting sentence-card marker fields.
+
+### Fixed
+
+- Allow importing supported files whose display names contain `#` or `?`,
+  including EPUB volume numbers such as `Book #01.epub`.
+- Base reduced-motion popup scrolling on the portion of the popup that is
+  actually visible when its configured height exceeds the screen.
+- Show Reader Contents, fragment jumps, and chapter labels for EPUBs whose
+  navigation document is stored in a subdirectory.
+- Prevent staggered multi-touch taps in paginated and VN Reader modes from
+  being mistaken for a page-turn swipe.
+- Keep Google Drive sync and TTU backup restore compatible with progress files
+  whose book data IDs exceed Android's 32-bit integer range.
+- Keep dictionary lookup available when tapping Sasayaki-highlighted text in VN
+  Reader mode.
+
+## [v1.3.2] - 2026-08-04
+
+### Added
+
+- Add the option to create a new shelf while moving one or more selected books.
+- Add a Reader image gallery, true table-of-contents chapter ranges, and optional
+  current-chapter progress in Reader chrome and statistics.
+- Add a configurable daily statistics reset time and pause reading statistics
+  while Reader sheets or fullscreen images are open.
+- Add optional current-book cover publishing for the Android lock screen and a
+  fixed PNG file used by compatible E-ink sleep-screen tools, plus direct
+  integration with iReader’s built-in Book Cover screen saver on compatible
+  domestic and Musnap overseas firmware using standard PNG output, with Fit,
+  Fill, and Stretch scaling modes.
+
+### Changed
+
+- Expand Sasayaki delay adjustment to -4...4 seconds and playback speed to
+  0.5...3x.
+- Rename the Reader Go to panel to Contents, order its tabs as Chapters,
+  Highlights, Gallery, and Search, and remove overscroll deformation from
+  scrolling surfaces throughout the app.
+
+### Fixed
+
+- Keep Reader progress, search, and Sasayaki character offsets stable around
+  numeric HTML entities, and keep lookup sentence expansion and recursive
+  expression-tag scanning within the selected text boundary.
+- Keep manual bookshelf sync from rebuilding the entire shelf, while refreshing
+  imported reading progress in place.
+- Keep large bookshelves smooth during repeated scrolling by reusing
+  size-appropriate persistent cover thumbnails instead of decoding original
+  covers again after they leave memory, while recovering from transient
+  generation failures or damaged thumbnail-cache entries without hiding valid
+  covers.
+- Remember the selected Contents and Sasayaki tabs for the current Reader
+  session, and keep Sasayaki on the current tab after importing an audiobook.
+- Keep VN lookups and mined Anki sentences complete when a word or sentence
+  continues onto a later screen.
+- Keep Anki audio, book covers, Sasayaki clips, and dictionary media from
+  overwriting different exported media by using content-specific filenames.
 - Keep dictionary definitions in the configured dictionary order when an
   inflected lookup merges multiple deinflection candidates.
+- Keep Sasayaki jumps to cues in the previous chapter from counting the target
+  chapter in the current reading session when image holding is enabled.
 
 ## [v1.3.1] - 2026-07-11
 
@@ -40,9 +176,6 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ### Changed
 
-- Let Advanced AI prompt fields use the exact text saved in Settings, and refresh
-  the default word-analysis prompt so `Word_Analyze` explains the selected
-  word's meaning instead of forcing the old three-line template.
 - Improve dictionary lookup and import behavior by honoring Yomitan term scores
   and normalizing Japanese iteration marks, full-width numbers, and emphatic
   sequences.
@@ -50,14 +183,6 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ### Fixed
 
-- Keep Process Text long-sentence analysis popups showing the Advanced AI card
-  even when sentence lookup returns no dictionary entries, including taps near
-  opening quote boundaries.
-- Keep Reader Translation (AI) long-press popups from covering visible
-  paragraph translations when there is room to move, and remove the extra
-  tinted background from the in-popup AI card.
-- Keep Reader full-page Translation (AI) from skipping sentences when a visible
-  paragraph contains multiple source sentences.
 - Keep the Statistics tab visible after enabling it and switching away from Settings.
 - Refresh Statistics by-book covers when changing calendar ranges.
 - Keep Reader lookup highlights from expanding to an entire ruby annotation when

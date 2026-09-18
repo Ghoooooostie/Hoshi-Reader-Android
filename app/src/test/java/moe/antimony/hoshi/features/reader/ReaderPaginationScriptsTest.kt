@@ -9,6 +9,27 @@ import org.junit.Test
 
 class ReaderPaginationScriptsTest {
     @Test
+    fun generatedVisualNovelScriptDoesNotExposeTemplatePlaceholders() {
+        val script = ReaderPaginationScripts.shellScript(
+            settings = ReaderSettings(viewMode = ReaderViewMode.VisualNovel),
+        )
+
+        assertFalse(script.contains("__HOSHI_"))
+    }
+
+    @Test
+    fun generatedReadingScriptsIncludePageTranslationRuntime() {
+        listOf(ReaderViewMode.Paginated, ReaderViewMode.Continuous).forEach { viewMode ->
+            val script = ReaderPaginationScripts.shellScript(
+                settings = ReaderSettings(viewMode = viewMode),
+            )
+
+            assertFalse(script.contains("__HOSHI_READER_TRANSLATION_SCRIPT__"))
+            assertTrue(script.contains("global.hoshiReaderPageTranslation"))
+        }
+    }
+
+    @Test
     fun previousChapterNavigationTargetsEndLikeIos() {
         val position = ReaderChapterPosition(index = 3)
 
