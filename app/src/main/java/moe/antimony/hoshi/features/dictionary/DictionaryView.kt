@@ -1,5 +1,7 @@
 package moe.antimony.hoshi.features.dictionary
 
+import moe.antimony.hoshi.ui.theme.hoshiSurfaces
+import moe.antimony.hoshi.ui.theme.hoshiContainerBorder
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.core.Animatable
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,10 +43,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.AlertDialog
+import moe.antimony.hoshi.ui.HoshiAlertDialog as AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.DropdownMenu
+import moe.antimony.hoshi.ui.HoshiDropdownMenu as DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -118,7 +121,6 @@ import moe.antimony.hoshi.ui.asString
 import moe.antimony.hoshi.ui.hoshiTextFieldCursorBrush
 import kotlin.math.roundToInt
 
-private val DictionarySwitchColor = Color(0xFF34C759)
 
 internal fun scanNonJapaneseTextSettingVisible(contentLanguageProfile: ContentLanguageProfile): Boolean =
     contentLanguageProfile.dictionaryLanguageId == ContentLanguageProfile.JapaneseLanguageId
@@ -137,6 +139,7 @@ fun DictionaryView(
     var destination by remember { mutableStateOf<DictionaryDestination?>(null) }
     var showUpdateConfirmation by remember { mutableStateOf(false) }
     var showDownloadConfirmation by remember { mutableStateOf(false) }
+    var showStrokeOrderFontConfirmation by remember { mutableStateOf(false) }
     var intervalMenuExpanded by remember { mutableStateOf(false) }
     val recommendedDictionaries = remember(profileState.effectiveContentLanguageProfile.dictionaryLanguageId) {
         recommendedDictionariesForLanguage(profileState.effectiveContentLanguageProfile.dictionaryLanguageId)
@@ -169,7 +172,10 @@ fun DictionaryView(
     val selectedType = uiState.selectedType
     val currentDictionaries = uiState.currentDictionaries
     val settings = uiState.settings
-    val isBusy = uiState.isMutationInProgress || uiState.isImporting || uiState.isUpdating
+    val isBusy = uiState.isMutationInProgress ||
+        uiState.isImporting ||
+        uiState.isUpdating ||
+        uiState.isInstallingStrokeOrderFont
     val lastDictionaryUpdateText = settings.lastDictionaryUpdateEpochMillis
         ?.let { millis ->
             remember(millis) {
@@ -356,7 +362,7 @@ fun DictionaryView(
             }
         },
         modifier = modifier.fillMaxSize(),
-        containerColor = colorScheme.background,
+        containerColor = hoshiSurfaces.page,
         contentColor = colorScheme.onBackground,
         actions = {
             IconButton(
@@ -401,8 +407,8 @@ fun DictionaryView(
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(24.dp),
-                            color = colorScheme.surface,
-                            border = BorderStroke(1.dp, colorScheme.outlineVariant),
+                            color = hoshiSurfaces.group,
+                            border = hoshiContainerBorder(),
                             tonalElevation = 0.dp,
                         ) {
                             Column {
@@ -427,6 +433,33 @@ fun DictionaryView(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                         )
                         Spacer(modifier = Modifier.height(18.dp))
+                        if (uiState.showStrokeOrderFontDownload) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(24.dp),
+                                color = hoshiSurfaces.group,
+                                border = hoshiContainerBorder(),
+                                tonalElevation = 0.dp,
+                            ) {
+                                ListItem(
+                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                    headlineContent = {
+                                        Text(
+                                            text = stringResource(R.string.dictionary_download_stroke_order_font),
+                                            color = if (uiState.canDownloadStrokeOrderFont) {
+                                                colorScheme.primary
+                                            } else {
+                                                colorScheme.onSurface.copy(alpha = 0.38f)
+                                            },
+                                        )
+                                    },
+                                    modifier = Modifier.clickable(enabled = uiState.canDownloadStrokeOrderFont) {
+                                        showStrokeOrderFontConfirmation = true
+                                    },
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(18.dp))
+                        }
                         if (uiState.updatableDictionaries.isNotEmpty()) {
                             Text(
                                 text = stringResource(R.string.dictionary_updates_section),
@@ -438,8 +471,8 @@ fun DictionaryView(
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(24.dp),
-                                color = colorScheme.surface,
-                                border = BorderStroke(1.dp, colorScheme.outlineVariant),
+                                color = hoshiSurfaces.group,
+                                border = hoshiContainerBorder(),
                                 tonalElevation = 0.dp,
                             ) {
                                 Column {
@@ -531,8 +564,8 @@ fun DictionaryView(
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(24.dp),
-                            color = colorScheme.surface,
-                            border = BorderStroke(1.dp, colorScheme.outlineVariant),
+                            color = hoshiSurfaces.group,
+                            border = hoshiContainerBorder(),
                             tonalElevation = 0.dp,
                         ) {
                             Column {
@@ -591,6 +624,7 @@ fun DictionaryView(
                                         inactiveContentColor = colorScheme.onSurface,
                                         inactiveBorderColor = colorScheme.outline,
                                     ),
+                                    contentPadding = PaddingValues(horizontal = 0.dp),
                                     icon = {},
                                 ) {
                                     Text(stringResource(type.displayNameRes))
@@ -673,7 +707,11 @@ fun DictionaryView(
                     }
                 }
             }
-            if (uiState.showBlockingProgress || uiState.isImporting || uiState.isUpdating) {
+            if (uiState.showBlockingProgress ||
+                uiState.isImporting ||
+                uiState.isUpdating ||
+                uiState.isInstallingStrokeOrderFont
+            ) {
                 HoshiBlockingProgressOverlay(
                     message = uiState.currentImportMessage?.asString() ?: stringResource(R.string.loading),
                     modifier = Modifier
@@ -772,6 +810,28 @@ fun DictionaryView(
             },
         )
     }
+    if (showStrokeOrderFontConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showStrokeOrderFontConfirmation = false },
+            title = { Text(stringResource(R.string.dictionary_stroke_order_font_dialog_title)) },
+            text = { Text(stringResource(R.string.dictionary_stroke_order_font_dialog_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showStrokeOrderFontConfirmation = false
+                        dictionaryViewModel.installStrokeOrderFont()
+                    },
+                ) {
+                    Text(stringResource(R.string.action_download))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStrokeOrderFontConfirmation = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
 }
 
 private enum class DictionaryDestination {
@@ -784,6 +844,7 @@ private val DictionaryType.displayNameRes: Int
         DictionaryType.Term -> R.string.dictionary_type_term
         DictionaryType.Frequency -> R.string.dictionary_type_frequency
         DictionaryType.Pitch -> R.string.dictionary_type_pitch
+        DictionaryType.Kanji -> R.string.dictionary_type_kanji
     }
 
 private enum class DictionarySwipeRevealValue {
@@ -854,6 +915,7 @@ private fun DictionaryRow(
                     .clickable(enabled = enabled) { onDelete() },
                 shape = RoundedCornerShape(20.dp),
                 color = colorScheme.error,
+                border = hoshiContainerBorder(),
             ) {
                 Row(
                     modifier = Modifier
@@ -886,8 +948,8 @@ private fun DictionaryRow(
                     onClick = { onRevealChange(false) },
                 ),
             shape = RoundedCornerShape(20.dp),
-            color = colorScheme.surface,
-            border = BorderStroke(1.dp, colorScheme.outlineVariant),
+            color = hoshiSurfaces.group,
+            border = hoshiContainerBorder(),
             tonalElevation = 0.dp,
         ) {
             Row(
@@ -989,13 +1051,7 @@ private fun HoshiSwitch(
 }
 
 @Composable
-private fun hoshiSwitchColors() = SwitchDefaults.colors(
-    checkedThumbColor = Color.White,
-    checkedTrackColor = DictionarySwitchColor,
-    uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-    uncheckedBorderColor = MaterialTheme.colorScheme.outline,
-)
+private fun hoshiSwitchColors() = SwitchDefaults.colors()
 
 @Composable
 private fun HoshiIconBackButton(onClick: () -> Unit) {
@@ -1048,12 +1104,12 @@ private fun DictionarySettingsView(
     val colorScheme = MaterialTheme.colorScheme
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = colorScheme.background,
+        containerColor = hoshiSurfaces.page,
         topBar = {
             CenterAlignedTopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.background,
-                    scrolledContainerColor = colorScheme.background,
+                    containerColor = hoshiSurfaces.page,
+                    scrolledContainerColor = hoshiSurfaces.page,
                     titleContentColor = colorScheme.onBackground,
                     navigationIconContentColor = colorScheme.onBackground,
                 ),
@@ -1065,7 +1121,7 @@ private fun DictionarySettingsView(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(colorScheme.background)
+                .background(hoshiSurfaces.page)
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
         ) {
@@ -1105,6 +1161,21 @@ private fun DictionarySettingsView(
                         },
                         canDecrease = settings.scanLength > DictionarySettings.MIN_SCAN_LENGTH,
                         canIncrease = settings.scanLength < DictionarySettings.MAX_SCAN_LENGTH,
+                    )
+                }
+                SectionLabel(stringResource(R.string.dictionary_settings_search_text))
+                SettingsGroup {
+                    StepperRow(
+                        title = stringResource(R.string.dictionary_text_size),
+                        value = settings.searchTextSize,
+                        onDecrease = {
+                            onSettingsChange { it.copy(searchTextSize = it.searchTextSize - 1) }
+                        },
+                        onIncrease = {
+                            onSettingsChange { it.copy(searchTextSize = it.searchTextSize + 1) }
+                        },
+                        canDecrease = settings.searchTextSize > DictionarySettings.MIN_SEARCH_TEXT_SIZE,
+                        canIncrease = settings.searchTextSize < DictionarySettings.MAX_SEARCH_TEXT_SIZE,
                     )
                 }
                 SectionLabel(stringResource(R.string.dictionary_settings_import))
@@ -1203,7 +1274,7 @@ private fun CollapsedDictionariesView(
         title = stringResource(R.string.dictionary_collapse_dictionaries),
         onClose = onClose,
         modifier = modifier.fillMaxSize(),
-        containerColor = colorScheme.background,
+        containerColor = hoshiSurfaces.page,
         contentColor = colorScheme.onBackground,
     ) { innerPadding ->
         LazyColumn(
@@ -1265,9 +1336,11 @@ private fun DictionaryCustomCssView(
 ) {
     BackHandler(onBack = onClose)
     val colorScheme = MaterialTheme.colorScheme
-    val fontNames = remember(fontManager) { fontManager.allFontNames() }
+    val fontLibraryState by fontManager.libraryState.collectAsStateWithLifecycle()
+    val fontNames = remember(fontManager, fontLibraryState.revision) { fontManager.allFontNames() }
     var fontMenuExpanded by remember { mutableStateOf(false) }
     var selectorMenuExpanded by remember { mutableStateOf(false) }
+    var customCssResetState by remember { mutableStateOf(DictionaryCustomCssResetState()) }
     var cssFieldValue by remember {
         mutableStateOf(
             TextFieldValue(
@@ -1286,6 +1359,45 @@ private fun DictionaryCustomCssView(
         }
     }
 
+    fun dispatchCustomCssReset(action: DictionaryCustomCssResetAction) {
+        val nextState = dictionaryCustomCssResetStateAfter(customCssResetState, action)
+        customCssResetState = nextState
+        if (!nextState.shouldClearCss) return
+
+        customCssResetState = nextState.copy(shouldClearCss = false)
+        val clearedValue = TextFieldValue(text = "", selection = TextRange.Zero)
+        cssFieldValue = clearedValue
+        onSettingsChange { it.copy(customCSS = clearedValue.text) }
+    }
+
+    if (customCssResetState.isConfirmationVisible) {
+        AlertDialog(
+            onDismissRequest = {
+                dispatchCustomCssReset(DictionaryCustomCssResetAction.Dismiss)
+            },
+            title = { Text(stringResource(R.string.dictionary_custom_css_reset_title)) },
+            text = { Text(stringResource(R.string.dictionary_custom_css_reset_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        dispatchCustomCssReset(DictionaryCustomCssResetAction.Confirm)
+                    },
+                ) {
+                    Text(stringResource(R.string.action_reset))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        dispatchCustomCssReset(DictionaryCustomCssResetAction.Dismiss)
+                    },
+                ) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
     fun insertCssText(text: String) {
         val nextValue = insertCustomCssText(cssFieldValue, text)
         cssFieldValue = nextValue
@@ -1294,19 +1406,23 @@ private fun DictionaryCustomCssView(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = colorScheme.background,
+        containerColor = hoshiSurfaces.page,
         topBar = {
             CenterAlignedTopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.background,
-                    scrolledContainerColor = colorScheme.background,
+                    containerColor = hoshiSurfaces.page,
+                    scrolledContainerColor = hoshiSurfaces.page,
                     titleContentColor = colorScheme.onBackground,
                     navigationIconContentColor = colorScheme.onBackground,
                 ),
                 title = { Text(stringResource(R.string.dictionary_custom_css)) },
                 navigationIcon = { HoshiIconBackButton(onClose) },
                 actions = {
-                    TextButton(onClick = { onSettingsChange { it.copy(customCSS = "") } }) {
+                    TextButton(
+                        onClick = {
+                            dispatchCustomCssReset(DictionaryCustomCssResetAction.RequestConfirmation)
+                        },
+                    ) {
                         Text(stringResource(R.string.action_reset))
                     }
                 },
@@ -1319,8 +1435,8 @@ private fun DictionaryCustomCssView(
                 .padding(innerPadding)
                 .padding(16.dp),
             shape = RoundedCornerShape(18.dp),
-            color = colorScheme.surface,
-            border = BorderStroke(1.dp, colorScheme.outlineVariant),
+            color = hoshiSurfaces.group,
+            border = hoshiContainerBorder(),
             tonalElevation = 0.dp,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -1454,8 +1570,8 @@ private fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = hoshiSurfaces.group,
+        border = hoshiContainerBorder(),
         tonalElevation = 0.dp,
     ) {
         Column(content = content)
@@ -1487,7 +1603,8 @@ private fun StepperRow(
                 )
                 Surface(
                     shape = RoundedCornerShape(24.dp),
-                    color = colorScheme.surfaceVariant,
+                    color = hoshiSurfaces.nested,
+                    border = hoshiContainerBorder(),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = onDecrease, enabled = canDecrease) {

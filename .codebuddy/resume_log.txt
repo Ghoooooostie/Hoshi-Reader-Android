@@ -1,0 +1,673 @@
+--------- beginning of main
+09-19 00:19:30.960 I/KeyCombinationManager( 2704): key code: 3 is not accepted.
+09-19 00:19:30.963 I/KeyCombinationManager( 2704): key code: 3 is not accepted.
+--------- beginning of system
+09-19 00:19:30.990 W/ActivityTaskManager( 2704): callingPackage for (uid=-1, pid=0) has no WPC
+09-19 00:19:30.994 W/ActivityStartInterceptor( 2704): Starting home with component specified, uid=0
+09-19 00:19:30.996 W/OptProp ( 2704): Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_RESIZEABLE_ACTIVITY_OVERRIDES
+09-19 00:19:30.996 W/OptProp ( 2704): Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_MIN_ASPECT_RATIO_OVERRIDE
+09-19 00:19:30.998 I/WindowMode( 2704): AppInfo packageName =moe.antimony.hoshi.debug, notToBack=false
+09-19 00:19:30.998 W/vol.VolumeDialogControl( 3651): dismiss: VolumeDialog only used for cts, we use VolumePanel instead in flyme !
+09-19 00:19:31.001 I/DynamicDDSService( 4101): handleMessage(ACTIVITY_INVOKE{appInfo=com.meizu.flyme.launcher isFullScreen=}true)
+09-19 00:19:31.009 I/ActivityTaskManager( 2704): START u0 {act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10000100 cmp=com.meizu.flyme.launcher/com.android.launcher3.uioverrides.QuickstepLauncher (has extras)} with LAUNCH_SINGLE_TASK from uid 0 pid 0 callingPackage null (BAL_ALLOW_ALLOWLISTED_UID) result code=2 moveToFront=transientHide
+09-19 00:19:31.013 E/MinorStateContext( 6855): handleOperation() called with: operation = [LAUNCHER_TASK_MOVE_TO_FRONT_OPERATE] mCurrentState = null
+09-19 00:19:31.023 I/BpBinder( 1542): onLastStrongRef automatically unlinking death recipients: 
+09-19 00:19:31.024 E/FlymeSurfaceFlingerExtension( 1542): FPS: 0.823384
+09-19 00:19:31.024 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:31.027 I/DefaultDailyUsageEventHandler( 6664): handleFullScreenWindowEvent, DailyUsageWindowMessage(requestTime=1789748371026, packageName=com.meizu.flyme.launcher)
+09-19 00:19:31.027 I/DefaultDailyUsageEventHandler( 6664): is same day
+09-19 00:19:31.027 W/AppUsage( 6664): end timeUsage, time：248262 full_screen_window moe.antimony.hoshi.debug end time 2026/09/19 00:19:31 start time 2026/09/19 00:15:22
+09-19 00:19:31.027 W/ContextImpl( 6664): Calling a method in the system process without a qualified user: android.app.ContextImpl.sendBroadcast:1274 android.content.ContextWrapper.sendBroadcast:506 com.meizu.alphame.data.repo.DefaultDailyUsageRepository.sendAppEventBroadcast:7 com.meizu.alphame.data.repo.DefaultDailyUsageRepository.setTimeUsageWhenRunningEnd:14 com.meizu.alphame.dailyusage.DefaultDailyUsageEventHandler.handleFullScreenWindowMessage:10 
+09-19 00:19:31.028 W/libc    (21619): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:31.029 W/libc    (21619): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:31.030 W/ViewRootImpl(21619): fallback to sRGB due to flyme color management is not supported
+09-19 00:19:31.032 W/libc    (21619): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:31.037 W/libc    (21619): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:31.039 I/AppUsage( 6664): set running time usage,full_screen_window com.meizu.flyme.launcher start time 2026/09/19 00:19:31
+09-19 00:19:31.039 I/DefaultDailyUsageRepository( 6664): com.meizu.flyme.launcher 2026/09/19 00:19:31 start running  2026/09/19 00:19:31
+09-19 00:19:31.039 W/ContextImpl( 6664): Calling a method in the system process without a qualified user: android.app.ContextImpl.sendBroadcast:1274 android.content.ContextWrapper.sendBroadcast:506 com.meizu.alphame.data.repo.DefaultDailyUsageRepository.sendAppEventBroadcast:7 com.meizu.alphame.data.repo.DefaultDailyUsageRepository.setTimeUsageWhenRunning:26 com.meizu.alphame.dailyusage.DefaultDailyUsageEventHandler.handleFullScreenWindowMessage:14 
+09-19 00:19:31.027 W/meizu.assistant(21619): type=1400 audit(0.0:1039632): avc:  denied  { read } for  name="u:object_r:vendor_display_prop:s0" dev="tmpfs" ino=468 scontext=u:r:system_app:s0 tcontext=u:object_r:vendor_display_prop:s0 tclass=file permissive=0
+09-19 00:19:31.027 W/meizu.assistant(21619): type=1400 audit(0.0:1039633): avc:  denied  { read } for  name="u:object_r:vendor_display_prop:s0" dev="tmpfs" ino=468 scontext=u:r:system_app:s0 tcontext=u:object_r:vendor_display_prop:s0 tclass=file permissive=0
+09-19 00:19:31.031 W/meizu.assistant(21619): type=1400 audit(0.0:1039634): avc:  denied  { read } for  name="u:object_r:vendor_display_prop:s0" dev="tmpfs" ino=468 scontext=u:r:system_app:s0 tcontext=u:object_r:vendor_display_prop:s0 tclass=file permissive=0
+09-19 00:19:31.035 W/meizu.assistant(21619): type=1400 audit(0.0:1039635): avc:  denied  { read } for  name="u:object_r:vendor_display_prop:s0" dev="tmpfs" ino=468 scontext=u:r:system_app:s0 tcontext=u:object_r:vendor_display_prop:s0 tclass=file permissive=0
+09-19 00:19:31.042 I/mz_safe-safe_main(16329):  [binder:16329_1] (null:7) #r : LargeBinderTransactionHelper-> getRunningAppProcesses
+09-19 00:19:31.045 I/Launcher(20020): onNewIntent: comeFromHomeKey=true
+09-19 00:19:31.045 I/TouchInteractionService(20020): startHomeFromRecents
+09-19 00:19:31.046 I/DigitalWellbeingService( 6855): onStartCommand: this = com.meizu.digitalwellbeing.server.DigitalWellbeingService@bd1fdc1
+09-19 00:19:31.047 I/StartForegroundUtils( 6855): startForeground() called with: service = [com.meizu.digitalwellbeing.server.DigitalWellbeingService@bd1fdc1], serviceType = [1024]
+09-19 00:19:31.048 I/TouchInteractionService(20020): startHomeFromRecents ignore: recents animation is not running
+09-19 00:19:31.048 E/LauncherOverlayCallback(21619): MSG_ON_START
+09-19 00:19:31.048 I/OverlayComponent(21619): OverlayComponent. onStart
+09-19 00:19:31.048 I/UnlockAnimationManager(20020): [LocationAnimation] [onActivityResumed] lockScreenEnabled = true, isForceShowAllWorkSpaceExecuted = true
+09-19 00:19:31.049 I/SingleDigitTextClock(20020): processText() fullTime = 00:19
+09-19 00:19:31.049 I/SingleDigitTextClock(20020): processText() digitPosition = 0, singleDigit = 0
+09-19 00:19:31.049 I/SingleDigitTextClock(20020): processText() fullTime = 00:19
+09-19 00:19:31.050 I/SingleDigitTextClock(20020): processText() digitPosition = 1, singleDigit = 0
+09-19 00:19:31.050 I/SingleDigitTextClock(20020): processText() fullTime = 00:19
+09-19 00:19:31.050 I/SingleDigitTextClock(20020): processText() digitPosition = 2, singleDigit = 1
+09-19 00:19:31.050 I/SingleDigitTextClock(20020): processText() fullTime = 00:19
+09-19 00:19:31.050 I/SingleDigitTextClock(20020): processText() digitPosition = 3, singleDigit = 9
+09-19 00:19:31.051 W/.flyme.launcher(20020): type=1400 audit(0.0:1039636): avc:  denied  { read } for  name="u:object_r:vendor_display_prop:s0" dev="tmpfs" ino=468 scontext=u:r:platform_app:s0:c512,c768 tcontext=u:object_r:vendor_display_prop:s0 tclass=file permissive=0 app=com.meizu.flyme.launcher
+09-19 00:19:31.055 W/.flyme.launcher(20020): type=1400 audit(0.0:1039637): avc:  denied  { read } for  name="u:object_r:vendor_display_prop:s0" dev="tmpfs" ino=468 scontext=u:r:platform_app:s0:c512,c768 tcontext=u:object_r:vendor_display_prop:s0 tclass=file permissive=0 app=com.meizu.flyme.launcher
+09-19 00:19:31.054 I/DigitalWellbeingService( 6855): onStartCommand: this = com.meizu.digitalwellbeing.server.DigitalWellbeingService@bd1fdc1
+09-19 00:19:31.054 I/StartForegroundUtils( 6855): startForeground() called with: service = [com.meizu.digitalwellbeing.server.DigitalWellbeingService@bd1fdc1], serviceType = [1024]
+09-19 00:19:31.054 W/libc    (20020): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:31.054 E/LauncherOverlayCallback(21619): MSG_ON_RESUME
+09-19 00:19:31.054 I/MainScrollOverlay(21619): ScrollOverlayComponent onResume, size 10
+09-19 00:19:31.054 I/OverlayComponent(21619): OverlayComponent. onResume
+09-19 00:19:31.055 W/libc    (20020): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:31.055 W/ViewRootImpl(20020): fallback to sRGB due to flyme color management is not supported
+09-19 00:19:31.056 W/PerfCore( 2704): PerfCore:perf hint release  handle = -1 not exist
+09-19 00:19:31.057 W/PerfCore( 2704): PerfCore:perf hint release  handle = 117809 not exist
+09-19 00:19:31.060 I/Alive.WallpaperEnvironment( 3865): updateWidthHeight: width=1080, height=2400, oldWidth=1080, oldHeight=2400, screenWidth=1080, screenHeight=2400
+09-19 00:19:31.060 W/HWUI    ( 3865): Surface doesn't have any previously queued frames, nothing to readback from
+09-19 00:19:31.061 W/JobInfo (19369): Job 'com.lijianqiang12.silent/.platform.service.ScheduleWorkService#1024' has a deadline with no functional constraints. The deadline won't improve job execution latency. Consider removing the deadline.
+09-19 00:19:31.061 W/JobInfo ( 2704): Job 'com.lijianqiang12.silent/.platform.service.ScheduleWorkService#1024' has a deadline with no functional constraints. The deadline won't improve job execution latency. Consider removing the deadline.
+09-19 00:19:31.062 W/JobScheduler( 2704): Job didn't exist in JobStore: b343263 #u0a274/1024 com.lijianqiang12.silent/.platform.service.ScheduleWorkService
+09-19 00:19:31.072 I/NotificationFilter(20020): isValid false , package:android,Tag:null,flag2050,clearable:false,going:true,isAccept:false
+09-19 00:19:31.072 I/NotificationFilter(20020): isValid false , package:android,Tag:null,flag2050,clearable:false,going:true,isAccept:false
+09-19 00:19:31.072 I/NotificationFilter(20020): isValid false , package:com.baidu.netdisk,Tag:null,flag16,clearable:true,going:false,isAccept:true
+09-19 00:19:31.072 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:31.072 I/NotificationFilter(20020): isValid false , package:com.baidu.netdisk,Tag:null,flag98,clearable:false,going:true,isAccept:false
+09-19 00:19:31.072 I/NotificationFilter(20020): isValid false , package:com.mi.health,Tag:null,flag98,clearable:false,going:true,isAccept:false
+09-19 00:19:31.072 I/NotificationFilter(20020): isValid false , package:com.baidu.netdisk,Tag:null,flag98,clearable:false,going:true,isAccept:true
+09-19 00:19:31.076 E/ShellTransitions( 3651): save transition leash
+09-19 00:19:31.076 I/TaskViewLaunchTracker(20020): clearRecord, reason:wallpaper open, time:0
+09-19 00:19:31.077 W/libc    (20020): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:31.075 W/.flyme.launcher(20020): type=1400 audit(0.0:1039638): avc:  denied  { read } for  name="u:object_r:vendor_display_prop:s0" dev="tmpfs" ino=468 scontext=u:r:platform_app:s0:c512,c768 tcontext=u:object_r:vendor_display_prop:s0 tclass=file permissive=0 app=com.meizu.flyme.launcher
+09-19 00:19:31.078 W/libc    (20020): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:31.075 W/.flyme.launcher(20020): type=1400 audit(0.0:1039639): avc:  denied  { read } for  name="u:object_r:vendor_display_prop:s0" dev="tmpfs" ino=468 scontext=u:r:platform_app:s0:c512,c768 tcontext=u:object_r:vendor_display_prop:s0 tclass=file permissive=0 app=com.meizu.flyme.launcher
+09-19 00:19:31.078 W/libc    (20020): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:31.079 W/libc    (20020): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:31.083 I/FlymeRectFSpringAnim(20020): [start] velocityPxPerMs: PointF(0.0, 0.0), startRect: RectF(0.0, 0.0, 1080.0, 2400.0), targetRect: RectF(581.0, 1682.0, 746.0, 1847.0), scale: 1.0
+09-19 00:19:31.083 I/FlymeRectFSpringAnim(20020): [start] estimate settling duration: 494
+09-19 00:19:31.107 I/WifiHAL ( 1360): event received NL80211_CMD_VENDOR, vendor_id = 0x1374, subcmd = 0xd
+09-19 00:19:31.107 I/cnss-daemon( 2260): nl80211 response handler invoked
+09-19 00:19:31.107 I/cnss-daemon( 2260): nl80211_response_handler: cmd 103, vendorID 4980, subcmd 13  received
+09-19 00:19:31.109 W/PerfCore( 2704): PerfCore:applyChange actionType = perflock bestConstraintInfoList empty
+09-19 00:19:31.121 I/UnlockAnimationManager(20020): [LocationAnimation] [onWindowFocusChanged] hasFocus = true
+09-19 00:19:31.121 I/MzMainColorController(20020): Begin calculate main color
+09-19 00:19:31.121 I/MzMainColorController(20020): Do not need to calculate main color: false
+09-19 00:19:31.124 I/ImeTracker( 2704): com.meizu.flyme.launcher:9e7c3056: onRequestHide at ORIGIN_SERVER reason HIDE_UNSPECIFIED_WINDOW fromUser false
+09-19 00:19:31.126 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:31.126 I/ImeTracker(20020): com.meizu.flyme.launcher:9e7c3056: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+09-19 00:19:31.129 I/ImeTracker( 2704): system_server:96c5eacc: onRequestHide at ORIGIN_SERVER reason IME_REQUESTED_CHANGED_LISTENER fromUser false
+09-19 00:19:31.130 I/ImeTracker( 2704): system_server:96c5eacc: onCancelled at PHASE_SERVER_SHOULD_HIDE
+09-19 00:19:31.174 W/Choreographer(20020): Frame time is 0.001602 ms in the future!  Check that graphics HAL is generating vsync timestamps using the correct timebase.
+09-19 00:19:31.226 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:31.332 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:31.430 W/PerfCore( 2704): PerfCore:applyChange actionType = perflock bestConstraintInfoList empty
+09-19 00:19:31.432 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:31.539 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:31.576 I/FlymeRectFSpringAnim(20020): Anim end, total duration: 493
+09-19 00:19:31.639 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:31.645 I/CNSS    ( 2062): cnss_open_log_file: directory /data/vendor/wifi/wlan_logs/ created
+09-19 00:19:31.722 I/UnlockAnimationManager(20020): [LocationAnimation] [ForceShowAllWorkSpace] mIsUserPresent = true, isLauncherOnTaskTop = true, isKeyguardLocked = false
+09-19 00:19:31.722 E/UnlockAnimationManager(20020): [LocationAnimation] [ForceShowAllWorkSpace] force show all workspace
+09-19 00:19:31.746 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:31.758 I/[LibraryInitProvider](11925): start init
+09-19 00:19:31.760 I/HighContrast_Common(11925): sInstance init success
+09-19 00:19:31.763 W/ndroid.settings(11925): Opening an oat file without a class loader. Are you using the deprecated DexFile APIs?
+09-19 00:19:31.847 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:31.954 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:32.038 E/FlymeSurfaceFlingerExtension( 1542): FPS: 65.088760
+09-19 00:19:32.051 E/ANDR-PERF-LM( 1441): VmRssMeter:: start() 359: Could not find pid, can not collect vmrss data
+09-19 00:19:32.054 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:32.089 E/ANDR-PERF-LM( 1441): VmRssMeter:: start() 359: Could not find pid, can not collect vmrss data
+09-19 00:19:32.089 E/ANDR-PERF-LM( 1441): AdaptiveLaunch: writeToDataBase() 64: Meter aborted or could not get meter data for this run
+09-19 00:19:32.090 E/ShellTransitions( 3651): Trying to transfer leash to a non-ready transition: (#18547) android.os.BinderProxy@e9b0593@0
+09-19 00:19:32.090 E/ShellTransitions( 3651): clear transition leash
+09-19 00:19:32.106 W/PerfCore( 2704): PerfCore:applyChange actionType = perflock bestConstraintInfoList empty
+09-19 00:19:32.107 W/PerfCore( 2704): PerfCore:applyChange actionType = perflock bestConstraintInfoList empty
+09-19 00:19:32.190 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:32.291 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:33.057 W/MultiOpenInject( 2704): checkMultiOpenControl, from:com.android.shell, to:moe.antimony.hoshi.debug, with act:null, callingUserId:0, toUserId:0
+09-19 00:19:33.058 W/ActivityTaskManager( 2704): callingPackage for (uid=2000, pid=11972) has no WPC
+09-19 00:19:33.059 W/OptProp ( 2704): Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_RESIZEABLE_ACTIVITY_OVERRIDES
+09-19 00:19:33.059 W/OptProp ( 2704): Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_MIN_ASPECT_RATIO_OVERRIDE
+09-19 00:19:33.060 I/FlymeDisplayController( 2704): canStartInDisplay mDisplayId=0,hasFeature=false,hasStartPackage=false
+09-19 00:19:33.060 I/FlymeDisplayController( 2704): canStartInDisplay mDisplayId=0,hasFeature=false,hasStartPackage=false
+09-19 00:19:33.060 I/FlymeDisplayController( 2704): canStartInDisplay mDisplayId=0,hasFeature=false,hasStartPackage=false
+09-19 00:19:33.064 I/ActivityTaskManager( 2704): START u0 {flg=0x10000000 xflg=0x5 cmp=moe.antimony.hoshi.debug/moe.antimony.hoshi.MainActivity} with LAUNCH_SINGLE_TOP from uid 2000 pid 11972 callingPackage com.android.shell (BAL_ALLOW_PERMISSION) result code=2 moveToFront=transientHide
+09-19 00:19:33.064 W/SplitSelectStateCtor(20020): Missing session instanceIds
+09-19 00:19:33.066 E/LauncherOverlayCallback(21619): MSG_ON_PAUSE
+09-19 00:19:33.066 I/OverlayComponent(21619): OverlayComponent. onPause
+09-19 00:19:33.066 I/MainScrollOverlay(21619): ScrollOverlayComponent onPause, size 10
+09-19 00:19:33.069 I/NotificationShadeWindowController( 3651): isWakeAndUnlock = false, isKeyguardGoingAway =false
+09-19 00:19:33.074 W/DynamicDDSService( 4101): appName is running in background.com.meizu.flyme.launcher
+09-19 00:19:33.075 I/DynamicDDSService( 4101): handleMessage(ACTIVITY_INVOKE{appInfo=moe.antimony.hoshi.debug isFullScreen=}true)
+09-19 00:19:33.085 I/BpBinder( 1542): onLastStrongRef automatically unlinking death recipients: 
+09-19 00:19:33.086 W/PerfCore( 2704): PerfCore:applyChange actionType = perflock bestConstraintInfoList empty
+09-19 00:19:33.088 E/FlymeSurfaceFlingerExtension( 1542): FPS: 6.666667
+09-19 00:19:33.091 W/ll.splashscreen( 3651): type=1400 audit(0.0:1039642): avc:  denied  { read } for  name="u:object_r:vendor_display_prop:s0" dev="tmpfs" ino=468 scontext=u:r:platform_app:s0:c512,c768 tcontext=u:object_r:vendor_display_prop:s0 tclass=file permissive=0 app=com.flyme.systemuiex
+09-19 00:19:33.089 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:33.090 I/WifiHAL ( 1360): event received NL80211_CMD_VENDOR, vendor_id = 0x1374, subcmd = 0xd
+09-19 00:19:33.093 I/DefaultDailyUsageEventHandler( 6664): handleFullScreenWindowEvent, DailyUsageWindowMessage(requestTime=1789748373092, packageName=moe.antimony.hoshi.debug)
+09-19 00:19:33.093 W/libc    ( 3651): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:33.093 I/DefaultDailyUsageEventHandler( 6664): is same day
+09-19 00:19:33.091 W/ll.splashscreen( 3651): type=1400 audit(0.0:1039643): avc:  denied  { read } for  name="u:object_r:vendor_display_prop:s0" dev="tmpfs" ino=468 scontext=u:r:platform_app:s0:c512,c768 tcontext=u:object_r:vendor_display_prop:s0 tclass=file permissive=0 app=com.flyme.systemuiex
+09-19 00:19:33.093 W/AppUsage( 6664): end timeUsage, time：2066 full_screen_window com.meizu.flyme.launcher end time 2026/09/19 00:19:33 start time 2026/09/19 00:19:31
+09-19 00:19:33.093 W/libc    ( 3651): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:33.094 W/ContextImpl( 6664): Calling a method in the system process without a qualified user: android.app.ContextImpl.sendBroadcast:1274 android.content.ContextWrapper.sendBroadcast:506 com.meizu.alphame.data.repo.DefaultDailyUsageRepository.sendAppEventBroadcast:7 com.meizu.alphame.data.repo.DefaultDailyUsageRepository.setTimeUsageWhenRunningEnd:14 com.meizu.alphame.dailyusage.DefaultDailyUsageEventHandler.handleFullScreenWindowMessage:10 
+09-19 00:19:33.095 I/cnss-daemon( 2260): nl80211 response handler invoked
+09-19 00:19:33.095 I/cnss-daemon( 2260): nl80211_response_handler: cmd 103, vendorID 4980, subcmd 13  received
+09-19 00:19:33.107 W/ony.hoshi.debug(10866): type=1400 audit(0.0:1039644): avc:  denied  { read } for  name="u:object_r:vendor_display_prop:s0" dev="tmpfs" ino=468 scontext=u:r:untrusted_app:s0:c235,c256,c512,c768 tcontext=u:object_r:vendor_display_prop:s0 tclass=file permissive=0 app=moe.antimony.hoshi.debug
+09-19 00:19:33.107 W/ony.hoshi.debug(10866): type=1400 audit(0.0:1039645): avc:  denied  { read } for  name="u:object_r:vendor_display_prop:s0" dev="tmpfs" ino=468 scontext=u:r:untrusted_app:s0:c235,c256,c512,c768 tcontext=u:object_r:vendor_display_prop:s0 tclass=file permissive=0 app=moe.antimony.hoshi.debug
+09-19 00:19:33.106 W/PerfCore( 2704): PerfCore:applyChange actionType = perflock bestConstraintInfoList empty
+09-19 00:19:33.107 W/libc    (10866): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:33.107 W/libc    (10866): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+09-19 00:19:33.110 I/AppUsage( 6664): set running time usage,full_screen_window moe.antimony.hoshi.debug start time 2026/09/19 00:19:33
+09-19 00:19:33.110 I/DefaultDailyUsageRepository( 6664): moe.antimony.hoshi.debug 2026/09/19 00:19:33 start running  2026/09/19 00:19:33
+09-19 00:19:33.110 W/ContextImpl( 6664): Calling a method in the system process without a qualified user: android.app.ContextImpl.sendBroadcast:1274 android.content.ContextWrapper.sendBroadcast:506 com.meizu.alphame.data.repo.DefaultDailyUsageRepository.sendAppEventBroadcast:7 com.meizu.alphame.data.repo.DefaultDailyUsageRepository.setTimeUsageWhenRunning:26 com.meizu.alphame.dailyusage.DefaultDailyUsageEventHandler.handleFullScreenWindowMessage:14 
+09-19 00:19:33.121 I/UnlockAnimationManager(20020): [LocationAnimation] [onWindowFocusChanged] hasFocus = false
+09-19 00:19:33.123 W/PerfCore( 2704): PerfCore:perf hint release  handle = -1 not exist
+09-19 00:19:33.124 W/PerfCore( 2704): PerfCore:perf hint release  handle = 117812 not exist
+09-19 00:19:33.126 I/mz_safe-safe_main(16329):  [binder:16329_1] (null:7) #r : LargeBinderTransactionHelper-> getRunningAppProcesses
+09-19 00:19:33.128 E/ShellTransitions( 3651): save transition leash
+09-19 00:19:33.128 I/FlymeQuickstepTransitionManager(20020): starting flyme fallback app launch anim:0
+09-19 00:19:33.128 I/FlymeRectFSpringAnim(20020): [start] velocityPxPerMs: PointF(0.0, 0.0), startRect: RectF(108.0, 240.0, 972.0, 2160.0), targetRect: RectF(0.0, 0.0, 1080.0, 2400.0), scale: 1.0
+09-19 00:19:33.128 I/FlymeRectFSpringAnim(20020): [start] estimate settling duration: 442
+09-19 00:19:33.132 I/DigitalWellbeingService( 6855): onStartCommand: this = com.meizu.digitalwellbeing.server.DigitalWellbeingService@bd1fdc1
+09-19 00:19:33.132 I/StartForegroundUtils( 6855): startForeground() called with: service = [com.meizu.digitalwellbeing.server.DigitalWellbeingService@bd1fdc1], serviceType = [1024]
+09-19 00:19:33.136 I/MZPERF:AppBatchStartMonitor( 3653): handleAppFg pkg = moe.antimony.hoshi.debug
+09-19 00:19:33.136 I/MZPERF:AppBatchStartMonitor( 3653): handleAppFg  forget pkg = com.tencent.mobileqq
+09-19 00:19:33.136 I/MZPERF:AppBatchStartMonitor( 3653): batchMode = false
+09-19 00:19:33.136 W/PerfCore( 2704): PerfCore:perf hint acquire release scene = splashscreen_exit_anim not exist
+09-19 00:19:33.137 I/DigitalWellbeingService( 6855): onStartCommand: this = com.meizu.digitalwellbeing.server.DigitalWellbeingService@bd1fdc1
+09-19 00:19:33.137 I/StartForegroundUtils( 6855): startForeground() called with: service = [com.meizu.digitalwellbeing.server.DigitalWellbeingService@bd1fdc1], serviceType = [1024]
+09-19 00:19:33.139 E/Launcher.Utilities(20020): mapToRange: range has 0 length
+09-19 00:19:33.153 E/Launcher.Utilities(20020): mapToRange: range has 0 length
+09-19 00:19:33.160 I/ImeTracker( 2704): moe.antimony.hoshi.debug:724b0813: onRequestHide at ORIGIN_SERVER reason HIDE_UNSPECIFIED_WINDOW fromUser false
+09-19 00:19:33.161 I/ImeTracker(10866): moe.antimony.hoshi.debug:724b0813: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+09-19 00:19:33.165 I/ImeTracker( 2704): system_server:a536e3e4: onRequestHide at ORIGIN_SERVER reason IME_REQUESTED_CHANGED_LISTENER fromUser false
+09-19 00:19:33.165 I/ImeTracker( 2704): system_server:a536e3e4: onCancelled at PHASE_SERVER_SHOULD_HIDE
+09-19 00:19:33.180 E/Launcher.Utilities(20020): mapToRange: range has 0 length
+09-19 00:19:33.181 I/BpBinder( 1542): onLastStrongRef automatically unlinking death recipients: 
+09-19 00:19:33.190 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:33.194 E/Launcher.Utilities(20020): mapToRange: range has 0 length
+09-19 00:19:33.277 W/Choreographer(20020): Frame time is 0.021545 ms in the future!  Check that graphics HAL is generating vsync timestamps using the correct timebase.
+09-19 00:19:33.277 W/Choreographer( 3651): Frame time is 0.030086 ms in the future!  Check that graphics HAL is generating vsync timestamps using the correct timebase.
+09-19 00:19:33.296 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:33.396 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:33.418 I/NotificationShadeWindowController( 3651): isWakeAndUnlock = false, isKeyguardGoingAway =false
+09-19 00:19:33.457 W/Choreographer( 3651): Frame time is 0.008065 ms in the future!  Check that graphics HAL is generating vsync timestamps using the correct timebase.
+09-19 00:19:33.503 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:33.586 I/FlymeRectFSpringAnim(20020): Anim end, total duration: 458
+09-19 00:19:33.591 E/ShellTransitions( 3651): Trying to transfer leash to a non-ready transition: (#18548) android.os.BinderProxy@9ecbb39@0
+09-19 00:19:33.591 E/ShellTransitions( 3651): clear transition leash
+09-19 00:19:33.591 W/PerfCore( 2704): PerfCore:applyChange actionType = perflock bestConstraintInfoList empty
+09-19 00:19:33.602 W/ViewRootImpl(21619): fallback to sRGB due to flyme color management is not supported
+09-19 00:19:33.603 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:33.608 I/AutofillManager(20020): onInvisibleForAutofill(): expiringResponse
+09-19 00:19:33.609 W/PresentationStatsEventLogger( 2704): Shouldn't be logging AutofillPresentationEventReported again for same event
+09-19 00:19:33.611 W/RecentsSurfaceManager(20020): baseSurface inValid
+09-19 00:19:33.613 E/LauncherOverlayCallback(21619): MSG_ON_STOP
+09-19 00:19:33.613 I/MainScrollOverlay(21619): ScrollOverlayComponent onStop
+09-19 00:19:33.613 I/OverlayComponent(21619): OverlayComponent. onStop
+09-19 00:19:33.615 W/ViewRootImpl(20020): fallback to sRGB due to flyme color management is not supported
+09-19 00:19:33.634 W/System  ( 3651): A resource failed to call release. 
+09-19 00:19:33.634 W/System  ( 3651): A resource failed to call release. 
+09-19 00:19:33.634 W/System  ( 3651): A resource failed to call release. 
+09-19 00:19:33.672 W/System  (20020): A resource failed to call release. 
+09-19 00:19:33.672 W/System  (20020): A resource failed to call Surface.release. 
+09-19 00:19:33.673 W/System  (20020): A resource failed to call release. 
+09-19 00:19:33.673 W/System  (20020): A resource failed to call Surface.release. 
+09-19 00:19:33.708 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:33.809 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:33.910 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:34.014 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:34.089 E/ANDR-PERF-LM( 1441): VmRssMeter:: start() 359: Could not find pid, can not collect vmrss data
+09-19 00:19:34.095 E/FlymeSurfaceFlingerExtension( 1542): FPS: 71.499504
+09-19 00:19:34.096 I/Alive.UserAwareWallpaper( 3865): mInvisibleTask, mRender=e1.b@e7f9ea9
+09-19 00:19:34.114 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:34.116 E/ANDR-PERF-LM( 1441): VmRssMeter:: start() 359: Could not find pid, can not collect vmrss data
+09-19 00:19:34.116 E/ANDR-PERF-LM( 1441): AdaptiveLaunch: writeToDataBase() 64: Meter aborted or could not get meter data for this run
+09-19 00:19:34.215 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:34.316 E/HWComposer( 1542): getLuts: getLuts failed for display 4630946981250209410: UNSUPPORTED (8)
+09-19 00:19:35.109 I/WifiHAL ( 1360): event received NL80211_CMD_VENDOR, vendor_id = 0x1374, subcmd = 0xd
+09-19 00:19:35.110 I/cnss-daemon( 2260): nl80211 response handler invoked
+09-19 00:19:35.110 I/cnss-daemon( 2260): nl80211_response_handler: cmd 103, vendorID 4980, subcmd 13  received
+09-19 00:19:36.077 E/TaskPersister( 2704): File error accessing recents directory (directory doesn't exist?).
+09-19 00:19:36.331 I/mz_safe-traffic_main(16329):  [trafficPollingThread] (null:31) #h : TrafficDirectionImpldirectionApp today Used = 0KB
+09-19 00:19:36.384 I/mz_safe-traffic_main(16329):  [trafficPollingThread] (null:31) #h : TrafficDirectionImpldirectionApp today Used = 0KB
+09-19 00:19:36.410 W/AppWidgetServiceImpl( 2704): Provider doesn't exist ProviderId{user:0, app:10113, cmp:ComponentInfo{com.meizu.safe/com.meizu.networkmanager.provider.SafeWidgetProvider}}
+09-19 00:19:36.445 W/mz_safe (16329):  [pool-4-thread-3] (null:10) #e : policy is not null
+09-19 00:19:36.445 W/mz_safe (16329):  [pool-4-thread-3] (null:10) #e : policy is not null
+09-19 00:19:36.451 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.483 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.484 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.484 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.485 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.485 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.485 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.486 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.486 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.486 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.487 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.487 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.488 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.488 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.488 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.489 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.489 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.489 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.489 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.490 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.490 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.490 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.490 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.491 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.491 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.491 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.491 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.492 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.492 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.492 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.493 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.493 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.493 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.494 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.494 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.494 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.494 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.495 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.495 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.496 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.496 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.496 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.496 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.497 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.497 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.497 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.497 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.498 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.498 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.498 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.498 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.499 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.499 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.499 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.499 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.500 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.500 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.500 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.500 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.501 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.501 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.501 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.501 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.501 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.502 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.502 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.502 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.502 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.502 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.503 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.503 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.503 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.503 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.504 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.504 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.504 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.504 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.505 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.505 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.505 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.505 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.505 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.505 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.506 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.506 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.506 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.506 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.507 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.507 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.507 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.507 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.507 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.508 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.508 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.508 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.508 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.508 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.509 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.509 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.509 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.509 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.510 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.510 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.510 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.510 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.511 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.511 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.511 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.511 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.511 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.512 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.512 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.512 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.512 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.512 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.513 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.513 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.513 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.513 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.514 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.514 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.514 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.514 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.515 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.515 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.515 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.515 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.516 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.516 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.516 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.516 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.516 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.517 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.517 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.517 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.517 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.517 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.518 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.518 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.518 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.518 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.519 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.519 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.520 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.520 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.520 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.520 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.521 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.521 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.521 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.521 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.522 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.522 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.522 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.522 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.523 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.523 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.523 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.524 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.524 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.524 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.524 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.525 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.525 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.525 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.525 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.525 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.526 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.526 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.526 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.526 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.527 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.527 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.528 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.528 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.528 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.528 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.529 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.529 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.529 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.530 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.530 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.530 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.531 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.531 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.531 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.531 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.532 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.532 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.532 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.533 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.533 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.533 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.534 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.534 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.534 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.534 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.535 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.535 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.535 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.536 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.536 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.536 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.536 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.536 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.537 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.537 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.537 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.537 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.537 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.538 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.538 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.538 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.538 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.538 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.539 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.539 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.539 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.539 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.540 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.540 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.540 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.540 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.540 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.540 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.541 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.541 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.541 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.541 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.542 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.542 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.542 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.542 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.542 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.542 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.543 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.543 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.543 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.543 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.544 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.544 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.544 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.544 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.545 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.545 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.545 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.545 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.545 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.546 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.546 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.546 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.546 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.546 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.547 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.547 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.547 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.547 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.548 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.548 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.548 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.548 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.548 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.548 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.549 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.549 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.549 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.549 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.550 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.550 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.550 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.550 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.550 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.550 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.551 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.551 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.551 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.551 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.552 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.552 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.552 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.552 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.552 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.553 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.553 E/TrafficControlImpl(16329): android.content.pm.PackageManager$NameNotFoundException: com.meizu.flyme.telecom
+09-19 00:19:36.553 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.553 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.561 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.563 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.564 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.565 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.566 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.567 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.568 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.569 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.570 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.571 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.572 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.573 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.573 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.575 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.576 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.577 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.578 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.580 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.581 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.581 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.582 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.584 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.585 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.585 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.586 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.587 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.588 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.589 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.590 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.591 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.592 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.594 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.595 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.596 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.597 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.598 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.598 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.601 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.602 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.603 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.604 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.604 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.606 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.607 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.608 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.609 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.611 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.612 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.614 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.615 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.617 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.618 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.619 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.620 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.621 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.622 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.624 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.625 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.627 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.628 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.630 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.632 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.633 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.634 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.635 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.636 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.638 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.638 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.639 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.641 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.642 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.643 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.643 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.644 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.645 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.646 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.648 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.649 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.650 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.651 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.652 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.653 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.654 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.655 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.656 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.657 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.658 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.660 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.661 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.661 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.662 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.664 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.665 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.665 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.666 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.667 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.668 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.669 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.670 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.672 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.674 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.675 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.676 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.677 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.679 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.681 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.682 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.683 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.685 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.687 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.688 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.689 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.690 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.691 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.692 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.693 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.694 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.695 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.697 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.698 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.699 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.701 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.702 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.703 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.704 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.705 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.707 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.708 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.709 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.710 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.711 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.713 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.714 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.715 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.717 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.718 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.719 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.720 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.722 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.723 I/mz_safe-safe_main(16329):  [pool-4-thread-3] (null:7) #s : LargeBinderTransactionHelper-> queryIntentActivities
+09-19 00:19:36.735 I/mz_safe-safe_main(16329):  [main] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.737 I/mz_safe-safe_main(16329):  [main] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.739 I/mz_safe-safe_main(16329):  [main] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.739 I/mz_safe-safe_main(16329):  [main] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.740 I/mz_safe-safe_main(16329):  [main] (null:7) #n : LargeBinderTransactionHelper-> getPackageInfo
+09-19 00:19:36.953 E/netd    ( 1263): handle_event poll uid=10259, state=1
+09-19 00:19:36.954 I/ActivityManager( 2704): onFreezeUidPktState: uid  10259 pktstate = 1
+09-19 00:19:36.978 I/Choreographer(19564): Skipped 221 frames!  The application may be doing too much work on its main thread.
+09-19 00:19:36.993 W/AlarmManager( 2704): com.tencent.mobileqq setAlarm: hasWorkSrc=false hasClock=false flags=4 type=2 interval=0 operation=PendingIntent{bd8fca9: PendingIntentRecord{c15422e com.tencent.mobileqq broadcastIntent}} triggerAttime=879274232 windowLen=0 listenerTag=null canAlign=true not Align
+09-19 00:19:37.096 I/WifiHAL ( 1360): event received NL80211_CMD_VENDOR, vendor_id = 0x1374, subcmd = 0xd
+09-19 00:19:37.097 I/cnss-daemon( 2260): nl80211 response handler invoked
+09-19 00:19:37.097 I/cnss-daemon( 2260): nl80211_response_handler: cmd 103, vendorID 4980, subcmd 13  received

@@ -1,0 +1,1120 @@
+TASK 10259:com.tencent.mobileqq id=1837 userId=0 displayId=0(type=INTERNAL)
+  ACTIVITY com.tencent.mobileqq/.activity.ChatActivity 19202e pid=19564 userId=0 uid=10259 displayId=0(type=INTERNAL)
+    Local Activity dafeff9 State:
+      mResumed=false mStopped=true mFinished=false
+      mIsInMultiWindowMode=false mIsInPictureInPictureMode=false
+      mChangingConfigurations=false
+      mCurrentConfig={1.0 460mcc1mnc [zh_CN] ldltr sw384dp w384dp h787dp 450dpi nrml long hdr widecg port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 116 - 1080, 2330) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} as.3 s.2 fontWeightAdjustment=0 iconChanged=20}
+      mLoadersStarted=true
+      Active Fragments in 6b82a72:
+        #0: ReportFragment{f84fec3 #0 androidx.lifecycle.LifecycleDispatcher.report_fragment_tag}
+          mFragmentId=#0 mContainerId=#0 mTag=androidx.lifecycle.LifecycleDispatcher.report_fragment_tag
+          mState=3 mIndex=0 mWho=android:fragment:0 mBackStackNesting=0
+          mAdded=true mRemoving=false mFromLayout=false mInLayout=false
+          mHidden=false mDetached=false mMenuVisible=true mHasMenu=false
+          mRetainInstance=false mRetaining=false mUserVisibleHint=true
+          mFragmentManager=FragmentManager{6b82a72 in HostCallbacks{f121340}}
+          mHost=android.app.Activity$HostCallbacks@f121340
+          Child FragmentManager{fe279 in ReportFragment{f84fec3}}:
+            FragmentManager misc state:
+              mHost=android.app.Activity$HostCallbacks@f121340
+              mContainer=android.app.Fragment$1@5a7bbe
+              mParent=ReportFragment{f84fec3 #0 androidx.lifecycle.LifecycleDispatcher.report_fragment_tag}
+              mCurState=3 mStateSaved=true mDestroyed=false
+      Added Fragments:
+        #0: ReportFragment{f84fec3 #0 androidx.lifecycle.LifecycleDispatcher.report_fragment_tag}
+      FragmentManager misc state:
+        mHost=android.app.Activity$HostCallbacks@f121340
+        mContainer=android.app.Activity$HostCallbacks@f121340
+        mCurState=3 mStateSaved=true mDestroyed=false
+    ViewRoot:
+      mAdded=true
+      mRemoved=false
+      mStopped=true
+      mPausedForTransition=false
+      mConsumeBatchedInputScheduled=false
+      mConsumeBatchedInputImmediatelyScheduled=false
+      mPendingInputEventCount=0
+      mProcessInputEventsScheduled=false
+      mTraversalScheduled=false
+      mReportNextDraw=false
+      mLastPerformTraversalsFailedReason=view_not_visible
+      mLastReportedMergedConfiguration={mGlobalConfig={1.0 460mcc1mnc [zh_CN] ldltr sw384dp w384dp h787dp 450dpi nrml long hdr widecg port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 116 - 1080, 2330) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.3 s.103922 fontWeightAdjustment=0 iconChanged=20} mOverrideConfig={1.0 460mcc1mnc [zh_CN] ldltr sw384dp w384dp h787dp 450dpi nrml long hdr widecg port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 116 - 1080, 2330) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} as.3 s.2 fontWeightAdjustment=0 iconChanged=20}}
+      mLastConfigurationFromResources={1.0 460mcc1mnc [zh_CN] ldltr sw384dp w384dp h787dp 450dpi nrml long hdr widecg port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 116 - 1080, 2330) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} as.3 s.2 fontWeightAdjustment=0 iconChanged=20}
+      mLastReportedActivityWindowInfo=ActivityWindowInfo{isEmbedded=false, taskBounds=Rect(0, 0 - 1080, 2400), taskFragmentBounds=Rect(0, 0 - 1080, 2400)}
+      mIsAmbientMode=false
+      mUnbufferedInputSource=0
+      mAttachInfo=       AttachInfo:
+        mHasWindowFocus=false
+        mWindowVisibility=8
+        mInTouchMode=true
+        mUnbufferedDispatchRequested=false
+      mWindowAttributes={(0,0)(fillxfill) sim={state=hidden adjust=resize} ty=BASE_APPLICATION fmt=TRANSLUCENT wanim=0x7f130009
+  fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+  pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+  vsysui=LAYOUT_STABLE LAYOUT_HIDE_NAVIGATION LAYOUT_FULLSCREEN LIGHT_STATUS_BAR LIGHT_NAVIGATION_BAR
+  apr=LIGHT_STATUS_BARS LIGHT_NAVIGATION_BARS
+  bhv=DEFAULT
+  fitSides=
+  frameRateBoostOnTouch=true
+  dvrrWindowFrameRateHint=true}
+      android.view.ViewRootImpl$NativePreImeInputStage: mQueueLength=0
+      android.view.ViewRootImpl$ImeInputStage: mQueueLength=0
+      android.view.ViewRootImpl$NativePostImeInputStage: mQueueLength=0
+      android.view.ViewRootImpl$WindowInputEventReceiver
+       mInputChannel: 4ef1151 com.tencent.mobileqq/com.tencent.mobileqq.activity.ChatActivity
+       mSeqMap: {}
+       mReceiverPtr:
+        mInputConsumer:
+          mResampleTouch = true
+          mChannel = 4ef1151 com.tencent.mobileqq/com.tencent.mobileqq.activity.ChatActivity
+          mMsgDeferred: false
+          Batches:
+              <empty>
+          mSeqChains:
+              <empty>
+          mConsumeTimes:
+              <empty>
+          
+        mBatchedInputEventPending: false
+        mOutboundQueue:
+          <empty>
+        
+    Choreographer:
+      mFrameScheduled=true
+      mLastFrameTime=720814809 (34 ms ago)
+    InsetsController:
+        InsetsState
+          mDisplayFrame=Rect(0, 0 - 1080, 2400)
+          mDisplayCutout=DisplayCutout{insets=Rect(0, 116 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(540, 0 - 602, 116), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2400 physicalDisplayWidth=1080 physicalDisplayHeight=2400 density={2.8125} cutoutSpec={M0,63.01m-30.73,0a30.73,30.73 0,1 1,61.46 0a30.73,30.73 0,1 1,-61.46 0} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}
+          mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=101, center=Point(101, 101)}, RoundedCorner{position=TopRight, radius=101, center=Point(979, 101)}, RoundedCorner{position=BottomRight, radius=101, center=Point(979, 2299)}, RoundedCorner{position=BottomLeft, radius=101, center=Point(101, 2299)}]}
+          mRoundedCornerFrame=Rect(0, 0 - 1080, 2400)
+          mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(866, 0 - 1097, 116) rotation=0}
+          mDisplayShape=DisplayShape{ spec=-1893857183 displayWidth=1080 displayHeight=2400 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}
+            InsetsSource id=c1150000 type=statusBars frame=[0,0][1080,116] visible=true flags= sideHint=TOP boundingRects=null
+            InsetsSource id=c1150005 type=mandatorySystemGestures frame=[0,0][1080,150] visible=true flags= sideHint=TOP boundingRects=null
+            InsetsSource id=c1150006 type=tappableElement frame=[0,0][1080,116] visible=true flags= sideHint=TOP boundingRects=null
+            InsetsSource id=3 type=ime frame=[0,0][0,0] visibleFrame=[0,1438][1080,2400] visible=false flags= sideHint=NONE boundingRects=null
+            InsetsSource id=27 type=displayCutout frame=[0,0][1080,116] visible=true flags= sideHint=TOP boundingRects=null
+            InsetsSource id=3a420001 type=navigationBars frame=[0,2330][1080,2400] visible=true flags=SUPPRESS_SCRIM sideHint=BOTTOM boundingRects=null
+            InsetsSource id=3a420004 type=systemGestures frame=[0,0][67,2400] visible=true flags= sideHint=LEFT boundingRects=null
+            InsetsSource id=3a420005 type=mandatorySystemGestures frame=[0,2330][1080,2400] visible=true flags= sideHint=BOTTOM boundingRects=null
+            InsetsSource id=3a420006 type=tappableElement frame=[0,0][0,0] visible=true flags= sideHint=NONE boundingRects=null
+            InsetsSource id=3a420024 type=systemGestures frame=[1013,0][1080,2400] visible=true flags= sideHint=RIGHT boundingRects=null
+        mIsPredictiveBackImeHideAnimInProgress=false
+    WindowOnBackDispatcher:
+        Top Callback: android.view.ViewRootImpl$$ExternalSyntheticLambda16@df6a061
+        Callbacks: 
+          Callback: android.view.ViewRootImpl$$ExternalSyntheticLambda16@df6a061 Priority=0
+    ImeBackAnimationController:
+        mLastProgress=0.0
+        mTriggerBack=false
+        mIsPreCommitAnimationInProgress=false
+        mStartRootScrollY=0
+        isBackAnimationAllowed=false
+        isAdjustPan=false
+        isHideAnimationInProgress=false
+    View Hierarchy:
+      com.android.internal.policy.DecorView{20841b4 I.E...... R.....ID 0,0-1080,2400 aid=22}[ChatActivity]
+        android.widget.LinearLayout{477af22 V.E...... ......ID 0,0-1080,2400}
+          android.view.ViewStub{d6bc5e8 G.E...... ......I. 0,0-0,0 #10201ed android:id/action_mode_bar_stub}
+          android.widget.FrameLayout{6dc4cc0 V.E...... ......ID 0,0-1080,2400 #1020002 android:id/content}
+            android.widget.FrameLayout{3ff9c9b V.E...... ......ID 0,0-1080,2400}
+              com.tencent.qqnt.aio.widget.AIOGestureLayout{b15b8aa V.E...... ......ID 0,0-1080,2400 #7f0a1269 app:id/oav}
+                com.tencent.aio.main.fragment.ChatFragmentRootView{5f210a8 V.E...... ......ID 0,0-1080,2400}
+                  com.tencent.aio.frame.drawer.DrawerFrameViewGroup{905f4ed V.E...... ......ID 0,0-2160,2400}
+                    com.tencent.aio.frame.drawer.DrawerChildFrame{8ebd704 V.E...... ......ID 0,0-1080,2400}
+                      android.widget.FrameLayout{3aa70cb V.E...... ......ID 0,0-1080,2400 #9}
+                        com.tencent.aio.part.root.mvx.vb.RootAIOVB$createVBView$1{9c82717 V.E...... ......ID 0,0-1080,2400}
+                          android.widget.FrameLayout{5f02f96 V.E...... .......D 0,0-1080,2400 #7f0a280a app:id/r3f}
+                            com.tencent.mobileqq.vas.nt.AIOBackgroundContainer{c3deda5 V.E...... ......ID 0,0-1080,2400}
+                              com.tencent.qq.effect.QEffectView{4dc79a4 V.E...... ........ 0,0-1080,2400}
+                              com.tencent.richframework.compat.immersive.view.RFWNavigationBarBackgroundView{816f7c8 V.ED..... ......ID 0,2330-1080,2400}
+                          com.tencent.aio.part.fitwindow.vb.FitSystemWindowVB$onCreateView$1{9059b6e V.E...... ......ID 0,0-1080,2400}
+                            android.widget.FrameLayout{7d9f2e9 V.E...... ......ID 0,0-1080,2330 #29}
+                              com.tencent.aio.part.root.panel.content.firstLevel.mvx.vb.FirstLevelVB$onCreateView$container$1{fd15f70 V.ED..... ......ID 0,0-1080,2330}
+                                com.tencent.mobileqq.aio.widget.AIOMsgListGroup{49e1db3 VFE...C.. ......ID 0,251-1080,2330}
+                                  com.tencent.mobileqq.aio.widget.EdgeTransparentView{ad5d4a5 V.E...... ......ID 0,0-1080,1934}
+                                    com.tencent.aio.widget.bounce.AIORefreshLayout{e45029c V.E...... ......ID 0,0-1080,1934}
+                                      androidx.recyclerview.widget.AIORecycleView{1d2e20f VFED..... ......ID 0,0-1080,1934}
+                                        com.tencent.qqnt.aio.holder.template.TemplateLayout{a232a82 V.E...... ......ID 0,-330-1080,241 #7f0a745c app:id/root}
+                                          android.widget.FrameLayout{ee667b1 G.E...... ......I. 0,0-0,0 #7f0a4cdb app:id/wex}
+                                            android.view.ViewStub{f984496 G.E...... ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{e1eb9d0 V.E...... ........ 447,0-634,98 #7f0a4cd9 app:id/f24}
+                                            com.tencent.biz.qui.blend.QUIBlendTextView{a78e593 VFED..C.. ........ 0,22-187,66}
+                                          android.view.ViewStub{abf1817 G.E...... ......I. 0,0-0,0 #7f0a4cb4 app:id/we1}
+                                          android.widget.FrameLayout{fdd6cce V.E...... ......ID 32,119-140,343 #7f0a4c9c app:id/wdj}
+                                            com.tencent.mobileqq.aio.widget.AvatarContainer{692adc9 VFE...CL. ......ID 0,0-108,224 #7f0a03df app:id/mh_}
+                                              com.tencent.mobileqq.proavatar.QQProAvatarView{1335aa4 V.E...... ......ID 0,0-108,108}
+                                                com.tencent.mobileqq.ai.avatar.view.AIAvatarViewV2{b05542f V.E...... ......ID -27,-41-140,210 #7f0a0369 app:id/lrz}
+                                                  com.tencent.mobileqq.ai.avatar.view.MosaicImageView{c9d7d10 V.ED.V... ......ID 0,0-167,251}
+                                                  com.tencent.qqshow2dengine.spineworld.SpineWorldRenderView{f07cdff V.ED..... ......ID 0,0-0,0}
+                                          android.widget.FrameLayout{de787da V.E...... ........ 161,119-394,162 #7f0a4f22 app:id/wq2}
+                                            android.widget.LinearLayout{b0f5d85 V.E...... ........ 0,0-233,43}
+                                              android.widget.LinearLayout{f7da2fc V.E...... ........ 0,0-233,43}
+                                                android.view.ViewStub{57e7404 G.E...... ......I. 0,0-0,0}
+                                                com.tencent.mobileqq.qqui.widget.AIONickTextView{dc247ef VFED..C.. ........ 0,0-222,43 #7f0a048c app:id/mjq}
+                                                android.view.ViewStub{d48cded G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{90c1422 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{c931eb3 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{f70cc70 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{ff15be9 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{2fb506e G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{a96f30f G.E...... ......I. 0,0-0,0}
+                                          com.tencent.qqnt.aio.holder.template.BubbleLayoutCompatPress{b7ff2e8 V.E....L. .......D 140,162-549,571 #7f0a17b5 app:id/p2r}
+                                            android.widget.RelativeLayout{395740b V.E...... .......D 0,0-409,409}
+                                              com.tencent.mobileqq.qqui.widget.RoundBubbleImageView{16de3c5 VFED..C.. ......ID 22,22-387,387 #7f0a04b2 app:id/mkj}
+                                          android.view.ViewStub{cee3f9c G.E...... ......I. 0,0-0,0 #7f0a17b7 app:id/p2s}
+                                          android.widget.FrameLayout{77acda5 G.E...... ......I. 0,0-0,0 #7f0a4cd3 app:id/f21}
+                                            android.widget.ImageView{c90057a VFED..C.. ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{159b12b V.E...... ........ 549,528-549,528 #7f0a4caa app:id/wdu}
+                                            android.widget.ImageView{96db988 GFED..C.. ......I. 0,0-0,0}
+                                          android.view.ViewStub{96f9f21 G.E...... ......I. 0,0-0,0 #7f0a4cc9 app:id/wel}
+                                          android.widget.FrameLayout{8ed4d01 V.E...... ........ 560,367-560,367 #7f0a4ca8 app:id/wds}
+                                          android.view.ViewStub{b88ff46 G.E...... ......I. 0,0-0,0 #7f0a4cc6 app:id/wei}
+                                          android.view.ViewStub{d403507 G.E...... ......I. 0,0-0,0 #7f0a4288 app:id/v2i}
+                                          android.view.ViewStub{ee8e634 G.E...... ......I. 0,0-0,0 #7f0a4c9b app:id/wdi}
+                                          android.view.ViewStub{f860c5d G.E...... ......I. 0,0-0,0 #7f0a08f0 app:id/n40}
+                                          android.widget.FrameLayout{c5c9d2 V.E...... ........ 140,571-140,571 #7f0a4cd8 app:id/wev}
+                                            android.widget.RelativeLayout{2211aa3 V.E...... ......I. 0,0-0,0}
+                                        com.tencent.qqnt.aio.holder.template.TemplateLayout{47894ae V.E...... .......D 0,241-1080,469 #7f0a745c app:id/root}
+                                          android.widget.FrameLayout{b4831a0 G.E...... ......I. 0,0-0,0 #7f0a4cdb app:id/wex}
+                                            android.view.ViewStub{e9c1159 G.E...... ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{992b11e G.E...... ......I. 0,0-0,0 #7f0a4cd9 app:id/f24}
+                                            com.tencent.biz.qui.blend.QUIBlendTextView{a0bdff V.ED..... ......ID 0,0-0,0}
+                                          android.view.ViewStub{8ec7cc G.E...... ......I. 0,0-0,0 #7f0a4cb4 app:id/we1}
+                                          android.widget.FrameLayout{4ddbddc V.E...... .......D 32,21-140,129 #7f0a4c9c app:id/wdj}
+                                            com.tencent.mobileqq.aio.widget.AvatarContainer{138824f VFE...CL. .......D 0,0-108,108 #7f0a03df app:id/mh_}
+                                              com.tencent.mobileqq.proavatar.QQProAvatarView{c9f6bb4 V.E...... .......D 0,0-108,108}
+                                                com.tencent.mobileqq.proavatar.QQProAvatarLayerImageView{66b0ee5 V.ED..... ......ID 0,0-108,108}
+                                          android.widget.FrameLayout{f42b461 V.E...... ........ 161,21-184,64 #7f0a4f22 app:id/wq2}
+                                            android.widget.LinearLayout{576dbc8 V.E...... ........ 0,0-23,43}
+                                              android.widget.LinearLayout{3a4f46b V.E...... ........ 0,0-23,43}
+                                                android.view.ViewStub{1736a15 G.E...... ......I. 0,0-0,0}
+                                                com.tencent.mobileqq.qqui.widget.AIONickTextView{43d4dba VFED..C.. ........ 0,0-12,43 #7f0a048c app:id/mjq}
+                                                android.view.ViewStub{9b4c12a G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{54d3b1b G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{bc694b8 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{32d9291 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{a35c5f6 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{d7a6df7 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{eac4464 G.E...... ......I. 0,0-0,0}
+                                          com.tencent.qqnt.aio.holder.template.BubbleLayoutCompatPress{101ec74 V.E....L. .......D 140,64-549,228 #7f0a17b5 app:id/p2r}
+                                            com.tencent.mobileqq.aio.msglist.holder.component.text.AIOTextContentComponent$mContentWithForeground$2$1{e1c6c47 V.E...... .......D 0,0-409,164}
+                                              com.tencent.qqnt.aio.widget.SelectableLinearLayout{6628b86 VFE...C.. .......D 0,0-409,164}
+                                                com.tencent.qqnt.aio.widget.TextExtLinearLayout{f4bda12 V.E...... .......D 0,0-409,164}
+                                                  com.tencent.qqnt.aio.widget.AIOMsgTextView{995359d VFED..CL. ......ID 0,0-409,164 #7f0a0489 app:id/mjn}
+                                              android.view.View{ba985e3 V.ED..... ........ 0,0-409,164}
+                                          android.view.ViewStub{587c6cd G.E...... ......I. 0,0-0,0 #7f0a17b7 app:id/p2s}
+                                          android.widget.FrameLayout{8f04b82 G.E...... ......I. 0,0-0,0 #7f0a4cd3 app:id/f21}
+                                            android.widget.ImageView{dddf293 VFED..C.. ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{81b42d0 V.E...... ........ 549,185-549,185 #7f0a4caa app:id/wdu}
+                                            android.widget.ImageView{ed702c9 GFED..C.. ......I. 0,0-0,0}
+                                          android.view.ViewStub{4db9dce G.E...... ......I. 0,0-0,0 #7f0a4cc9 app:id/wel}
+                                          android.widget.FrameLayout{e8b5be0 V.E...... ........ 560,146-560,146 #7f0a4ca8 app:id/wds}
+                                          android.view.ViewStub{6eb24ef G.E...... ......I. 0,0-0,0 #7f0a4cc6 app:id/wei}
+                                          android.view.ViewStub{739bbfc G.E...... ......I. 0,0-0,0 #7f0a4288 app:id/v2i}
+                                          android.view.ViewStub{bc40285 G.E...... ......I. 0,0-0,0 #7f0a4c9b app:id/wdi}
+                                          android.view.ViewStub{317c8da G.E...... ......I. 0,0-0,0 #7f0a08f0 app:id/n40}
+                                          android.widget.FrameLayout{2ef210b V.E...... ........ 140,228-140,228 #7f0a4cd8 app:id/wev}
+                                            android.widget.RelativeLayout{5649be8 V.E...... ......I. 0,0-0,0}
+                                        com.tencent.qqnt.aio.holder.template.TemplateLayout{df67601 V.E...... ......ID 0,469-1080,758 #7f0a745c app:id/root}
+                                          android.widget.FrameLayout{c74201 G.E...... ......I. 0,0-0,0 #7f0a4cdb app:id/wex}
+                                            android.view.ViewStub{8b998a6 G.E...... ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{9ecc2e7 G.E...... ......I. 0,0-0,0 #7f0a4cd9 app:id/f24}
+                                            com.tencent.biz.qui.blend.QUIBlendTextView{2db8e94 V.ED..... ......ID 0,0-0,0}
+                                          android.view.ViewStub{764fd3d G.E...... ......I. 0,0-0,0 #7f0a4cb4 app:id/we1}
+                                          android.widget.FrameLayout{f9116e7 V.E...... ......ID 32,21-140,245 #7f0a4c9c app:id/wdj}
+                                            com.tencent.mobileqq.aio.widget.AvatarContainer{faabca6 VFE...CL. ......ID 0,0-108,224 #7f0a03df app:id/mh_}
+                                              com.tencent.mobileqq.proavatar.QQProAvatarView{9938e72 V.E...... ......ID 0,0-108,108}
+                                                com.tencent.mobileqq.ai.avatar.view.AIAvatarViewV2{805676c V.E...... ......ID -27,-41-140,210 #7f0a0369 app:id/lrz}
+                                                  com.tencent.mobileqq.ai.avatar.view.MosaicImageView{f881fbe V.ED.V... ......ID 0,0-167,251}
+                                                  com.tencent.qqshow2dengine.spineworld.SpineWorldRenderView{c899c5d V.ED..... ......ID 0,0-0,0}
+                                          android.widget.FrameLayout{4ce3a83 V.E...... ........ 161,21-212,64 #7f0a4f22 app:id/wq2}
+                                            android.widget.LinearLayout{435fd32 V.E...... ........ 0,0-51,43}
+                                              android.widget.LinearLayout{a53713d V.E...... ........ 0,0-51,43}
+                                                android.view.ViewStub{5569932 G.E...... ......I. 0,0-0,0}
+                                                com.tencent.mobileqq.qqui.widget.AIONickTextView{36b5294 VFED..C.. ........ 0,0-40,43 #7f0a048c app:id/mjq}
+                                                android.view.ViewStub{738a683 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{22d0000 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{3293039 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{a51167e G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{cd527df G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{e621c2c G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{a6396f5 G.E...... ......I. 0,0-0,0}
+                                          com.tencent.qqnt.aio.holder.template.BubbleLayoutCompatPress{1c2ba7e V.E....L. .......D 140,64-928,289 #7f0a17b5 app:id/p2r}
+                                            com.tencent.mobileqq.aio.msglist.holder.component.text.AIOTextContentComponent$mContentWithForeground$2$1{88ae439 V.E...... .......D 0,0-788,225}
+                                              com.tencent.qqnt.aio.widget.SelectableLinearLayout{5f50400 VFE...C.. .......D 0,0-788,225}
+                                                com.tencent.qqnt.aio.widget.TextExtLinearLayout{a6602c V.E...... .......D 0,0-788,225}
+                                                  com.tencent.qqnt.aio.widget.AIOMsgTextView{2ffbdf VFED..CL. ......ID 0,0-788,225 #7f0a0489 app:id/mjn}
+                                              android.view.View{62c8af5 V.ED..... ........ 0,0-788,225}
+                                          android.view.ViewStub{ae41c8a G.E...... ......I. 0,0-0,0 #7f0a17b7 app:id/p2s}
+                                          android.widget.FrameLayout{8e62fb G.E...... ......I. 0,0-0,0 #7f0a4cd3 app:id/f21}
+                                            android.widget.ImageView{7eacf18 VFED..C.. ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{ea3ad71 V.E...... ........ 928,246-928,246 #7f0a4caa app:id/wdu}
+                                            android.widget.ImageView{ef7756 GFED..C.. ......I. 0,0-0,0}
+                                          android.view.ViewStub{ed633d7 G.E...... ......I. 0,0-0,0 #7f0a4cc9 app:id/wel}
+                                          android.widget.FrameLayout{1cc008a V.E...... ........ 939,177-939,177 #7f0a4ca8 app:id/wds}
+                                          android.view.ViewStub{449c4c4 G.E...... ......I. 0,0-0,0 #7f0a4cc6 app:id/wei}
+                                          android.view.ViewStub{f4afad G.E...... ......I. 0,0-0,0 #7f0a4288 app:id/v2i}
+                                          android.view.ViewStub{283b2e2 G.E...... ......I. 0,0-0,0 #7f0a4c9b app:id/wdi}
+                                          android.view.ViewStub{f603673 G.E...... ......I. 0,0-0,0 #7f0a08f0 app:id/n40}
+                                          android.widget.FrameLayout{c806930 V.E...... ........ 140,289-140,289 #7f0a4cd8 app:id/wev}
+                                            android.widget.RelativeLayout{dd999a9 V.E...... ......I. 0,0-0,0}
+                                        com.tencent.qqnt.aio.holder.template.TemplateLayout{54bf5d6 V.E...... .......D 0,758-1080,1108 #7f0a745c app:id/root}
+                                          android.widget.FrameLayout{42e1b2e G.E...... ......I. 0,0-0,0 #7f0a4cdb app:id/wex}
+                                            android.view.ViewStub{77dc6cf G.E...... ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{63ae85c G.E...... ......I. 0,0-0,0 #7f0a4cd9 app:id/f24}
+                                            com.tencent.biz.qui.blend.QUIBlendTextView{d092765 V.ED..... ......ID 0,0-0,0}
+                                          android.view.ViewStub{404bc3a G.E...... ......I. 0,0-0,0 #7f0a4cb4 app:id/we1}
+                                          android.widget.FrameLayout{f52a744 V.E...... .......D 32,21-140,129 #7f0a4c9c app:id/wdj}
+                                            com.tencent.mobileqq.aio.widget.AvatarContainer{fc31057 VFE...CL. .......D 0,0-108,108 #7f0a03df app:id/mh_}
+                                              com.tencent.mobileqq.proavatar.QQProAvatarView{57ba7a1 V.E...... .......D 0,0-108,108}
+                                                com.tencent.mobileqq.proavatar.QQProAvatarLayerImageView{7c0202d V.ED..... ......ID 0,0-108,108}
+                                          android.widget.FrameLayout{12b9229 V.E...... ........ 161,21-184,64 #7f0a4f22 app:id/wq2}
+                                            android.widget.LinearLayout{f74f3b0 V.E...... ........ 0,0-23,43}
+                                              android.widget.LinearLayout{b7e5af3 V.E...... ........ 0,0-23,43}
+                                                android.view.ViewStub{63a00eb G.E...... ......I. 0,0-0,0}
+                                                com.tencent.mobileqq.qqui.widget.AIONickTextView{6699962 VFED..C.. ........ 0,0-12,43 #7f0a048c app:id/mjq}
+                                                android.view.ViewStub{3bc2e48 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{e9d4e1 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{9726206 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{635c0c7 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{689e6f4 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{1cdde1d G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{5c29892 G.E...... ......I. 0,0-0,0}
+                                          com.tencent.qqnt.aio.holder.template.BubbleLayoutCompatPress{82d9adc V.E....L. .......D 140,64-928,350 #7f0a17b5 app:id/p2r}
+                                            com.tencent.mobileqq.aio.msglist.holder.component.text.AIOTextContentComponent$mContentWithForeground$2$1{499b34f V.E...... .......D 0,0-788,286}
+                                              com.tencent.qqnt.aio.widget.SelectableLinearLayout{acbe9ae VFE...C.. .......D 0,0-788,286}
+                                                com.tencent.qqnt.aio.widget.TextExtLinearLayout{4f0f2ba V.E...... .......D 0,0-788,286}
+                                                  com.tencent.qqnt.aio.widget.AIOMsgTextView{2c227e5 VFED..CL. ......ID 0,0-788,286 #7f0a0489 app:id/mjn}
+                                              android.view.View{a68356b V.ED..... ........ 0,0-788,286}
+                                          android.view.ViewStub{143a263 G.E...... ......I. 0,0-0,0 #7f0a17b7 app:id/p2s}
+                                          android.widget.FrameLayout{d87e60 G.E...... ......I. 0,0-0,0 #7f0a4cd3 app:id/f21}
+                                            android.widget.ImageView{ef3f19 VFED..C.. ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{16dabde V.E...... ........ 928,307-928,307 #7f0a4caa app:id/wdu}
+                                            android.widget.ImageView{1c401bf GFED..C.. ......I. 0,0-0,0}
+                                          android.view.ViewStub{1b7208c G.E...... ......I. 0,0-0,0 #7f0a4cc9 app:id/wel}
+                                          android.widget.FrameLayout{a6788c8 V.E...... ........ 939,207-939,207 #7f0a4ca8 app:id/wds}
+                                          android.view.ViewStub{f2bb3d5 G.E...... ......I. 0,0-0,0 #7f0a4cc6 app:id/wei}
+                                          android.view.ViewStub{224a7ea G.E...... ......I. 0,0-0,0 #7f0a4288 app:id/v2i}
+                                          android.view.ViewStub{dc0fadb G.E...... ......I. 0,0-0,0 #7f0a4c9b app:id/wdi}
+                                          android.view.ViewStub{7fbb978 G.E...... ......I. 0,0-0,0 #7f0a08f0 app:id/n40}
+                                          android.widget.FrameLayout{380b851 V.E...... ........ 140,350-140,350 #7f0a4cd8 app:id/wev}
+                                            android.widget.RelativeLayout{59d58b6 V.E...... ......I. 0,0-0,0}
+                                        com.tencent.qqnt.aio.holder.template.TemplateLayout{e899dd6 V.E...... ......ID 0,1108-1080,1625 #7f0a745c app:id/root}
+                                          android.widget.FrameLayout{b50b30b G.E...... ......I. 0,0-0,0 #7f0a4cdb app:id/wex}
+                                            android.view.ViewStub{7ca69b7 G.E...... ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{ac8f44 V.E...... ........ 447,0-633,98 #7f0a4cd9 app:id/f24}
+                                            com.tencent.biz.qui.blend.QUIBlendTextView{8339857 VFED..C.. ........ 0,22-186,66}
+                                          android.view.ViewStub{49c62da G.E...... ......I. 0,0-0,0 #7f0a4cb4 app:id/we1}
+                                          android.widget.FrameLayout{855bb0 V.E...... ......ID 32,119-140,343 #7f0a4c9c app:id/wdj}
+                                            com.tencent.mobileqq.aio.widget.AvatarContainer{e6f62f3 VFE...CL. ......ID 0,0-108,224 #7f0a03df app:id/mh_}
+                                              com.tencent.mobileqq.proavatar.QQProAvatarView{ae3acd8 V.E...... ......ID 0,0-108,108}
+                                                com.tencent.mobileqq.ai.avatar.view.AIAvatarViewV2{f4d1abb V.E...... ......ID -27,-41-140,210 #7f0a0369 app:id/lrz}
+                                                  com.tencent.mobileqq.ai.avatar.view.MosaicImageView{18b5 V.ED.V... ......ID 0,0-167,251}
+                                                  com.tencent.qqshow2dengine.spineworld.SpineWorldRenderView{c4bec2c V.ED..... ......ID 0,0-0,0}
+                                          android.widget.FrameLayout{ddc82dc V.E...... ........ 161,119-212,162 #7f0a4f22 app:id/wq2}
+                                            android.widget.LinearLayout{9933b4f V.E...... ........ 0,0-51,43}
+                                              android.widget.LinearLayout{91691ae V.E...... ........ 0,0-51,43}
+                                                android.view.ViewStub{7eef524 G.E...... ......I. 0,0-0,0}
+                                                com.tencent.mobileqq.qqui.widget.AIONickTextView{4d7da29 VFED..C.. ........ 0,0-40,43 #7f0a048c app:id/mjq}
+                                                android.view.ViewStub{d47888d G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{d1e4a42 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{191ea53 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{fb83f90 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{e312089 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{5cac88e G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{c46d8af G.E...... ......I. 0,0-0,0}
+                                          com.tencent.qqnt.aio.holder.template.BubbleLayoutCompatPress{9723d6b V.E....L. .......D 140,162-612,517 #7f0a17b5 app:id/p2r}
+                                            androidx.constraintlayout.widget.ConstraintLayout{13e1aba V.E...... .......D 0,0-472,355}
+                                              com.tencent.mobileqq.aio.msglist.holder.component.reply.AIOReplyLinearLayout{8eaefe5 VFE...C.. ......ID 0,0-472,355 #7f0a7b33 app:id/2gs}
+                                                com.tencent.mobileqq.aio.msglist.holder.component.reply.ReplyTextRelativeLayout{5fa561 V.E...... ......ID 46,51-421,215 #7f0a7149 app:id/193}
+                                                  android.widget.RelativeLayout{1cf0c8 VFE...C.. ........ 0,0-375,164 #7f0a7128 app:id/i7f}
+                                                    com.tencent.mobileqq.qqui.widget.MosaicTextView{7232886 V.ED..... ........ 24,24-45,71 #7f0a7b31 app:id/2gq}
+                                                    com.tencent.biz.qui.blend.QUIBlendTextView{df54547 V.ED..... ........ 45,24-351,71 #7f0a7b32 app:id/2gr}
+                                                    com.tencent.qqnt.aio.widget.AIOMsgTextView{8745174 V.ED..... ........ 24,93-261,140 #7f0a7b3a app:id/2gy}
+                                                    android.widget.RelativeLayout{689c4bc G.E...... ......I. 0,0-0,0 #7f0a3801 app:id/ddn}
+                                                      com.tencent.mobileqq.qqui.widget.RoundBubbleImageView{8023c45 G.ED..... ......I. 0,0-0,0 #7f0a8261 app:id/jks}
+                                                      android.widget.TextView{9aedf9a G.ED..... ......ID 0,0-0,0 #7f0a5532 app:id/xfu}
+                                                      com.tencent.qqnt.aio.widget.AsyncImageView{2b250cb G.ED..... ......I. 0,0-0,0 #7f0a8257 app:id/jkq}
+                                                      android.view.View{28c70a8 G.ED..... ......I. 0,0-0,0 #7f0a1a31 app:id/lfc}
+                                                      android.view.View{a0f57c1 G.ED..... ......I. 0,0-0,0 #7f0a1896 app:id/lew}
+                                                      android.widget.ImageView{58b5b66 G.ED..... ......I. 0,0-0,0 #7f0a36b2 app:id/d_m}
+                                                    com.tencent.biz.qui.blend.QUIBlendTextView{9132ea7 G.ED..... ......ID 0,0-0,0 #7f0a4ca6 app:id/f1e}
+                                                    com.tencent.biz.qui.blend.QUIBlendTextView{18bef54 G.ED..... ......ID 0,0-0,0 #7f0a26fa app:id/lin}
+                                                  android.widget.ImageView{e10369d VFED..C.. ......ID 229,0-375,111 #7f0a3eb7 app:id/lo3}
+                                                com.tencent.qqnt.aio.widget.AIOMsgTextView{7f94712 VFED..CL. ........ 0,215-390,355 #7f0a0489 app:id/mjn}
+                                              android.view.View{2b6eee3 V.ED..... ........ 0,0-472,355}
+                                          android.view.ViewStub{872c485 G.E...... ......I. 0,0-0,0 #7f0a17b7 app:id/p2s}
+                                          android.widget.FrameLayout{64245fc G.E...... ......I. 0,0-0,0 #7f0a4cd3 app:id/f21}
+                                            android.widget.ImageView{a78aefd VFED..C.. ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{5f796ef V.E...... ........ 612,474-612,474 #7f0a4caa app:id/wdu}
+                                            android.widget.ImageView{f61c7f2 GFED..C.. ......I. 0,0-0,0}
+                                          android.view.ViewStub{36a97ce G.E...... ......I. 0,0-0,0 #7f0a4cc9 app:id/wel}
+                                          android.widget.FrameLayout{b3f10e0 V.E...... ........ 623,340-623,340 #7f0a4ca8 app:id/wds}
+                                          android.view.ViewStub{6bda4c9 G.E...... ......I. 0,0-0,0 #7f0a4cc6 app:id/wei}
+                                          android.view.ViewStub{ecf2cd0 G.E...... ......I. 0,0-0,0 #7f0a4288 app:id/v2i}
+                                          android.view.ViewStub{4a74493 G.E...... ......I. 0,0-0,0 #7f0a4c9b app:id/wdi}
+                                          android.view.ViewStub{6a3a582 G.E...... ......I. 0,0-0,0 #7f0a08f0 app:id/n40}
+                                          android.widget.FrameLayout{ae848cd V.E...... ........ 140,517-140,517 #7f0a4cd8 app:id/wev}
+                                            android.widget.RelativeLayout{eba0e43 V.E...... ......I. 0,0-0,0}
+                                        com.tencent.qqnt.aio.holder.template.TemplateLayout{b5555d2 V.E...... .......D 0,1625-1080,1853 #7f0a745c app:id/root}
+                                          android.widget.FrameLayout{62acc0 G.E...... ......I. 0,0-0,0 #7f0a4cdb app:id/wex}
+                                            android.view.ViewStub{7263df9 G.E...... ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{9c0713e G.E...... ......I. 0,0-0,0 #7f0a4cd9 app:id/f24}
+                                            com.tencent.biz.qui.blend.QUIBlendTextView{d654b9f V.ED..... ......ID 0,0-0,0}
+                                          android.view.ViewStub{d25d4ec G.E...... ......I. 0,0-0,0 #7f0a4cb4 app:id/we1}
+                                          android.widget.FrameLayout{2609da0 V.E...... .......D 32,21-140,129 #7f0a4c9c app:id/wdj}
+                                            com.tencent.mobileqq.aio.widget.AvatarContainer{5e7b6a3 VFE...CL. .......D 0,0-108,108 #7f0a03df app:id/mh_}
+                                              com.tencent.mobileqq.proavatar.QQProAvatarView{64cbf36 V.E...... .......D 0,0-108,108}
+                                                com.tencent.mobileqq.proavatar.QQProAvatarLayerImageView{cea0d59 V.ED..... ......ID 0,0-108,108}
+                                          android.widget.FrameLayout{ca52615 V.E...... ........ 161,21-184,64 #7f0a4f22 app:id/wq2}
+                                            android.widget.LinearLayout{ec1f3cc V.E...... ........ 0,0-23,43}
+                                              android.widget.LinearLayout{3519ff V.E...... ........ 0,0-23,43}
+                                                android.view.ViewStub{a83c0b5 G.E...... ......I. 0,0-0,0}
+                                                com.tencent.mobileqq.qqui.widget.AIONickTextView{b8efd1e VFED..C.. ........ 0,0-12,43 #7f0a048c app:id/mjq}
+                                                android.view.ViewStub{fce634a G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{25d02bb G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{1153d8 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{ffcb331 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{6176a16 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{d4f0f97 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{733d584 G.E...... ......I. 0,0-0,0}
+                                          com.tencent.qqnt.aio.holder.template.BubbleLayoutCompatPress{80080b8 V.E....L. .......D 140,64-897,228 #7f0a17b5 app:id/p2r}
+                                            com.tencent.mobileqq.aio.msglist.holder.component.text.AIOTextContentComponent$mContentWithForeground$2$1{fcb571b V.E...... .......D 0,0-757,164}
+                                              com.tencent.qqnt.aio.widget.SelectableLinearLayout{d29cd2a VFE...C.. .......D 0,0-757,164}
+                                                com.tencent.qqnt.aio.widget.TextExtLinearLayout{def91f6 V.E...... .......D 0,0-757,164}
+                                                  com.tencent.qqnt.aio.widget.AIOMsgTextView{5bf0e91 VFED..CL. ......ID 0,0-757,164 #7f0a0489 app:id/mjn}
+                                              android.view.View{7be49f7 V.ED..... ........ 0,0-757,164}
+                                          android.view.ViewStub{438516d G.E...... ......I. 0,0-0,0 #7f0a17b7 app:id/p2s}
+                                          android.widget.FrameLayout{c1811a2 G.E...... ......I. 0,0-0,0 #7f0a4cd3 app:id/f21}
+                                            android.widget.ImageView{eb0e33 VFED..C.. ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{dac5f0 V.E...... ........ 897,185-897,185 #7f0a4caa app:id/wdu}
+                                            android.widget.ImageView{d159769 GFED..C.. ......I. 0,0-0,0}
+                                          android.view.ViewStub{a89a5ee G.E...... ......I. 0,0-0,0 #7f0a4cc9 app:id/wel}
+                                          android.widget.FrameLayout{298f064 V.E...... ........ 908,146-908,146 #7f0a4ca8 app:id/wds}
+                                          android.view.ViewStub{13e5a8f G.E...... ......I. 0,0-0,0 #7f0a4cc6 app:id/wei}
+                                          android.view.ViewStub{be511c G.E...... ......I. 0,0-0,0 #7f0a4288 app:id/v2i}
+                                          android.view.ViewStub{5674125 G.E...... ......I. 0,0-0,0 #7f0a4c9b app:id/wdi}
+                                          android.view.ViewStub{a6e32fa G.E...... ......I. 0,0-0,0 #7f0a08f0 app:id/n40}
+                                          android.widget.FrameLayout{bd010ab V.E...... ........ 140,228-140,228 #7f0a4cd8 app:id/wev}
+                                            android.widget.RelativeLayout{bed6308 V.E...... ......I. 0,0-0,0}
+                                        com.tencent.qqnt.aio.holder.template.TemplateLayout{414d642 V.E...... ......ID 0,1853-1080,2272 #7f0a745c app:id/root}
+                                          android.widget.FrameLayout{86fcaa1 G.E...... ......I. 0,0-0,0 #7f0a4cdb app:id/wex}
+                                            android.view.ViewStub{dc84c6 G.E...... ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{57d0c87 G.E...... ......I. 0,0-0,0 #7f0a4cd9 app:id/f24}
+                                            com.tencent.biz.qui.blend.QUIBlendTextView{779a7b4 V.ED..... ......ID 0,0-0,0}
+                                          android.view.ViewStub{91d6fdd G.E...... ......I. 0,0-0,0 #7f0a4cb4 app:id/we1}
+                                          android.widget.FrameLayout{30fab90 V.E...... ......ID 32,21-140,245 #7f0a4c9c app:id/wdj}
+                                            com.tencent.mobileqq.aio.widget.AvatarContainer{f338653 VFE...CL. ......ID 0,0-108,224 #7f0a03df app:id/mh_}
+                                              com.tencent.mobileqq.proavatar.QQProAvatarView{3e7d4da V.E...... ......ID 0,0-108,108}
+                                                com.tencent.mobileqq.ai.avatar.view.AIAvatarViewV2{8c62633 V.E...... ......ID -27,-41-140,210 #7f0a0369 app:id/lrz}
+                                                  com.tencent.mobileqq.ai.avatar.view.MosaicImageView{c9089a2 V.ED.V... ......ID 0,0-167,251}
+                                                  com.tencent.qqshow2dengine.spineworld.SpineWorldRenderView{a72737b V.ED..... ......ID 0,0-0,0}
+                                          android.widget.FrameLayout{5ebf0bc V.E...... ........ 161,21-212,64 #7f0a4f22 app:id/wq2}
+                                            android.widget.LinearLayout{86634af V.E...... ........ 0,0-51,43}
+                                              android.widget.LinearLayout{39e148e V.E...... ........ 0,0-51,43}
+                                                android.view.ViewStub{b8c2752 G.E...... ......I. 0,0-0,0}
+                                                com.tencent.mobileqq.qqui.widget.AIONickTextView{5521c89 VFED..C.. ........ 0,0-40,43 #7f0a048c app:id/mjq}
+                                                android.view.ViewStub{a13ea23 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{5e38b20 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{1062cd9 G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{a21669e G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{9b1057f G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{f46394c G.E...... ......I. 0,0-0,0}
+                                                android.view.ViewStub{323bd95 G.E...... ......I. 0,0-0,0}
+                                          com.tencent.qqnt.aio.holder.template.BubbleLayoutCompatPress{76b6ccb V.E....L. .......D 140,64-787,419 #7f0a17b5 app:id/p2r}
+                                            androidx.constraintlayout.widget.ConstraintLayout{f6aeb9a V.E...... .......D 0,0-647,355}
+                                              com.tencent.mobileqq.aio.msglist.holder.component.reply.AIOReplyLinearLayout{636f845 VFE...C.. ......ID 0,0-647,355 #7f0a7b33 app:id/2gs}
+                                                com.tencent.mobileqq.aio.msglist.holder.component.reply.ReplyTextRelativeLayout{cd3d3c1 V.E...... ......ID 46,51-596,215 #7f0a7149 app:id/193}
+                                                  android.widget.RelativeLayout{3e55ca8 VFE...C.. ........ 0,0-550,164 #7f0a7128 app:id/i7f}
+                                                    com.tencent.mobileqq.qqui.widget.MosaicTextView{8fc2766 V.ED..... ........ 24,24-45,71 #7f0a7b31 app:id/2gq}
+                                                    com.tencent.biz.qui.blend.QUIBlendTextView{6420aa7 V.ED..... ........ 45,24-350,71 #7f0a7b32 app:id/2gr}
+                                                    com.tencent.qqnt.aio.widget.AIOMsgTextView{d879b54 V.ED..... ........ 24,93-526,140 #7f0a7b3a app:id/2gy}
+                                                    android.widget.RelativeLayout{394eaa G.E...... ......I. 0,0-0,0 #7f0a3801 app:id/ddn}
+                                                      com.tencent.mobileqq.qqui.widget.RoundBubbleImageView{fda7a9b G.ED..... ......I. 0,0-0,0 #7f0a8261 app:id/jks}
+                                                      android.widget.TextView{439e38 G.ED..... ......ID 0,0-0,0 #7f0a5532 app:id/xfu}
+                                                      com.tencent.qqnt.aio.widget.AsyncImageView{e4f9e11 G.ED..... ......I. 0,0-0,0 #7f0a8257 app:id/jkq}
+                                                      android.view.View{c35ab76 G.ED..... ......I. 0,0-0,0 #7f0a1a31 app:id/lfc}
+                                                      android.view.View{5c2577 G.ED..... ......I. 0,0-0,0 #7f0a1896 app:id/lew}
+                                                      android.widget.ImageView{bb065e4 G.ED..... ......I. 0,0-0,0 #7f0a36b2 app:id/d_m}
+                                                    com.tencent.biz.qui.blend.QUIBlendTextView{b7f0a4d G.ED..... ......ID 0,0-0,0 #7f0a4ca6 app:id/f1e}
+                                                    com.tencent.biz.qui.blend.QUIBlendTextView{ec90902 G.ED..... ......ID 0,0-0,0 #7f0a26fa app:id/lin}
+                                                  android.widget.ImageView{b08eafd VFED..C.. ......ID 404,0-550,111 #7f0a3eb7 app:id/lo3}
+                                                com.tencent.qqnt.aio.widget.AIOMsgTextView{71353f2 VFED..CL. ........ 0,215-570,355 #7f0a0489 app:id/mjn}
+                                              android.view.View{5faaa43 V.ED..... ........ 0,0-647,355}
+                                          android.view.ViewStub{5e3a213 G.E...... ......I. 0,0-0,0 #7f0a17b7 app:id/p2s}
+                                          android.widget.FrameLayout{afffc50 G.E...... ......I. 0,0-0,0 #7f0a4cd3 app:id/f21}
+                                            android.widget.ImageView{3befe49 VFED..C.. ......I. 0,0-0,0}
+                                          android.widget.FrameLayout{f42b34e V.E...... ........ 787,376-787,376 #7f0a4caa app:id/wdu}
+                                            android.widget.ImageView{e5c4c6f GFED..C.. ......I. 0,0-0,0}
+                                          android.view.ViewStub{9708d7c G.E...... ......I. 0,0-0,0 #7f0a4cc9 app:id/wel}
+                                          android.widget.FrameLayout{e6d18c0 V.E...... ........ 798,242-798,242 #7f0a4ca8 app:id/wds}
+                                          android.view.ViewStub{9f03605 G.E...... ......I. 0,0-0,0 #7f0a4cc6 app:id/wei}
+                                          android.view.ViewStub{89ab65a G.E...... ......I. 0,0-0,0 #7f0a4288 app:id/v2i}
+                                          android.view.ViewStub{10b408b G.E...... ......I. 0,0-0,0 #7f0a4c9b app:id/wdi}
+                                          android.view.ViewStub{5f70568 G.E...... ......I. 0,0-0,0 #7f0a08f0 app:id/n40}
+                                          android.widget.FrameLayout{4432d81 V.E...... ........ 140,419-140,419 #7f0a4cd8 app:id/wev}
+                                            android.widget.RelativeLayout{b3dde26 V.E...... ......I. 0,0-0,0}
+                              androidx.constraintlayout.widget.ConstraintLayout{1e5902b V.E...... ........ 0,0-1080,2330 #7f0a04b7 app:id/mko}
+                                android.widget.FrameLayout{74007a V.E...... ........ 0,251-1080,251 #7f0a848a app:id/3mb}
+                                android.view.ViewStub{7158e64 G.E...... ......I. 0,0-0,0 #7f0a0eef app:id/nvy}
+                                android.view.View{cedac88 V.ED..... ........ 539,2182-542,2185 #7f0a056f app:id/mn0}
+                                com.tencent.mobileqq.ai.avatar.view.AIAvatarFloatViewV2{4f41621 V.E...... ........ 0,251-1080,2330}
+                                android.widget.RelativeLayout{931aa46 V.E...... ........ 0,0-1080,2330}
+                                android.view.ViewStub{ff29ff7 G.E...... ......I. 0,0-0,0}
+                                androidx.constraintlayout.widget.ConstraintLayout{b877ff6 G.E...... ......I. 0,0-0,0 #7f0a0409 app:id/mhx}
+                                com.tencent.qui.quiblurview.QQBlurViewWrapper{829f491 G.E...... ......I. 0,0-0,0 #7f0a0b6a app:id/neq}
+                                  com.tencent.qui.quiblurview.QQNativeBlurViewWrapper{a6b5a67 V.ED..... ......I. 0,0-0,0}
+                                com.tencent.mobileqq.aio.reserve1.navigation.view.AioNavAnimView{34f3eb8 GFED..C.. ......I. 0,0-0,0 #7f0a048f app:id/mjs}
+                                com.tencent.mobileqq.aio.reserve1.summary.view.DraggableLayout{37593b8 GFE...C.. ......I. 0,0-0,0}
+                                  com.tencent.mobileqq.aio.reserve1.summary.view.AiSummaryFloatingBar{7eb1014 V.E...... ......I. 0,0-0,0}
+                                    androidx.constraintlayout.widget.ConstraintLayout{17420bd V.E...... ......I. 0,0-0,0 #7f0a03c8 app:id/mh1}
+                                      android.widget.Space{f99b6b2 I.ED..... ......I. 0,0-0,0 #7f0a03c7 app:id/mh0}
+                                      android.widget.ImageView{9c93603 V.ED..... ......ID 0,0-0,0 #7f0a038e app:id/m1t}
+                                      android.widget.ImageView{2731980 V.ED..... ......I. 0,0-0,0 #7f0a0391 app:id/m3q}
+                                      android.widget.ImageView{5c70bb9 G.ED..... ......I. 0,0-0,0 #7f0a0392 app:id/m3x}
+                                      android.widget.TextSwitcher{5688bfe G.E...... ......I. 0,0-0,0 #7f0a0394 app:id/m7f}
+                                        android.widget.TextView{c9f2f5f V.ED..... ......ID 0,0-0,0}
+                                        android.widget.TextView{2b04dac G.ED..... ......ID 0,0-0,0}
+                                      android.widget.ImageView{bc3aa75 I.ED..... ......I. 0,0-0,0 #7f0a0393 app:id/m4y}
+                                android.widget.TextView{d92e911 GFED..C.. ......I. 980,2077-1053,2158 #7f0a8e52 app:id/512}
+                              com.tencent.aio.part.root.panel.content.thirdLevel.mvx.vb.ThirdLevelVB$onCreateView$container$1{7ce24d2 V.ED..... .......D 0,0-1080,2330}
+                                com.tencent.qqnt.aio.shortcutbar.PanelIconLinearLayout{c464d1b GFE...C.. ......I. 0,0-0,0}
+                                  android.widget.ImageView{bbd6a0a VFED..C.. ......I. 0,0-0,0}
+                                  com.tencent.qqnt.aio.shortcutbar.widget.CountImageView{3b1627b VFED..CL. ......I. 0,0-0,0}
+                                  android.widget.ImageView{4aa9898 VFED..C.. ......I. 0,0-0,0}
+                                  com.tencent.mobileqq.tianshu.ui.RedTouch{4b178f1 V.E...... ......I. 0,0-0,0}
+                                    android.widget.ImageView{dd01cd6 VFED..C.. ......I. 0,0-0,0}
+                                    android.widget.LinearLayout{de9ab57 G.E...... ......I. 0,0-0,0 #64}
+                                  android.widget.ImageView{afca644 VFED..C.. ......I. 0,0-0,0}
+                                  android.widget.ImageView{4d3b32d VFED..C.. ......I. 0,0-0,0}
+                                com.tencent.mobileqq.aio.input.view.InterceptableRelativeLayout{e4155d0 V.E...... .......D 0,2185-1080,2330}
+                                  android.widget.LinearLayout{9547193 V.E...... ......ID 0,0-1080,145}
+                                    android.widget.ImageView{893062 G.ED..... ......I. 0,0-0,0}
+                                    android.widget.LinearLayout{c456682 V.E...... ........ 0,0-1080,0}
+                                      android.widget.FrameLayout{8e46dcd V.E...... ......ID 0,0-1080,0}
+                                      android.widget.FrameLayout{4f3a5f3 G.E...... ......I. 0,0-0,0}
+                                        androidx.constraintlayout.widget.ConstraintLayout{53fe2b0 V.E...... ......I. 0,0-0,0}
+                                          android.widget.TextView{7655529 V.ED..... ......ID 0,0-0,0 #7f0a004d app:id/18}
+                                          android.widget.TextView{ccdf0ae V.ED..... ......ID 0,0-0,0 #7f0a184c app:id/p4z}
+                                          com.tencent.robot.aiinputcorrection.ui.LoadingTextView{798ae4f G.ED..... ......I. 0,0-0,0 #7f0a4582 app:id/efo}
+                                    androidx.constraintlayout.widget.ConstraintLayout{8d719c9 VFE...C.. .......D 0,0-1080,145 #7f0a3a66 app:id/dmj}
+                                      android.widget.ImageButton{7e768ce VFED..C.. ......ID 37,44-112,119 #7f0a5896 app:id/xvx}
+                                      com.tencent.mobileqq.aio.input.edit.AIOEditText{cca93ef VFED..CL. ......ID 155,16-821,129 #7f0a3a5c app:id/input aid=1073741824}
+                                      android.widget.TextView{52dfefc IFED..... ......ID 155,32-821,129 #7f0a8b44 app:id/4kw}
+                                      android.widget.FrameLayout{8d6800b V.E...... .......D 853,43-961,129 #7f0a0400 app:id/mhq}
+                                        com.tencent.mobileqq.tianshu.ui.RedTouch{29543da V.E...... .......D 0,0-76,76}
+                                          android.widget.ImageButton{b2e8985 VFED..C.. ......ID 0,0-76,76 #7f0a1eac app:id/emo_btn}
+                                          android.widget.LinearLayout{13879dc G.E...... ......I. 0,0-0,0 #64}
+                                      androidx.constraintlayout.widget.Barrier{1da0ee8 G.ED..... ......I. 961,16-961,16 #7f0a0a06 app:id/n93}
+                                      android.widget.FrameLayout{213c3a6 V.E...... .......D 961,43-1080,129 #7f0a041e app:id/mia}
+                                        com.tencent.mobileqq.tianshu.ui.RedTouch{6551ae5 V.E...... .......D 0,0-76,76}
+                                          android.widget.ImageButton{9d33901 VFED..C.. ......ID 0,0-76,76 #7f0a283c app:id/fun_btn}
+                                          android.widget.LinearLayout{28c69ba G.E...... ......I. 0,0-0,0 #64}
+                                      com.tencent.mobileqq.aio.input.AIOInputSendBtn{ddbe06b GF.D..C.. ......ID 0,0-0,0 #7f0a77e0 app:id/send_btn}
+                                android.widget.FrameLayout{f7edb2a G.E...... ......I. 0,0-0,0}
+                                android.widget.FrameLayout{45af35d V.E...... .......D 0,0-1080,251}
+                                  com.tencent.qui.quiblurview.QQBlurViewWrapper{2c157c8 G.E...... ......I. 0,0-0,0 #7f0a0b6e app:id/neu}
+                                    com.tencent.qui.quiblurview.QQNativeBlurViewWrapper{1c18061 V.ED..... ......I. 0,0-0,0}
+                                  android.view.View{876786 G.ED..... ......I. 0,0-0,0 #7f0a4762 app:id/vn2}
+                                  android.widget.RelativeLayout{5f50934 VFE...C.. ......ID 0,0-1080,251 #7f0a833d app:id/jo9}
+                                    com.tencent.mobileqq.aio.widget.AIOTitleRelativeLayout{42b0407 V.E...... .......D 0,116-1080,251 #7f0a8395 app:id/3i4}
+                                      android.widget.TextView{e69d9a3 VFED..C.. ......ID 27,35-92,100 #7f0a3cf2 app:id/ivTitleBtnLeft}
+                                      com.tencent.mobileqq.aio.widget.QUIBadgeMosaic{2d61847 GFED..C.. ......I. 0,0-0,0 #7f0a8e45 app:id/50q}
+                                      android.widget.ImageView{e782874 G.ED..... ......I. 0,0-0,0 #7f0a0502 app:id/ml9}
+                                      com.tencent.mobileqq.aio.widget.CommonTextView{a7384a0 VFED..C.. ........ 103,38-662,96 #7f0a832c app:id/3g3}
+                                      com.tencent.mobileqq.aio.widget.CommonTextView{5f25c82 V.ED..... ........ 662,38-788,96 #7f0a8329 app:id/3g1}
+                                      android.view.ViewStub{334c19d G.E...... ......I. 0,0-0,0 #7f0a378b app:id/tl4}
+                                      android.view.ViewStub{ce27612 G.E...... ......I. 0,0-0,0 #7f0a92ed app:id/5ms}
+                                      android.view.View{51f1e3 G.ED..... ......I. 0,0-0,0 #7f0a92e8 app:id/5mq}
+                                      android.view.ViewStub{32957e0 G.E...... ......I. 0,0-0,0 #7f0a1127 app:id/o71}
+                                      android.view.ViewStub{8a0da99 G.E...... ......I. 0,0-0,0 #7f0a1128 app:id/o72}
+                                      com.tencent.mobileqq.aio.widget.CommonImageView{9586859 V.ED.V... ......ID 799,46-842,89 #7f0a1d93 app:id/pt2}
+                                      android.widget.ImageView{a6de15e GFED..C.. ......I. 0,0-0,0 #7f0a7df9 app:id/2u2}
+                                      android.widget.LinearLayout{827c93f G.E...... ......I. 0,0-0,0 #7f0a044a app:id/mjd}
+                                        android.widget.ImageView{dfc120c V.ED..... ......I. 0,0-0,0 #7f0a044b app:id/mje}
+                                      com.tencent.mobileqq.aio.widget.RedDotImageView{31b8755 GFED..C.. ......I. 0,0-0,0 #7f0a7218 app:id/1bq}
+                                      android.view.ViewStub{6b2b56a G.E...... ......I. 0,0-0,0 #7f0a8572 app:id/3qi}
+                                      android.view.ViewStub{759ba5b G.E...... ......I. 0,0-0,0 #7f0a83c7 app:id/3ix}
+                                      android.view.ViewStub{55e42f8 G.E...... ......I. 0,0-0,0 #7f0a428f app:id/v2n}
+                                      com.tencent.mobileqq.aio.widget.RedDotImageView{845bc1e VFED..C.. ......ID 972,35-1037,100 #7f0a7217 app:id/1bp}
+                                      com.tencent.mobileqq.aio.widget.NTViewFlipper{55a43d1 G.E...... ......I. 0,0-0,0 #7f0a83c3 app:id/mam}
+                                        android.widget.LinearLayout{cbebe36 GFE...C.. ......I. 0,0-0,0}
+                                          com.tencent.mobileqq.onlinestatus.music.OnlineStatusLyricView{eefa137 V.ED..... ......ID 0,0-0,0 #7f0a7df7 app:id/j64}
+                                          android.widget.TextView{6b096a4 G.ED..... ......ID 0,0-0,0}
+                                          com.tencent.mobileqq.onlinestatus.music.OnlineStatusLyricView{dee4c0d G.ED..... ......ID 0,0-0,0 #7f0a7dfb app:id/2u3}
+                                        com.tencent.mobileqq.aio.widget.CommonTextView{8b087c2 GFED..C.. ......ID 0,0-0,0 #7f0a7df8 app:id/2u1}
+                                    android.widget.ImageView{e9319d3 G.ED..... ......I. 0,0-0,0 #7f0a1bff app:id/pl1}
+                                android.widget.FrameLayout{e872764 I.E...... ......I. 0,0-1080,2330 #7f0a03ed app:id/mhh}
+                                android.view.ViewStub{a0dac15 G.E...... ......I. 0,0-0,0}
+                                android.widget.FrameLayout{200d1cc V.E...... ........ 0,2330-1080,2330}
+                                  android.widget.FrameLayout{2b27910 G.E...... ......ID 0,0-0,0}
+                                    android.widget.LinearLayout{9409c09 V.E...... ......I. 0,0-0,0}
+                                      android.widget.ImageView{8035e0e V.ED..... ......I. 0,0-0,0}
+                                      android.widget.TextView{ceb802f V.ED..... ......ID 0,0-0,0}
+                              android.widget.RelativeLayout{6aa6256 V.E...... ......I. 0,0-1080,2330}
+                                android.widget.FrameLayout{a1b6471 V.E...... ........ 0,251-1080,2330}
+                                  android.widget.FrameLayout{508fe0b V.E...... ........ 0,0-1080,2079}
+                                    android.view.View{a2af9da GFED..C.. ......I. 0,0-0,0 #7f0a4755 app:id/gm7}
+                                    com.tencent.mobileqq.aio.notification.list.AIONotificationScrollLayout{e267539 V.E...... ........ 0,0-1080,2079 #7f0a04a4 app:id/mk8}
+                                      com.tencent.mobileqq.aio.notification.background.AIONotificationBlurView{3703900 V.ED..... ......ID 0,0-1080,0 #7f0a0b70 app:id/new}
+                                      android.widget.RelativeLayout{4625cf6 V.E...... ........ 0,0-1080,864 #7f0a049c app:id/mk0}
+                                        androidx.recyclerview.widget.RecyclerView{4622591 VFED..... ......ID 0,0-1080,0 #7f0a04a3 app:id/mk7}
+                                com.tencent.mobileqq.aio.animation.AIOAnimationContainer{50642d7 V.E...... ........ 0,251-1080,2185 #7f0a03c9 app:id/mh2}
+                                android.widget.RelativeLayout{55227c4 V.E...... ........ 0,0-1080,2330 #7f0a03ca app:id/mh3}
+                                android.widget.FrameLayout{e153d9c V.E...... ........ 0,0-1080,2330}
+                                  android.widget.RelativeLayout{1f0a16c V.E...... ........ 0,0-1080,2330}
+                                android.widget.FrameLayout{bccafff G.E...... ......I. 0,0-0,0}
+                                android.widget.FrameLayout{b0f2b1e G.E...... ......I. 0,0-0,0}
+                                  android.widget.FrameLayout{4ae163c VFE...C.. ......I. 0,0-0,0}
+                                    com.tencent.qui.quiblurview.QQBlurViewWrapper{74defc5 V.E...... ......I. 0,0-0,0 #7f0a86ed app:id/3xq}
+                                      com.tencent.qui.quiblurview.QQNativeBlurViewWrapper{29b4d1a V.ED..... ......I. 0,0-0,0}
+                                    android.widget.LinearLayout{9b9f04b V.E...... ......I. 0,0-0,0 #7f0a17b9 app:id/b9t}
+                                      android.widget.ImageView{645a28 V.ED..... ......I. 0,0-0,0 #7f0a4915 app:id/vwg}
+                                      com.tencent.mobileqq.widget.listitem.QUISettingsRecyclerView{122c341 VFED..... ......I. 0,0-0,0 #7f0a48ee app:id/vvn}
+                                android.widget.FrameLayout{2b63359 GFE...C.. ......I. 0,0-0,0}
+                                com.tencent.mobileqq.aio.reserve2.huaweidrag.HuaWeiDragMaskVB$onCreateView$1{1b0d6ad V.ED..... ........ 0,251-1080,2185}
+                            android.widget.FrameLayout{824de2 V.E...... ........ 0,2330-1080,2330 #b}
+                              com.tencent.input.base.panelcontainer.PanelFrameLayout{9a2635 V.E...... ........ 0,0-1080,0 #7f0a5290 app:id/x6k}
+                    com.tencent.aio.frame.drawer.DrawerFrameManager$DrawerChildFrameLazy{a023573 V.E...... ........ 1080,0-2160,2400}
+                      android.widget.FrameLayout{5e72bba V.E...... ......ID 0,0-0,0 #7f0a7472 app:id/if5}
+                        android.widget.LinearLayout{5a25b37 V.E...... ......ID 0,0-0,0}
+                          androidx.constraintlayout.widget.ConstraintLayout{89120e6 G.E...... ......I. 0,0-0,0 #7f0a34c3 app:id/d3z}
+                            android.widget.ImageView{5b54627 VFED..C.. ......ID 0,0-0,0 #7f0a0950 app:id/a43}
+                            androidx.constraintlayout.widget.Guideline{2b8f0d4 G.ED..... ......I. 0,0-0,0 #7f0a1112 app:id/o6n}
+                            android.widget.TextView{a17527d V.ED..... ......ID 0,0-0,0 #7f0a8312 app:id/title}
+                            android.widget.ImageView{be6572 V.ED..... ......I. 0,0-0,0 #7f0a0340 app:id/l8z}
+                            android.widget.ImageView{c261dc3 GFED..C.. ......I. 0,0-0,0 #7f0a3569 app:id/tar}
+    FlymeViewRootState:
+      TracingBarrier=0
+      CheckThreadException=NULL
+      DisplayState=2
+      LastDisplayChangedTime=1789747952780 (284963ms ago)
+    Looper (main, tid 2) {82be8ee}
+      (MessageQueue is using Legacy implementation)
+      Message 0: { when=+1m14s833ms what=16 target=com.tencent.util.WeakReferenceHandler }
+      (Total messages: 1, polling=false, quitting=false)
+    ResourcesManager:
+      total apks: 5
+      resources: 60
+      resource impls: 40
+    1 dumpables:
+    #0: AutofillManager
+        AutofillManager:
+          sessionId: 2147483647
+          state: UNKNOWN
+          context: com.tencent.mobileqq.activity.ChatActivity@dafeff9
+          service client: null
+          client: android.view.autofill.AutofillClientController@11e4640 (android.os.BinderProxy@e9cc9c1)
+          enabled: false
+          enabledAugmentedOnly: false
+          hasService: true
+          hasCallback: false
+          onInvisibleCalled false
+          last autofilled data: null
+          id of last fill UI shown: null
+          tracked views: null
+          fillable ids: null
+          entered ids: null
+          save trigger id: null
+          save on finish(): false
+          options: logLvl=0, compatMode=false, augmented=false, appDisabledExpiration=0
+          fill dialog enabled: false
+          fill dialog enabled hints: []
+          compat mode enabled: false
+          debug: false verbose: false
+        Autofill Compat Mode: false
+    Local FragmentActivity dafeff9 State:
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+    ChatSummaryFragment{c002036} (8962ecb3-4942-434e-bbe0-5974df2cf1b8 id=0x7f0a7472)
+        mFragmentId=#7f0a7472 mContainerId=#7f0a7472 mTag=null
+        mState=4 mWho=8962ecb3-4942-434e-bbe0-5974df2cf1b8 mBackStackNesting=0
+        mAdded=true mRemoving=false mFromLayout=false mInLayout=false
+        mHidden=false mDetached=false mMenuVisible=true mHasMenu=false
+        mRetainInstance=false mUserVisibleHint=true
+        mFragmentManager=FragmentManager{8cb9979 in HostCallbacks{40966be}}}
+        mHost=androidx.fragment.app.FragmentActivity$HostCallbacks@40966be
+        mArguments=Bundle[{group_uid=830058869}]
+        mSavedViewState={2131362624=android.view.AbsSavedState$1@a42d31f, 2131364176=android.view.AbsSavedState$1@a42d31f, 2131366162=android.view.AbsSavedState$1@a42d31f, 2131375299=android.view.AbsSavedState$1@a42d31f, 2131375465=android.view.AbsSavedState$1@a42d31f, 2131395346=android.view.AbsSavedState$1@a42d31f}
+        mSavedViewRegistryState=Bundle[{androidx.lifecycle.BundlableSavedStateRegistry.key=Bundle[{}]}]
+        mPopDirection=false
+        mContainer=android.widget.FrameLayout{5e72bba V.E...... ......ID 0,0-0,0 #7f0a7472 app:id/if5}
+        mView=android.widget.LinearLayout{5a25b37 V.E...... ......ID 0,0-0,0}
+        Child FragmentManager{3c1866c in ChatSummaryFragment{c002036}}}:
+          Back Stack Index: 0
+          FragmentManager misc state:
+            mHost=androidx.fragment.app.FragmentActivity$HostCallbacks@40966be
+            mContainer=androidx.fragment.app.Fragment$4@3e35435
+            mParent=ChatSummaryFragment{c002036} (8962ecb3-4942-434e-bbe0-5974df2cf1b8 id=0x7f0a7472)
+            mCurState=4 mStateSaved=true mStopped=true mDestroyed=false
+    SplashAIOFragment{b5f0ec6} (8d198089-28f8-4a1e-8378-2e7fb7e331e6 id=0x1020002 tag=com.tencent.qqnt.aio.SplashAIOFragment)
+        mFragmentId=#1020002 mContainerId=#1020002 mTag=com.tencent.qqnt.aio.SplashAIOFragment
+        mState=4 mWho=8d198089-28f8-4a1e-8378-2e7fb7e331e6 mBackStackNesting=0
+        mAdded=true mRemoving=false mFromLayout=false mInLayout=false
+        mHidden=false mDetached=false mMenuVisible=true mHasMenu=false
+        mRetainInstance=false mUserVisibleHint=true
+        mFragmentManager=FragmentManager{8cb9979 in HostCallbacks{40966be}}}
+        mHost=androidx.fragment.app.FragmentActivity$HostCallbacks@40966be
+        mSavedViewState={2131366505=android.view.AbsSavedState$1@a42d31f}
+        mSavedViewRegistryState=Bundle[{androidx.lifecycle.BundlableSavedStateRegistry.key=Bundle[{}]}]
+        mPopDirection=false
+        mContainer=android.widget.FrameLayout{6dc4cc0 V.E...... ......ID 0,0-1080,2400 #1020002 android:id/content}
+        mView=android.widget.FrameLayout{3ff9c9b V.E...... ......ID 0,0-1080,2400}
+        Child FragmentManager{17130ca in SplashAIOFragment{b5f0ec6}}}:
+          Active Fragments:
+          ChatFragment{c68077f} (149891ce-1c90-4bd1-bfb6-3f9d4de4103e id=0x7f0a1269 tag=com.tencent.aio.fragment.token)
+              mFragmentId=#7f0a1269 mContainerId=#7f0a1269 mTag=com.tencent.aio.fragment.token
+              mState=4 mWho=149891ce-1c90-4bd1-bfb6-3f9d4de4103e mBackStackNesting=0
+              mAdded=true mRemoving=false mFromLayout=false mInLayout=false
+              mHidden=false mDetached=false mMenuVisible=true mHasMenu=false
+              mRetainInstance=false mUserVisibleHint=true
+              mFragmentManager=FragmentManager{17130ca in SplashAIOFragment{b5f0ec6}}}
+              mHost=androidx.fragment.app.FragmentActivity$HostCallbacks@40966be
+              mParentFragment=SplashAIOFragment{b5f0ec6} (8d198089-28f8-4a1e-8378-2e7fb7e331e6 id=0x1020002 tag=com.tencent.qqnt.aio.SplashAIOFragment)
+              mArguments=Bundle[{AIOParamKey=Bundle[{aio_param=com.tencent.aio.data.AIOParam@6769d58}]}]
+              mSavedViewState={9=android.view.AbsSavedState$1@a42d31f, 11=android.view.AbsSavedState$1@a42d31f, 41=android.view.AbsSavedState$1@a42d31f, 100=android.view.AbsSavedState$1@a42d31f, 2131361869=android.view.AbsSavedState$1@a42d31f, 2131362702=android.view.AbsSavedState$1@a42d31f, 2131362705=android.view.AbsSavedState$1@a42d31f, 2131362706=android.view.AbsSavedState$1@a42d31f, 2131362707=android.view.AbsSavedState$1@a42d31f, 2131362708=android.view.AbsSavedState$1@a42d31f, 2131362759=android.view.AbsSavedState$1@a42d31f, 2131362760=android.view.AbsSavedState$1@a42d31f, 2131362761=android.view.AbsSavedState$1@a42d31f, 2131362762=android.view.AbsSavedState$1@a42d31f, 2131362797=android.view.AbsSavedState$1@a42d31f, 2131362816=android.view.AbsSavedState$1@a42d31f, 2131362825=android.view.AbsSavedState$1@a42d31f, 2131362846=android.view.AbsSavedState$1@a42d31f, 2131362890=android.view.AbsSavedState$1@a42d31f, 2131362891=android.view.AbsSavedState$1@a42d31f, 2131362959=android.view.AbsSavedState$1@a42d31f, 2131362972=android.view.AbsSavedState$1@a42d31f, 2131362979=androidx.recyclerview.widget.RecyclerView$SavedState@e81feb1, 2131362980=android.view.AbsSavedState$1@a42d31f, 2131362999=android.view.AbsSavedState$1@a42d31f, 2131363074=android.view.AbsSavedState$1@a42d31f, 2131363183=android.view.AbsSavedState$1@a42d31f, 2131364358=android.view.AbsSavedState$1@a42d31f, 2131364714=android.view.AbsSavedState$1@a42d31f, 2131364718=android.view.AbsSavedState$1@a42d31f, 2131364720=android.view.AbsSavedState$1@a42d31f, 2131365615=android.view.AbsSavedState$1@a42d31f, 2131366183=android.view.AbsSavedState$1@a42d31f, 2131366184=android.view.AbsSavedState$1@a42d31f, 2131367865=android.view.AbsSavedState$1@a42d31f, 2131368012=android.view.AbsSavedState$1@a42d31f, 2131368959=android.view.AbsSavedState$1@a42d31f, 2131369363=android.view.AbsSavedState$1@a42d31f, 2131369644=android.view.AbsSavedState$1@a42d31f, 2131372042=android.view.AbsSavedState$1@a42d31f, 2131372092=android.view.AbsSavedState$1@a42d31f, 2131376011=android.view.AbsSavedState$1@a42d31f, 2131376732=TextView.SavedState{6d98f96 start=0 end=0 text=}, 2131376742=android.view.AbsSavedState$1@a42d31f, 2131377394=android.view.AbsSavedState$1@a42d31f, 2131378831=android.view.AbsSavedState$1@a42d31f, 2131379586=android.view.AbsSavedState$1@a42d31f, 2131380053=android.view.AbsSavedState$1@a42d31f, 2131380066=android.view.AbsSavedState$1@a42d31f, 2131380462=androidx.recyclerview.widget.RecyclerView$SavedState@8660717, 2131380501=android.view.AbsSavedState$1@a42d31f, 2131382928=android.view.AbsSavedState$1@a42d31f, 2131384470=android.view.AbsSavedState$1@a42d31f, 2131390999=android.view.AbsSavedState$1@a42d31f, 2131391000=android.view.AbsSavedState$1@a42d31f, 2131391602=android.view.AbsSavedState$1@a42d31f, 2131392480=android.view.AbsSavedState$1@a42d31f, 2131394039=android.view.AbsSavedState$1@a42d31f, 2131394040=android.view.AbsSavedState$1@a42d31f, 2131394041=android.view.AbsSavedState$1@a42d31f, 2131394043=android.view.AbsSavedState$1@a42d31f, 2131395369=android.view.AbsSavedState$1@a42d31f, 2131395372=android.view.AbsSavedState$1@a42d31f, 2131395389=android.view.AbsSavedState$1@a42d31f, 2131395477=android.view.AbsSavedState$1@a42d31f, 2131395523=android.view.AbsSavedState$1@a42d31f, 2131395527=android.view.AbsSavedState$1@a42d31f, 2131395722=android.view.AbsSavedState$1@a42d31f, 2131395954=android.view.AbsSavedState$1@a42d31f, 2131396333=android.view.AbsSavedState$1@a42d31f, 2131397444=android.view.AbsSavedState$1@a42d31f, 2131398213=android.view.AbsSavedState$1@a42d31f, 2131398226=android.view.AbsSavedState$1@a42d31f, 2131399400=android.view.AbsSavedState$1@a42d31f, 2131399405=android.view.AbsSavedState$1@a42d31f}
+              mSavedViewRegistryState=Bundle[{androidx.lifecycle.BundlableSavedStateRegistry.key=Bundle[{}]}]
+              mPopDirection=false
+              mContainer=com.tencent.qqnt.aio.widget.AIOGestureLayout{b15b8aa V.E...... ......ID 0,0-1080,2400 #7f0a1269 app:id/oav}
+              mView=com.tencent.aio.main.fragment.ChatFragmentRootView{5f210a8 V.E...... ......ID 0,0-1080,2400}
+              Child FragmentManager{c643704 in ChatFragment{c68077f}}}:
+                Back Stack Index: 0
+                FragmentManager misc state:
+                  mHost=androidx.fragment.app.FragmentActivity$HostCallbacks@40966be
+                  mContainer=androidx.fragment.app.Fragment$4@86d4ed
+                  mParent=ChatFragment{c68077f} (149891ce-1c90-4bd1-bfb6-3f9d4de4103e id=0x7f0a1269 tag=com.tencent.aio.fragment.token)
+                  mCurState=4 mStateSaved=true mStopped=true mDestroyed=false
+          Added Fragments:
+            #0: ChatFragment{c68077f} (149891ce-1c90-4bd1-bfb6-3f9d4de4103e id=0x7f0a1269 tag=com.tencent.aio.fragment.token)
+          Back Stack Index: 0
+          FragmentManager misc state:
+            mHost=androidx.fragment.app.FragmentActivity$HostCallbacks@40966be
+            mContainer=androidx.fragment.app.Fragment$4@a970f22
+            mParent=SplashAIOFragment{b5f0ec6} (8d198089-28f8-4a1e-8378-2e7fb7e331e6 id=0x1020002 tag=com.tencent.qqnt.aio.SplashAIOFragment)
+            mCurState=4 mStateSaved=true mStopped=true mDestroyed=false
+    Added Fragments:
+      #0: SplashAIOFragment{b5f0ec6} (8d198089-28f8-4a1e-8378-2e7fb7e331e6 id=0x1020002 tag=com.tencent.qqnt.aio.SplashAIOFragment)
+      #1: ChatSummaryFragment{c002036} (8962ecb3-4942-434e-bbe0-5974df2cf1b8 id=0x7f0a7472)
+    Back Stack Index: 0
+    FragmentManager misc state:
+      mHost=androidx.fragment.app.FragmentActivity$HostCallbacks@40966be
+      mContainer=androidx.fragment.app.FragmentActivity$HostCallbacks@40966be
+      mCurState=4 mStateSaved=true mStopped=true mDestroyed=false
+
+TASK 10301:com.ichi2.anki id=1834 userId=0 displayId=0(type=INTERNAL)
+  ACTIVITY com.ichi2.anki/.CardBrowser 9fd9c8a pid=14031 userId=0 uid=10301 displayId=0(type=INTERNAL)
+    Local Activity 2d2271 State:
+      mResumed=false mStopped=true mFinished=false
+      mIsInMultiWindowMode=false mIsInPictureInPictureMode=false
+      mChangingConfigurations=false
+      mCurrentConfig={1.0 460mcc1mnc [zh_CN] ldltr sw384dp w384dp h787dp 450dpi nrml long hdr widecg port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 116 - 1080, 2330) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} as.3 s.2 fontWeightAdjustment=0 iconChanged=20}
+      mLoadersStarted=true
+      Active Fragments in 4ff6a2c:
+        #0: r0{d21ccf5 #0 androidx.lifecycle.LifecycleDispatcher.report_fragment_tag}
+          mFragmentId=#0 mContainerId=#0 mTag=androidx.lifecycle.LifecycleDispatcher.report_fragment_tag
+          mState=3 mIndex=0 mWho=android:fragment:0 mBackStackNesting=0
+          mAdded=true mRemoving=false mFromLayout=false mInLayout=false
+          mHidden=false mDetached=false mMenuVisible=true mHasMenu=false
+          mRetainInstance=false mRetaining=false mUserVisibleHint=true
+          mFragmentManager=FragmentManager{4ff6a2c in HostCallbacks{e551a8a}}
+          mHost=android.app.Activity$HostCallbacks@e551a8a
+          Child FragmentManager{90e88fb in r0{d21ccf5}}:
+            FragmentManager misc state:
+              mHost=android.app.Activity$HostCallbacks@e551a8a
+              mContainer=android.app.Fragment$1@60efd18
+              mParent=r0{d21ccf5 #0 androidx.lifecycle.LifecycleDispatcher.report_fragment_tag}
+              mCurState=3 mStateSaved=true mDestroyed=false
+      Added Fragments:
+        #0: r0{d21ccf5 #0 androidx.lifecycle.LifecycleDispatcher.report_fragment_tag}
+      FragmentManager misc state:
+        mHost=android.app.Activity$HostCallbacks@e551a8a
+        mContainer=android.app.Activity$HostCallbacks@e551a8a
+        mCurState=3 mStateSaved=true mDestroyed=false
+    ViewRoot:
+      mAdded=true
+      mRemoved=false
+      mStopped=true
+      mPausedForTransition=false
+      mConsumeBatchedInputScheduled=false
+      mConsumeBatchedInputImmediatelyScheduled=false
+      mPendingInputEventCount=0
+      mProcessInputEventsScheduled=false
+      mTraversalScheduled=false
+      mReportNextDraw=false
+      mLastPerformTraversalsFailedReason=view_not_visible
+      mLastReportedMergedConfiguration={mGlobalConfig={1.0 460mcc1mnc [zh_CN] ldltr sw384dp w384dp h787dp 450dpi nrml long hdr widecg port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 116 - 1080, 2330) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.3 s.103806 fontWeightAdjustment=0 iconChanged=20} mOverrideConfig={1.0 460mcc1mnc [zh_CN] ldltr sw384dp w384dp h787dp 450dpi nrml long hdr widecg port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 116 - 1080, 2330) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} as.3 s.2 fontWeightAdjustment=0 iconChanged=20}}
+      mLastConfigurationFromResources={1.0 460mcc1mnc [zh_CN] ldltr sw384dp w384dp h787dp 450dpi nrml long hdr widecg port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 116 - 1080, 2330) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} as.3 s.2 fontWeightAdjustment=0 iconChanged=20}
+      mLastReportedActivityWindowInfo=ActivityWindowInfo{isEmbedded=false, taskBounds=Rect(0, 0 - 1080, 2400), taskFragmentBounds=Rect(0, 0 - 1080, 2400)}
+      mIsAmbientMode=false
+      mUnbufferedInputSource=0
+      mAttachInfo=       AttachInfo:
+        mHasWindowFocus=false
+        mWindowVisibility=8
+        mInTouchMode=true
+        mUnbufferedDispatchRequested=false
+      mWindowAttributes={(0,0)(fillxfill) sim={state=always_hidden adjust=pan} ty=BASE_APPLICATION wanim=0x103030e
+  fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+  pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+  vsysui=LAYOUT_STABLE LAYOUT_FULLSCREEN LIGHT_NAVIGATION_BAR
+  apr=LIGHT_NAVIGATION_BARS
+  bhv=DEFAULT
+  fitSides=
+  frameRateBoostOnTouch=true
+  dvrrWindowFrameRateHint=true}
+      android.view.ViewRootImpl$NativePreImeInputStage: mQueueLength=0
+      android.view.ViewRootImpl$ImeInputStage: mQueueLength=0
+      android.view.ViewRootImpl$NativePostImeInputStage: mQueueLength=0
+      android.view.ViewRootImpl$WindowInputEventReceiver
+       mInputChannel: f98530d com.ichi2.anki/com.ichi2.anki.CardBrowser
+       mSeqMap: {}
+       mReceiverPtr:
+        mInputConsumer:
+          mResampleTouch = true
+          mChannel = f98530d com.ichi2.anki/com.ichi2.anki.CardBrowser
+          mMsgDeferred: false
+          Batches:
+              <empty>
+          mSeqChains:
+              <empty>
+          mConsumeTimes:
+              <empty>
+          
+        mBatchedInputEventPending: false
+        mOutboundQueue:
+          <empty>
+        
+    Choreographer:
+      mFrameScheduled=false
+      mLastFrameTime=719332153 (1482758 ms ago)
+    InsetsController:
+        InsetsState
+          mDisplayFrame=Rect(0, 0 - 1080, 2400)
+          mDisplayCutout=DisplayCutout{insets=Rect(0, 116 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(540, 0 - 602, 116), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2400 physicalDisplayWidth=1080 physicalDisplayHeight=2400 density={2.8125} cutoutSpec={M0,63.01m-30.73,0a30.73,30.73 0,1 1,61.46 0a30.73,30.73 0,1 1,-61.46 0} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}
+          mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=101, center=Point(101, 101)}, RoundedCorner{position=TopRight, radius=101, center=Point(979, 101)}, RoundedCorner{position=BottomRight, radius=101, center=Point(979, 2299)}, RoundedCorner{position=BottomLeft, radius=101, center=Point(101, 2299)}]}
+          mRoundedCornerFrame=Rect(0, 0 - 1080, 2400)
+          mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(866, 0 - 1097, 116) rotation=0}
+          mDisplayShape=DisplayShape{ spec=-1893857183 displayWidth=1080 displayHeight=2400 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}
+            InsetsSource id=c1150000 type=statusBars frame=[0,0][1080,116] visible=true flags= sideHint=TOP boundingRects=null
+            InsetsSource id=c1150005 type=mandatorySystemGestures frame=[0,0][1080,150] visible=true flags= sideHint=TOP boundingRects=null
+            InsetsSource id=c1150006 type=tappableElement frame=[0,0][1080,116] visible=true flags= sideHint=TOP boundingRects=null
+            InsetsSource id=3 type=ime frame=[0,0][0,0] visible=false flags= sideHint=NONE boundingRects=null
+            InsetsSource id=27 type=displayCutout frame=[0,0][1080,116] visible=true flags= sideHint=TOP boundingRects=null
+            InsetsSource id=3a420001 type=navigationBars frame=[0,2330][1080,2400] visible=true flags=SUPPRESS_SCRIM sideHint=BOTTOM boundingRects=null
+            InsetsSource id=3a420004 type=systemGestures frame=[0,0][67,2400] visible=true flags= sideHint=LEFT boundingRects=null
+            InsetsSource id=3a420005 type=mandatorySystemGestures frame=[0,2330][1080,2400] visible=true flags= sideHint=BOTTOM boundingRects=null
+            InsetsSource id=3a420006 type=tappableElement frame=[0,0][0,0] visible=true flags= sideHint=NONE boundingRects=null
+            InsetsSource id=3a420024 type=systemGestures frame=[1013,0][1080,2400] visible=true flags= sideHint=RIGHT boundingRects=null
+        mIsPredictiveBackImeHideAnimInProgress=false
+    WindowOnBackDispatcher:
+        Top Callback: android.app.Activity$$ExternalSyntheticLambda0@96eedd6
+        Callbacks: 
+          Callback: android.app.Activity$$ExternalSyntheticLambda0@96eedd6 Priority=-1
+    ImeBackAnimationController:
+        mLastProgress=0.0
+        mTriggerBack=false
+        mIsPreCommitAnimationInProgress=false
+        mStartRootScrollY=0
+        isBackAnimationAllowed=true
+        isAdjustPan=true
+        isHideAnimationInProgress=false
+    View Hierarchy:
+      com.android.internal.policy.DecorView{7c02bb0 I.E...... R.....ID 0,0-1080,2400 aid=2}[CardBrowser]
+        android.widget.LinearLayout{c6e7fe5 V.E...... .......D 0,0-1080,2330}
+          android.view.ViewStub{6ff1c73 G.E...... ......I. 0,0-0,0 #10201ed android:id/action_mode_bar_stub}
+          android.widget.FrameLayout{5f452dc V.E...... .......D 0,0-1080,2330}
+            androidx.appcompat.widget.FitWindowsFrameLayout{6e84b4f V.E...... .......D 0,0-1080,2330 #7f0a005a app:id/action_bar_root}
+              androidx.appcompat.widget.ContentFrameLayout{155e1ae V.E...... .......D 0,0-1080,2330 #1020002 android:id/content}
+                androidx.drawerlayout.widget.ClosableDrawerLayout{4426a29 VFED..... .......D 0,0-1080,2330 #7f0a0247 app:id/drawer_layout}
+                  androidx.coordinatorlayout.widget.CoordinatorLayout{6226aba V.E...... .......D 0,116-1080,2330}
+                    android.widget.LinearLayout{a99782d V.E...... .......D 0,0-1080,2214}
+                      androidx.appcompat.widget.Toolbar{9e1c0c8 V.E...... ......ID 0,0-1080,180 #7f0a05d3 app:id/toolbar}
+                        androidx.appcompat.widget.AppCompatImageButton{f084d6b VFED..C.. ......ID 0,11-158,169}
+                        com.ichi2.ui.FixedTextView{93c5730 G.ED..... ......I. 0,0-0,0 #7f0a05d9 app:id/toolbar_title}
+                        android.widget.LinearLayout{dfc7886 VFE...C.. ......ID 158,29-695,150 #7f0a05d5 app:id/toolbar_content}
+                          com.ichi2.ui.FixedTextView{edc5547 V.ED..... ........ 0,0-537,68 #7f0a0200 app:id/deck_name}
+                          com.google.android.material.textview.MaterialTextView{1b62174 V.ED..... ........ 0,68-537,121 #7f0a0579 app:id/subtitle}
+                        androidx.appcompat.widget.AppCompatTextView{8c3561 V.ED..... ........ 158,48-158,131}
+                        androidx.appcompat.widget.ActionMenuView{8a11b46 V.E...... .......D 695,11-1080,169}
+                          androidx.appcompat.view.menu.ActionMenuItemView{1a6ab21 VFED..C.. ......ID 0,11-136,146 #7f0a004f app:id/action_add_note_from_card_browser}
+                          androidx.appcompat.view.menu.ActionMenuItemView{10c2107 VFED..C.. ......ID 136,11-272,146 #7f0a00c7 app:id/action_search}
+                          q.i{6a46234 VFED..CL. ......ID 272,11-385,146}
+                      androidx.fragment.app.FragmentContainerView{b179712 V.E...... .......D 0,180-1080,2214 #7f0a0187 app:id/card_browser_frame}
+                        androidx.coordinatorlayout.widget.CoordinatorLayout{c75c69d V.E...... .......D 0,0-1080,2034 #7f0a04da app:id/root_layout}
+                          android.widget.LinearLayout{5c41162 V.E...... .......D 0,0-1080,2034}
+                            android.widget.LinearLayout{ecde0e0 V.E...... ........ 0,0-1080,135}
+                              androidx.appcompat.widget.AppCompatImageButton{61efa9 GFED..C.. ......I. 0,0-0,0 #7f0a05d0 app:id/toggle_row_selections}
+                              android.widget.LinearLayout{2fefee3 V.E....L. ........ 0,0-1080,135 #7f0a0169 app:id/browser_column_headings}
+                                com.ichi2.ui.FixedTextView{b9e7d24 VFED..CL. ........ 0,0-270,135}
+                                com.ichi2.ui.FixedTextView{a74708d VFED..CL. ........ 270,0-540,135}
+                                com.ichi2.ui.FixedTextView{7ed1242 VFED..CL. ........ 540,0-810,135}
+                                com.ichi2.ui.FixedTextView{c8d1253 VFED..CL. ........ 810,0-1080,135}
+                            android.widget.LinearLayout{56d2f99 V.E...... ......ID 0,135-1080,141}
+                            com.google.android.material.progressindicator.LinearProgressIndicator{86e4e63 G.ED..... ......I. 0,141-1080,152 #7f0a016a app:id/browser_progress}
+                            android.widget.RelativeLayout{d18a63f V.E...... .......D 0,141-1080,2034}
+                              androidx.recyclerview.widget.RecyclerView{d54125e VFED..... .......D 0,0-1080,1893 #7f0a0188 app:id/card_browser_list}
+                                android.widget.LinearLayout{a3dd4c2 VFE...CL. ......ID 0,0-1080,59 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{66eb92e G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{55cad0d V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{332e2d3 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{ff90e10 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{fb40d09 V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{848fb3c VFE...CL. ......ID 0,64-1080,123 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{1250ccf G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{63ed92f V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{770c5 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{4e53a1a V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{769d94b V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{a0cdde6 VFE...CL. ......ID 0,128-1080,187 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{dc7b65c G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{2735441 V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{8fabf27 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{82b75d4 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{e5ff37d V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{bb41b40 VFE...CL. ......ID 0,192-1080,355 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{ec0dd65 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{ca26c3 V.ED..... ........ 0,0-270,163}
+                                  com.ichi2.ui.FixedTextView{f7d4a79 V.ED..... ........ 270,0-540,163}
+                                  com.ichi2.ui.FixedTextView{79fc3be V.ED..... ........ 540,0-810,163}
+                                  com.ichi2.ui.FixedTextView{f9e6c1f V.ED..... ........ 810,0-1080,163}
+                                android.widget.LinearLayout{4905dca VFE...CL. ......ID 0,360-1080,419 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{cb13a3a G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{27f1535 V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{247ab3b V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{9521258 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{198cfb1 V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{2c66430 VFE...CL. ......ID 0,424-1080,483 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{a0fa6eb G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{9653d73 V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{e1f78a9 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{5e00e2e V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{a4c3dcf V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{cf8e7eb VFE...CL. ......ID 0,488-1080,547 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{247dc48 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{a62df3a V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{7668948 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{a2c93e1 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{b0fb506 V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{5fd8d1d VFE...CL. ......ID 0,552-1080,663 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{566eae1 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{9fef1f4 V.ED..... ........ 0,0-270,111}
+                                  com.ichi2.ui.FixedTextView{f621b92 V.ED..... ........ 270,0-540,111}
+                                  com.ichi2.ui.FixedTextView{6186963 V.ED..... ........ 540,0-810,111}
+                                  com.ichi2.ui.FixedTextView{e133960 V.ED..... ........ 810,0-1080,111}
+                                android.widget.LinearLayout{c9e38bf VFE...CL. ......ID 0,668-1080,727 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{368c006 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{9025ede V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{7628b8c V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{5c242d5 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{9d18aea V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{e713751 VFE...CL. ......ID 0,732-1080,791 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{8bfc6c7 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{472d478 V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{eb56bb6 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{ed480b7 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{43cc024 V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{4a67153 VFE...CL. ......ID 0,796-1080,907 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{d2274f4 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{b248d42 V.ED..... ........ 0,0-270,111}
+                                  com.ichi2.ui.FixedTextView{a97ba90 V.ED..... ........ 270,0-540,111}
+                                  com.ichi2.ui.FixedTextView{8d27f89 V.ED..... ........ 540,0-810,111}
+                                  com.ichi2.ui.FixedTextView{1723b8e V.ED..... ........ 810,0-1080,111}
+                                android.widget.LinearLayout{4da8b45 VFE...CL. ......ID 0,912-1080,1023 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{6541d G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{f65efbc V.ED..... ........ 0,0-270,111}
+                                  com.ichi2.ui.FixedTextView{3da829a V.ED..... ........ 270,0-540,111}
+                                  com.ichi2.ui.FixedTextView{4f0b7cb V.ED..... ........ 540,0-810,111}
+                                  com.ichi2.ui.FixedTextView{4804ba8 V.ED..... ........ 810,0-1080,111}
+                                android.widget.LinearLayout{e5105a7 VFE...CL. ......ID 0,1028-1080,1087 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{bc0d692 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{a4e2e66 V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{e627a54 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{22bddfd V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{8fecaf2 V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{85d5cf9 VFE...CL. ......ID 0,1092-1080,1151 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{9680863 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{b96e7c0 V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{3aaa43e V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{3a7029f V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{6e2bfec V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{8329bb VFE...CL. ......ID 0,1156-1080,1215 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{36bec60 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{9a8c64a V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{31eed8 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{f18b231 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{6b4fd16 V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{295406d VFE...CL. ......ID 0,1220-1080,1279 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{9391519 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{8432084 V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{47bd4a2 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{acf1533 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{b13c0f0 V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{2dbd18f VFE...CL. ......ID 0,1284-1080,1343 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{c11c9de G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{8e698ee V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{50bfc1c V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{6931025 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{d2755fa V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{20989a1 VFE...CL. ......ID 0,1348-1080,1407 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{ec8c7bf G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{eeabe08 V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{984d7c6 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{726387 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{c71b2b4 V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{487b123 VFE...CL. ......ID 0,1412-1080,1471 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{5136e8c G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{1e6aa52 V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{9d14620 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{e38cbd9 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{f21199e V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{a614c95 VFE...CL. ......ID 0,1476-1080,1535 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{13ce9d5 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{3d4a44c V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{10131aa V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{e20219b V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{6cdb938 V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{ad53c77 VFE...CL. ......ID 0,1540-1080,1599 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{5eca5ea G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{518be76 V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{4130e4 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{cff794d V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{e4a4c02 V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{e575d49 VFE...CL. ......ID 0,1604-1080,1663 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{d4c20db G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{f527750 V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{915264e V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{e01436f V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{fefb87c V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{b88a78b VFE...CL. ......ID 0,1668-1080,1727 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{fcee778 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{8a1595a V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{cbde068 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{fa86c81 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{88bb126 V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{76e4fbd VFE...CL. ......ID 0,1732-1080,1791 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{46f4e51 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{3c49b14 V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{f71b9b2 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{bac7d03 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{9da5480 V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{6efe65f VFE...CL. ......ID 0,1796-1080,1855 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{e736b6 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{e3dbefe V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{8d038ac V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{2f4b975 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{832cd0a V.ED..... ........ 810,0-1080,59}
+                                android.widget.LinearLayout{f6477f1 VFE...CL. ......ID 0,1860-1080,1919 #7f0a018b app:id/card_item_browser}
+                                  com.google.android.material.checkbox.MaterialCheckBox{be1efb7 G.ED..C.. ......I. 0,0-0,0 #7f0a04de app:id/row_selected_check_box}
+                                  com.ichi2.ui.FixedTextView{45e3398 V.ED..... ........ 0,0-270,59}
+                                  com.ichi2.ui.FixedTextView{fb8afd6 V.ED..... ........ 270,0-540,59}
+                                  com.ichi2.ui.FixedTextView{cba4257 V.ED..... ........ 540,0-810,59}
+                                  com.ichi2.ui.FixedTextView{1cef144 V.ED..... ........ 810,0-1080,59}
+                              com.ichi2.anki.ui.RecyclerFastScroller{8d82c55 V.E...... .......D 1012,0-1080,1893 #7f0a016b app:id/browser_scroller}
+                                android.view.View{9e02b0c V.ED..... ......ID 0,0-68,1893}
+                                android.view.View{4af66a V..D..... ......ID 0,0-68,135}
+                  com.google.android.material.navigation.NavigationView{6fb675b I.ED..... ......ID -788,0-0,2330 #7f0a03fc app:id/navdrawer_items_container}
+                    com.google.android.material.internal.NavigationMenuView{deaebf8 VFED.V... ......ID 0,0-788,2330 #7f0a0224 app:id/design_navigation_view}
+                      android.widget.LinearLayout{5decfa4 V.E...... ......ID 0,0-788,445 #7f0a0405 app:id/navigation_header_container}
+                        android.widget.FrameLayout{b7f1e37 V.E...... ......ID 0,0-788,422}
+                          androidx.appcompat.widget.AppCompatImageView{e1a0f36 V.ED..... ......ID 0,0-788,422}
+                      com.google.android.material.internal.NavigationMenuItemView{d57cf0e VFED..C.. ......ID 0,445-788,580 #7f0a03f8 app:id/nav_decks}
+                        q.r{24a6f3c V.ED..... ......ID 79,11-709,124 #7f0a0223 app:id/design_menu_item_text}
+                        android.view.ViewStub{4c70324 G.E...... ......I. 0,0-0,0 #7f0a0222 app:id/design_menu_item_action_area_stub}
+                      com.google.android.material.internal.NavigationMenuItemView{745ce1a VFED..C.. ......ID 0,580-788,715 #7f0a03f7 app:id/nav_browser}
+                        q.r{ded4328 V.ED..... ......ID 79,11-709,124 #7f0a0223 app:id/design_menu_item_text}
+                        android.view.ViewStub{d897e8d G.E...... ......I. 0,0-0,0 #7f0a0222 app:id/design_menu_item_action_area_stub}
+                      com.google.android.material.internal.NavigationMenuItemView{16bf841 VFED..C.. ......ID 0,715-788,850 #7f0a03fb app:id/nav_stats}
+                        q.r{79e0327 V.ED..... ......ID 79,11-709,124 #7f0a0223 app:id/design_menu_item_text}
+                        android.view.ViewStub{6280842 G.E...... ......I. 0,0-0,0 #7f0a0222 app:id/design_menu_item_action_area_stub}
+                      android.widget.FrameLayout{5daac3 V.E...... ......ID 0,850-788,897}
+                        android.view.View{e180672 V.ED..... ......ID 79,22-709,25}
+                      com.google.android.material.internal.NavigationMenuItemView{8666e79 VFED..C.. ......ID 0,897-788,1032 #7f0a03fa app:id/nav_settings}
+                        q.r{ee6301f V.ED..... ......ID 79,11-709,124 #7f0a0223 app:id/design_menu_item_text}
+                        android.view.ViewStub{69bd053 G.E...... ......I. 0,0-0,0 #7f0a0222 app:id/design_menu_item_action_area_stub}
+                      com.google.android.material.internal.NavigationMenuItemView{1a61f6c VFED..C.. ......ID 0,1032-788,1167 #7f0a03f9 app:id/nav_help}
+                        q.r{a3df1ca V.ED..... ......ID 79,11-709,124 #7f0a0223 app:id/design_menu_item_text}
+                        android.view.ViewStub{d032d90 G.E...... ......I. 0,0-0,0 #7f0a0222 app:id/design_menu_item_action_area_stub}
+                      com.google.android.material.internal.NavigationMenuItemView{847af3b VFED..C.. ......ID 0,1167-788,1302 #7f0a057f app:id/support_ankidroid}
+                        q.r{20273b1 V.ED..... ......ID 79,11-709,124 #7f0a0223 app:id/design_menu_item_text}
+                        android.view.ViewStub{f9c7689 G.E...... ......I. 0,0-0,0 #7f0a0222 app:id/design_menu_item_action_area_stub}
+              androidx.appcompat.widget.ViewStubCompat{8b2668e G.E...... ......I. 0,0-0,0 #7f0a00a0 app:id/action_mode_bar_stub}
+    FlymeViewRootState:
+      TracingBarrier=0
+      CheckThreadException=NULL
+      DisplayState=2
+      LastDisplayChangedTime=0 (1789748237805ms ago)
+    Looper (main, tid 2) {a6b75ff}
+      (MessageQueue is using Legacy implementation)
+      (Total messages: 0, polling=false, quitting=false)
+    ResourcesManager:
+      total apks: 6
+      resources: 9
+      resource impls: 6
+    1 dumpables:
+    #0: AutofillManager
+        AutofillManager:
+          sessionId: 2147483647
+          state: UNKNOWN
+          context: com.ichi2.anki.CardBrowser@2d2271
+          service client: null
+          client: android.view.autofill.AutofillClientController@f091eaf (android.os.BinderProxy@93aeaf7)
+          enabled: false
+          enabledAugmentedOnly: false
+          hasService: true
+          hasCallback: false
+          onInvisibleCalled false
+          last autofilled data: null
+          id of last fill UI shown: null
+          tracked views: null
+          fillable ids: null
+          entered ids: null
+          save trigger id: null
+          save on finish(): false
+          options: logLvl=0, compatMode=false, augmented=false, appDisabledExpiration=0
+          fill dialog enabled: false
+          fill dialog enabled hints: []
+          compat mode enabled: false
+          debug: false verbose: false
+        Autofill Compat Mode: false
+    Local FragmentActivity 2d2271 State:
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+    CardBrowserFragment{89592bc} (b1b78dba-9f37-46d9-99eb-cb8a1ec3fb14 id=0x7f0a0187)
+        mFragmentId=#7f0a0187 mContainerId=#7f0a0187 mTag=null
+        mState=4 mWho=b1b78dba-9f37-46d9-99eb-cb8a1ec3fb14 mBackStackNesting=0
+        mAdded=true mRemoving=false mFromLayout=false mInLayout=false
+        mHidden=false mDetached=false mMenuVisible=true mHasMenu=false
+        mRetainInstance=false mUserVisibleHint=true
+        mFragmentManager=FragmentManager{3ccf245 in q0{6725d9a}}}
+        mHost=androidx.fragment.app.q0@6725d9a
+        mSavedViewState={2131362153=android.view.AbsSavedState$1@652f6cb, 2131362154=android.widget.ProgressBar$SavedState@4871ea8, 2131362155=android.view.AbsSavedState$1@652f6cb, 2131362184=h4.k1@6cf6dc1, 2131363034=g0.g@e08b966, 2131363280=android.view.AbsSavedState$1@652f6cb}
+        mPopDirection=false
+        mContainer=androidx.fragment.app.FragmentContainerView{b179712 V.E...... .......D 0,180-1080,2214 #7f0a0187 app:id/card_browser_frame}
+        mView=androidx.coordinatorlayout.widget.CoordinatorLayout{c75c69d V.E...... .......D 0,0-1080,2034 #7f0a04da app:id/root_layout}
+        Child FragmentManager{d1834a7 in CardBrowserFragment{89592bc}}}:
+          Back Stack Index: 0
+          FragmentManager misc state:
+            mHost=androidx.fragment.app.q0@6725d9a
+            mContainer=androidx.fragment.app.e0@3837d54
+            mParent=CardBrowserFragment{89592bc} (b1b78dba-9f37-46d9-99eb-cb8a1ec3fb14 id=0x7f0a0187)
+            mCurState=4 mStateSaved=true mStopped=true mDestroyed=false
+    Added Fragments:
+      #0: CardBrowserFragment{89592bc} (b1b78dba-9f37-46d9-99eb-cb8a1ec3fb14 id=0x7f0a0187)
+    Back Stack Index: 0
+    FragmentManager misc state:
+      mHost=androidx.fragment.app.q0@6725d9a
+      mContainer=androidx.fragment.app.q0@6725d9a
+      mCurState=4 mStateSaved=true mStopped=true mDestroyed=false
+
+TASK 10377:dev.eden.eden_emulator id=1835 userId=0 displayId=0(type=INTERNAL)
+  ACTIVITY dev.eden.eden_emulator/org.yuzu.yuzu_emu.activities.EmulationActivity 8f86b5f pid=24742 userId=0 uid=10377 displayId=0(type=INTERNAL)
+    Failure while dumping the activity: java.io.IOException: Timeout
+
+TASK 10377:dev.eden.eden_emulator id=1815 userId=0 displayId=0(type=INTERNAL)
+  ACTIVITY dev.eden.eden_emulator/org.yuzu.yuzu_emu.ui.main.MainActivity 2b70284 pid=24742 userId=0 uid=10377 displayId=0(type=INTERNAL)
+
+*** SERVICE 'activity' DUMP TIMEOUT (10000ms) EXPIRED ***
+
+
+*** SERVICE 'activity' DUMP TIMEOUT (10000ms) EXPIRED ***
+

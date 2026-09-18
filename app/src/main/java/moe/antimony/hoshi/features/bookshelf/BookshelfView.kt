@@ -1,16 +1,14 @@
 package moe.antimony.hoshi.features.bookshelf
 
+import moe.antimony.hoshi.ui.theme.hoshiLeadingBoundary
+import moe.antimony.hoshi.ui.theme.hoshiSurfaces
+import moe.antimony.hoshi.ui.theme.hoshiContainerBorder
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.LruCache
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -57,6 +55,7 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Done
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.FolderOpen
+import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.Keyboard
@@ -67,11 +66,11 @@ import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.ReportProblem
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Translate
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import moe.antimony.hoshi.ui.HoshiAlertDialog as AlertDialog
+import moe.antimony.hoshi.ui.HoshiButton as Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
+import moe.antimony.hoshi.ui.HoshiDropdownMenu as DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -85,6 +84,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -97,11 +101,9 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -110,8 +112,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -150,10 +150,7 @@ import moe.antimony.hoshi.ui.hoshiOutlinedTextFieldColors
 import moe.antimony.hoshi.ui.hoshiSingleLineTextFieldLineLimits
 import moe.antimony.hoshi.ui.rememberSyncedTextFieldState
 import moe.antimony.hoshi.ui.replaceTextAndSelectStart
-import moe.antimony.hoshi.ui.theme.LocalHoshiDarkTheme
 import moe.antimony.hoshi.ui.theme.LocalHoshiEInkMode
-import java.io.File
-import kotlin.math.max
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -193,6 +190,7 @@ fun BookshelfView(
     val renameScrollState = rememberScrollState()
     var showBulkDeleteConfirmation by remember { mutableStateOf(false) }
     var showShelfManagement by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val importer = rememberLauncherForActivityResult(MultipleFileImportContent()) { uris: List<Uri> ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
@@ -268,8 +266,28 @@ fun BookshelfView(
         booksViewModel.consumeOpenReaderEvent()
     }
 
+    val shelfMoveSuccess = uiState.shelfCreationMoveStatus as? ShelfCreationMoveStatus.Succeeded
+    val shelfMoveSuccessMessage = shelfMoveSuccess?.let { success ->
+        pluralStringResource(
+            R.plurals.bookshelf_created_shelf_and_moved_books,
+            success.bookCount,
+            success.shelfName,
+            success.bookCount,
+        )
+    }
+    LaunchedEffect(shelfMoveSuccess, shelfMoveSuccessMessage) {
+        if (shelfMoveSuccess != null && shelfMoveSuccessMessage != null) {
+            presentShelfCreationMoveSuccess(
+                message = shelfMoveSuccessMessage,
+                showSnackbar = { snackbarHostState.showSnackbar(it) },
+                consumeSuccess = booksViewModel::consumeShelfCreationMoveStatus,
+            )
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
     BooksTab(
-        modifier = modifier,
+        modifier = Modifier.fillMaxSize(),
         layoutSpec = layoutSpec,
         bookEntries = uiState.bookEntries,
         remoteBookEntries = uiState.remoteBookEntries,
@@ -280,6 +298,8 @@ fun BookshelfView(
         remoteBusyBookIds = uiState.remoteBusyBookIds,
         coverSourcesById = uiState.coverSourcesById,
         remoteCoverSourcesById = uiState.remoteCoverSourcesById,
+        coverMode = uiState.coverMode,
+        hideCollapsedShelfThumbnails = uiState.hideCollapsedShelfThumbnails,
         sortOption = uiState.sortOption,
         hasLoadedBooks = uiState.hasLoadedBooks,
         isLoading = uiState.isLoading,
@@ -299,6 +319,9 @@ fun BookshelfView(
         onToggleSelectedBook = booksViewModel::toggleSelectedBook,
         onShelfExpandedChange = booksViewModel::setShelfExpanded,
         onMoveSelectedBooks = booksViewModel::moveSelectedBooks,
+        onCreateShelfForSelectedBooks = {
+            booksViewModel.beginShelfCreationMoveForSelectedBooks()
+        },
         onDeleteSelectedBooks = { showBulkDeleteConfirmation = true },
         onManageShelves = { showShelfManagement = true },
         onImportFiles = ::launchBookImporter,
@@ -328,6 +351,10 @@ fun BookshelfView(
             renameTextState.replaceTextAndSelectStart(it.displayTitle)
         },
         onMoveBook = booksViewModel::moveBook,
+        onCreateShelfForBook = { entry ->
+            contextMenuTarget = null
+            booksViewModel.beginShelfCreationMoveForBook(entry)
+        },
         profileState = profileState,
         onSetBookProfile = booksViewModel::setBookProfile,
         syncSettings = syncSettings,
@@ -342,6 +369,13 @@ fun BookshelfView(
             )
         },
     )
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp),
+        )
+    }
 
     uiState.statusMessage?.let { message ->
         AlertDialog(
@@ -505,7 +539,11 @@ fun BookshelfView(
         ShelfManagementDialog(
             shelves = uiState.shelves,
             showReading = uiState.showReading,
+            coverMode = uiState.coverMode,
+            hideCollapsedShelfThumbnails = uiState.hideCollapsedShelfThumbnails,
             onShowReadingChange = booksViewModel::changeShowReading,
+            onCoverModeChange = booksViewModel::changeCoverMode,
+            onHideCollapsedShelfThumbnailsChange = booksViewModel::changeHideCollapsedShelfThumbnails,
             onCreateShelf = booksViewModel::createShelf,
             onDeleteShelf = booksViewModel::deleteShelf,
             onRenameShelf = booksViewModel::renameShelf,
@@ -513,6 +551,26 @@ fun BookshelfView(
             onDismiss = { showShelfManagement = false },
         )
     }
+
+    uiState.shelfCreationMoveDialog?.let { dialog ->
+        NewShelfMoveDialog(
+            shelves = uiState.shelves,
+            name = dialog.name,
+            status = uiState.shelfCreationMoveStatus,
+            onNameChanged = booksViewModel::updateShelfCreationMoveName,
+            onConfirm = booksViewModel::confirmShelfCreationMove,
+            onDismiss = booksViewModel::dismissShelfCreationMoveDialog,
+        )
+    }
+}
+
+internal suspend fun presentShelfCreationMoveSuccess(
+    message: String,
+    showSnackbar: suspend (String) -> Unit,
+    consumeSuccess: () -> Unit,
+) {
+    showSnackbar(message)
+    consumeSuccess()
 }
 
 @Composable
@@ -528,7 +586,7 @@ internal fun HoshiMainShell(
         if (layoutSpec.navigationLayout == MainShellNavigationLayout.BottomBar) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = hoshiSurfaces.page,
                 contentColor = MaterialTheme.colorScheme.onBackground,
                 contentWindowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
                 bottomBar = {
@@ -547,7 +605,7 @@ internal fun HoshiMainShell(
                             .padding(innerPadding),
                         layoutSpec,
                     )
-                    HorizontalDivider(
+                    if (LocalHoshiEInkMode.current) HorizontalDivider(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(bottom = innerPadding.calculateBottomPadding()),
@@ -559,6 +617,11 @@ internal fun HoshiMainShell(
             NavigationSuiteScaffold(
                 modifier = Modifier.fillMaxSize(),
                 layoutType = layoutSpec.toNavigationSuiteType(),
+                navigationSuiteColors = androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults.colors(
+                    navigationBarContainerColor = hoshiSurfaces.navigation,
+                    navigationRailContainerColor = hoshiSurfaces.navigation,
+                    navigationDrawerContainerColor = hoshiSurfaces.navigation,
+                ),
                 navigationSuiteItems = {
                     visibleTabs.forEach { tab ->
                         item(
@@ -569,11 +632,11 @@ internal fun HoshiMainShell(
                         )
                     }
                 },
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = hoshiSurfaces.page,
                 contentColor = MaterialTheme.colorScheme.onBackground,
             ) {
                 content(
-                    Modifier.fillMaxSize(),
+                    Modifier.fillMaxSize().hoshiLeadingBoundary(),
                     layoutSpec,
                 )
             }
@@ -591,7 +654,7 @@ private fun HoshiCompactBottomNavigation(
     visibleTabs: List<MainTab>,
     layoutSpec: MainShellLayoutSpec,
 ) {
-    val containerColor = MaterialTheme.colorScheme.background
+    val containerColor = hoshiSurfaces.navigation
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -712,6 +775,8 @@ private fun LazyGridScope.googleDriveSection(
     remoteImportProgressById: Map<String, Double>,
     remoteBusyBookIds: Set<String>,
     remoteCoverSourcesById: Map<String, BookCoverSource>,
+    coverMode: BookshelfCoverMode,
+    hideCollapsedShelfThumbnails: Boolean,
     layoutSpec: MainShellLayoutSpec,
     contentWidthDp: Int,
     fileTaskBlocked: Boolean,
@@ -755,6 +820,7 @@ private fun LazyGridScope.googleDriveSection(
                     progress = remoteProgressById[entry.id] ?: 0.0,
                     downloadProgress = remoteImportProgressById[entry.id],
                     coverSource = remoteCoverSourcesById[entry.id],
+                    coverMode = coverMode,
                     layoutSpec = layoutSpec,
                     enabled = presentation.allowsHitTesting && !fileTaskBlocked && entry.id !in remoteBusyBookIds,
                     onImport = { onImportRemoteBook(entry) },
@@ -769,7 +835,7 @@ private fun LazyGridScope.googleDriveSection(
                 )
             }
         }
-    } else {
+    } else if (!hideCollapsedShelfThumbnails) {
         item(
             key = "preview:google-drive",
             contentType = "collapsedPreview",
@@ -789,7 +855,10 @@ private fun LazyGridScope.googleDriveSection(
                     .take(layoutSpec.collapsedShelfPreviewColumns(contentWidthDp))
                     .forEach { entry ->
                         BookCoverCard(
+                            title = entry.title,
+                            author = null,
                             coverSource = remoteCoverSourcesById[entry.id],
+                            coverMode = coverMode,
                             modifier = Modifier.width(collapsedCoverWidthDp.dp),
                         )
                     }
@@ -811,6 +880,8 @@ private fun BooksTab(
     remoteBusyBookIds: Set<String>,
     coverSourcesById: Map<String, BookCoverSource>,
     remoteCoverSourcesById: Map<String, BookCoverSource>,
+    coverMode: BookshelfCoverMode,
+    hideCollapsedShelfThumbnails: Boolean,
     sortOption: BookSortOption,
     hasLoadedBooks: Boolean,
     isLoading: Boolean,
@@ -827,6 +898,7 @@ private fun BooksTab(
     onToggleSelectedBook: (BookEntry) -> Unit,
     onShelfExpandedChange: (String, Boolean) -> Unit,
     onMoveSelectedBooks: (String?) -> Unit,
+    onCreateShelfForSelectedBooks: () -> Unit,
     onDeleteSelectedBooks: () -> Unit,
     onManageShelves: () -> Unit,
     onImportFiles: () -> Unit,
@@ -844,6 +916,7 @@ private fun BooksTab(
     onMarkReadCandidate: (BookEntry) -> Unit,
     onRenameCandidate: (BookEntry) -> Unit,
     onMoveBook: (BookEntry, String?) -> Unit,
+    onCreateShelfForBook: (BookEntry) -> Unit,
     profileState: ProfileState,
     onSetBookProfile: (BookEntry, String?) -> Unit,
     syncSettings: SyncSettings,
@@ -854,7 +927,7 @@ private fun BooksTab(
     val fileTaskBlocked = blockingProgressMessage != null
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = hoshiSurfaces.page,
         contentColor = MaterialTheme.colorScheme.onBackground,
         contentWindowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
         topBar = {
@@ -871,6 +944,7 @@ private fun BooksTab(
                 onStartSelecting = onStartSelecting,
                 onClearSelection = onClearSelection,
                 onMoveSelectedBooks = onMoveSelectedBooks,
+                onCreateShelfForSelectedBooks = onCreateShelfForSelectedBooks,
                 onDeleteSelectedBooks = onDeleteSelectedBooks,
                 onManageShelves = onManageShelves,
                 onImportFiles = onImportFiles,
@@ -908,7 +982,7 @@ private fun BooksTab(
                         .fillMaxWidth()
                         .padding(horizontal = layoutSpec.pageHorizontalPaddingDp.dp),
                 )
-                else -> CompositionLocalProvider(LocalOverscrollFactory provides null) {
+                else -> {
                     val pullRefreshState = rememberPullToRefreshState()
                     val pullRefreshEnabled = shouldEnableBookshelfPullRefresh(
                         syncSettings = syncSettings,
@@ -947,6 +1021,8 @@ private fun BooksTab(
                                     remoteImportProgressById = remoteImportProgressById,
                                     remoteBusyBookIds = remoteBusyBookIds,
                                     remoteCoverSourcesById = remoteCoverSourcesById,
+                                    hideCollapsedShelfThumbnails = hideCollapsedShelfThumbnails,
+                                    coverMode = coverMode,
                                     layoutSpec = layoutSpec,
                                     contentWidthDp = contentWidthDp,
                                     fileTaskBlocked = fileTaskBlocked,
@@ -994,6 +1070,7 @@ private fun BooksTab(
                                             entry = entry,
                                             progress = bookProgressById[entry.metadata.id] ?: 0.0,
                                             coverSource = coverSourcesById[entry.metadata.id],
+                                            coverMode = coverMode,
                                             layoutSpec = layoutSpec,
                                             isSelecting = isSelecting,
                                             isSelected = entry.metadata.id in selectedBookIds,
@@ -1014,6 +1091,7 @@ private fun BooksTab(
                                             expanded = isBookContextMenuExpanded(contextMenuTarget, section, entry),
                                             onDismiss = { onContextMenuTargetChange(null) },
                                             onMoveBook = onMoveBook,
+                                            onCreateShelfForBook = onCreateShelfForBook,
                                             onMarkReadCandidate = onMarkReadCandidate,
                                             onRenameCandidate = onRenameCandidate,
                                             onDeleteCandidate = onDeleteCandidate,
@@ -1025,7 +1103,7 @@ private fun BooksTab(
                                         )
                                     }
                                 }
-                            } else {
+                            } else if (!hideCollapsedShelfThumbnails) {
                                 item(
                                     key = "preview:${section.layoutKey}",
                                     contentType = "collapsedPreview",
@@ -1045,7 +1123,10 @@ private fun BooksTab(
                                             layoutSpec.collapsedShelfPreviewCoverWidthDp(contentWidthDp)
                                         section.books.take(layoutSpec.collapsedShelfPreviewColumns(contentWidthDp)).forEach { entry ->
                                             BookCoverCard(
+                                                title = entry.displayTitle,
+                                                author = entry.metadata.author,
                                                 coverSource = coverSourcesById[entry.metadata.id],
+                                                coverMode = coverMode,
                                                 modifier = Modifier.width(collapsedCoverWidthDp.dp),
                                             )
                                         }
@@ -1060,6 +1141,8 @@ private fun BooksTab(
                                 remoteImportProgressById = remoteImportProgressById,
                                 remoteBusyBookIds = remoteBusyBookIds,
                                 remoteCoverSourcesById = remoteCoverSourcesById,
+                                hideCollapsedShelfThumbnails = hideCollapsedShelfThumbnails,
+                                coverMode = coverMode,
                                 layoutSpec = layoutSpec,
                                 contentWidthDp = contentWidthDp,
                                 fileTaskBlocked = fileTaskBlocked,
@@ -1108,6 +1191,7 @@ private fun BooksTopAppBar(
     onStartSelecting: () -> Unit,
     onClearSelection: () -> Unit,
     onMoveSelectedBooks: (String?) -> Unit,
+    onCreateShelfForSelectedBooks: () -> Unit,
     onDeleteSelectedBooks: () -> Unit,
     onManageShelves: () -> Unit,
     onImportFiles: () -> Unit,
@@ -1188,6 +1272,17 @@ private fun BooksTopAppBar(
                         onDismissRequest = { moveMenuExpanded = false },
                     ) {
                         DropdownMenuItem(
+                            text = { Text(stringResource(R.string.bookshelf_new_shelf)) },
+                            leadingIcon = {
+                                Icon(Icons.Rounded.Add, contentDescription = null)
+                            },
+                            onClick = {
+                                moveMenuExpanded = false
+                                onCreateShelfForSelectedBooks()
+                            },
+                        )
+                        HorizontalDivider()
+                        DropdownMenuItem(
                             text = { Text(stringResource(R.string.bookshelf_no_shelf)) },
                             onClick = {
                                 moveMenuExpanded = false
@@ -1251,8 +1346,8 @@ private fun BooksTopAppBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.background,
-            scrolledContainerColor = MaterialTheme.colorScheme.background,
+            containerColor = hoshiSurfaces.page,
+            scrolledContainerColor = hoshiSurfaces.page,
         ),
     )
 }
@@ -1317,7 +1412,7 @@ private fun BookshelfSectionHeader(
         Text(
             text = count.toString(),
             style = layoutSpec.shelfCountTextStyle.toTextStyle(),
-            color = Color(0xFF8C8C92),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = textLayout.countMaxLines,
             softWrap = textLayout.countSoftWrap,
         )
@@ -1338,6 +1433,7 @@ private fun BookGridCell(
     entry: BookEntry,
     progress: Double,
     coverSource: BookCoverSource?,
+    coverMode: BookshelfCoverMode,
     layoutSpec: MainShellLayoutSpec,
     isSelecting: Boolean,
     isSelected: Boolean,
@@ -1360,7 +1456,12 @@ private fun BookGridCell(
         ),
     ) {
         Box {
-            BookCoverCard(coverSource = coverSource)
+            BookCoverCard(
+                title = entry.displayTitle,
+                author = entry.metadata.author,
+                coverSource = coverSource,
+                coverMode = coverMode,
+            )
             if (isSelecting) {
                 Icon(
                     imageVector = if (isSelected) {
@@ -1377,18 +1478,18 @@ private fun BookGridCell(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
-                        .background(MaterialTheme.colorScheme.background, RoundedCornerShape(100))
+                        .background(hoshiSurfaces.page, RoundedCornerShape(100))
                         .size(28.dp),
                 )
             } else if (isBookCompleted(progress)) {
                 Icon(
                     imageVector = Icons.Rounded.CheckCircle,
                     contentDescription = stringResource(R.string.bookshelf_read),
-                    tint = Color(0xFF8C8C92),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(8.dp)
-                        .background(MaterialTheme.colorScheme.background, RoundedCornerShape(100))
+                        .background(hoshiSurfaces.page, RoundedCornerShape(100))
                         .size(28.dp),
                 )
             }
@@ -1415,6 +1516,7 @@ private fun RemoteBookGridCell(
     progress: Double,
     downloadProgress: Double?,
     coverSource: BookCoverSource?,
+    coverMode: BookshelfCoverMode,
     layoutSpec: MainShellLayoutSpec,
     enabled: Boolean,
     onImport: () -> Unit,
@@ -1428,7 +1530,12 @@ private fun RemoteBookGridCell(
             onLongClick = onOpenContextMenu,
         ),
     ) {
-        BookCoverCard(coverSource = coverSource)
+        BookCoverCard(
+            title = entry.title,
+            author = null,
+            coverSource = coverSource,
+            coverMode = coverMode,
+        )
         Spacer(Modifier.height(6.dp))
         ReadingProgressPill(progress = progress)
         Spacer(Modifier.height(6.dp))
@@ -1459,141 +1566,14 @@ internal suspend fun loadBookProgressById(
     }
 
 @Composable
-private fun BookCoverCard(
-    coverSource: BookCoverSource?,
-    modifier: Modifier = Modifier,
-) {
-    val cachedBitmap = remember(coverSource?.cacheKey) {
-        BookCoverBitmapCache.get(coverSource)
-    }
-    val bitmap by produceState<Bitmap?>(initialValue = cachedBitmap, key1 = coverSource) {
-        if (cachedBitmap == null) {
-            value = BookCoverBitmapCache.load(coverSource)
-        }
-    }
-    val outerShape = RoundedCornerShape(7.dp)
-    val innerShape = RoundedCornerShape(6.dp)
-    val coverPlaceholderColor = Color.Gray.copy(alpha = 0.3f)
-    val coverContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)
-    val coverBorderColor = if (LocalHoshiDarkTheme.current) {
-        Color.White.copy(alpha = 0.18f)
-    } else {
-        Color.Black.copy(alpha = 0.06f)
-    }
-    Box(
-        modifier = Modifier
-            .then(modifier)
-            .fillMaxWidth()
-            .aspectRatio(BookCoverAspectRatio)
-            .clip(outerShape)
-            .background(coverContainerColor)
-            .border(BorderStroke(1.dp, coverBorderColor), outerShape)
-            .padding(3.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        val coverModifier = Modifier
-            .fillMaxSize()
-            .clip(innerShape)
-        if (bitmap != null) {
-            Image(
-                bitmap = bitmap!!.asImageBitmap(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = coverModifier.background(coverPlaceholderColor),
-            )
-        } else {
-            Box(
-                modifier = coverModifier.background(coverPlaceholderColor),
-            )
-        }
-    }
-}
-
-internal object BookCoverBitmapCache {
-    private const val MaxCoverDimensionPx = 768
-    private val cache = object : LruCache<String, Bitmap>(24 * 1024 * 1024) {
-        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
-    }
-
-    fun get(coverSource: BookCoverSource?): Bitmap? {
-        coverSource ?: return null
-        return synchronized(cache) {
-            cache.get(coverSource.cacheKey)
-        }
-    }
-
-    suspend fun load(coverSource: BookCoverSource?): Bitmap? = withContext(Dispatchers.IO) {
-        coverSource ?: return@withContext null
-        synchronized(cache) {
-            cache.get(coverSource.cacheKey)?.let { return@withContext it }
-        }
-        val bitmap = decodeSampledCoverBitmap(File(coverSource.path), MaxCoverDimensionPx) ?: return@withContext null
-        bitmap.prepareToDraw()
-        synchronized(cache) {
-            cache.put(coverSource.cacheKey, bitmap)
-        }
-        bitmap
-    }
-}
-
-private const val BookCoverAspectRatio = 0.709f
-
-internal fun coverDecodeSampleSize(width: Int, height: Int, maxDimensionPx: Int): Int {
-    if (width <= 0 || height <= 0 || maxDimensionPx <= 0) return 1
-    var sampleSize = 1
-    while (max(width / (sampleSize * 2), height / (sampleSize * 2)) >= maxDimensionPx) {
-        sampleSize *= 2
-    }
-    return sampleSize
-}
-
-internal data class CoverThumbnailSize(
-    val width: Int,
-    val height: Int,
-)
-
-internal fun coverThumbnailSize(width: Int, height: Int, maxDimensionPx: Int): CoverThumbnailSize {
-    if (width <= 0 || height <= 0 || maxDimensionPx <= 0) {
-        return CoverThumbnailSize(width = width, height = height)
-    }
-    val longest = max(width, height)
-    if (longest <= maxDimensionPx) {
-        return CoverThumbnailSize(width = width, height = height)
-    }
-    val scale = maxDimensionPx.toDouble() / longest.toDouble()
-    return CoverThumbnailSize(
-        width = max(1, (width * scale).toInt()),
-        height = max(1, (height * scale).toInt()),
-    )
-}
-
-internal fun decodeSampledCoverBitmap(file: File, maxDimensionPx: Int): Bitmap? {
-    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    BitmapFactory.decodeFile(file.absolutePath, bounds)
-    val options = BitmapFactory.Options().apply {
-        inSampleSize = coverDecodeSampleSize(bounds.outWidth, bounds.outHeight, maxDimensionPx)
-    }
-    val decoded = BitmapFactory.decodeFile(file.absolutePath, options) ?: return null
-    val targetSize = coverThumbnailSize(decoded.width, decoded.height, maxDimensionPx)
-    if (targetSize.width == decoded.width && targetSize.height == decoded.height) {
-        return decoded
-    }
-    val scaled = Bitmap.createScaledBitmap(decoded, targetSize.width, targetSize.height, true)
-    if (scaled !== decoded) {
-        decoded.recycle()
-    }
-    return scaled
-}
-
-@Composable
 private fun ReadingProgressPill(progress: Double, modifier: Modifier = Modifier) {
     val clamped = progress.coerceIn(0.0, 1.0).toFloat()
     val eInkMode = LocalHoshiEInkMode.current
     val colorScheme = MaterialTheme.colorScheme
-    val progressTrackColor = if (eInkMode) colorScheme.surface else Color(0xFFD7D7DB)
-    val progressFillColor = if (eInkMode) colorScheme.onSurface else Color(0xFFAFAFB4)
+    val progressTrackColor = if (eInkMode) hoshiSurfaces.group else hoshiSurfaces.nested
+    val progressFillColor = if (eInkMode) colorScheme.onSurface else colorScheme.primary
     val progressBorderColor = if (eInkMode) colorScheme.outline else Color.Transparent
-    val progressTextColor = if (eInkMode) colorScheme.onBackground else Color(0xFF76767C)
+    val progressTextColor = colorScheme.onSurfaceVariant
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -1635,6 +1615,7 @@ private fun BookContextMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
     onMoveBook: (BookEntry, String?) -> Unit,
+    onCreateShelfForBook: (BookEntry) -> Unit,
     onMarkReadCandidate: (BookEntry) -> Unit,
     onRenameCandidate: (BookEntry) -> Unit,
     onDeleteCandidate: (BookEntry) -> Unit,
@@ -1743,6 +1724,7 @@ private fun BookContextMenu(
         expanded = expanded && moveMenuExpanded,
         onDismiss = onDismiss,
         onMoveBook = onMoveBook,
+        onCreateShelfForBook = onCreateShelfForBook,
     )
     ProfileDestinationMenu(
         entry = entry,
@@ -1818,12 +1800,24 @@ private fun MoveDestinationMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
     onMoveBook: (BookEntry, String?) -> Unit,
+    onCreateShelfForBook: (BookEntry) -> Unit,
 ) {
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
     ) {
         SortMenuHeader(text = stringResource(R.string.bookshelf_move))
+        HorizontalDivider()
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.bookshelf_new_shelf)) },
+            leadingIcon = {
+                Icon(Icons.Rounded.Add, contentDescription = null)
+            },
+            onClick = {
+                onCreateShelfForBook(entry)
+                onDismiss()
+            },
+        )
         HorizontalDivider()
         DropdownMenuItem(
             text = { Text(stringResource(R.string.bookshelf_no_shelf)) },
@@ -1920,7 +1914,11 @@ internal fun selectedBookProfileId(
 internal fun ShelfManagementDialog(
     shelves: List<BookShelf>,
     showReading: Boolean,
+    coverMode: BookshelfCoverMode,
+    hideCollapsedShelfThumbnails: Boolean,
     onShowReadingChange: (Boolean) -> Unit,
+    onCoverModeChange: (BookshelfCoverMode) -> Unit,
+    onHideCollapsedShelfThumbnailsChange: (Boolean) -> Unit,
     onCreateShelf: (String) -> Unit,
     onDeleteShelf: (String) -> Unit,
     onRenameShelf: (String, String) -> Unit,
@@ -1946,6 +1944,52 @@ internal fun ShelfManagementDialog(
                     .testTag(ShelfManagementShelfListTag),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                item(key = "cover-mode") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(stringResource(R.string.bookshelf_covers), style = MaterialTheme.typography.bodyLarge)
+                        Spacer(Modifier.weight(1f))
+                        SingleChoiceSegmentedButtonRow(
+                            modifier = Modifier.width(180.dp),
+                        ) {
+                            BookshelfCoverMode.entries.forEachIndexed { index, mode ->
+                                SegmentedButton(
+                                    selected = coverMode == mode,
+                                    onClick = { onCoverModeChange(mode) },
+                                    shape = SegmentedButtonDefaults.itemShape(index, BookshelfCoverMode.entries.size),
+                                    icon = {},
+                                ) {
+                                    Text(
+                                        when (mode) {
+                                            BookshelfCoverMode.Show -> stringResource(R.string.bookshelf_cover_mode_show)
+                                            BookshelfCoverMode.Blur -> stringResource(R.string.bookshelf_cover_mode_blur)
+                                            BookshelfCoverMode.Hide -> stringResource(R.string.bookshelf_cover_mode_hide)
+                                        },
+                                        maxLines = 1,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                item(key = "hide-collapsed-shelf-thumbnails") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            stringResource(R.string.bookshelf_hide_collapsed_shelf_thumbnails),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        Switch(
+                            checked = hideCollapsedShelfThumbnails,
+                            onCheckedChange = onHideCollapsedShelfThumbnailsChange,
+                        )
+                    }
+                }
                 item(key = "reading-shelf") {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -2154,7 +2198,7 @@ internal fun SettingsTab(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = hoshiSurfaces.page,
         contentColor = MaterialTheme.colorScheme.onBackground,
         contentWindowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
         topBar = {
@@ -2167,8 +2211,8 @@ internal fun SettingsTab(
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.background,
+                    containerColor = hoshiSurfaces.page,
+                    scrolledContainerColor = hoshiSurfaces.page,
                 ),
             )
         },
@@ -2208,8 +2252,8 @@ private fun SettingsGroupCard(
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = hoshiSurfaces.group,
+        border = hoshiContainerBorder(),
         tonalElevation = 0.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -2218,6 +2262,7 @@ private fun SettingsGroupCard(
                 SettingsRow(row = row, onClick = { onDestination(row.destination) })
                 if (index != rows.lastIndex) {
                     HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
                 }
@@ -2309,7 +2354,8 @@ private fun SettingsGlyph(destination: SettingsDestination, color: Color, modifi
         SettingsDestination.Dictionaries -> Icons.AutoMirrored.Rounded.MenuBook
         SettingsDestination.Anki -> Icons.Rounded.Inventory2
         SettingsDestination.Profiles -> Icons.Rounded.Person
-        SettingsDestination.Appearance -> Icons.Rounded.Palette
+        SettingsDestination.Display -> Icons.Rounded.Palette
+        SettingsDestination.Appearance -> Icons.Rounded.FormatSize
         SettingsDestination.Behavior -> Icons.Rounded.Keyboard
         SettingsDestination.Advanced -> Icons.Rounded.Settings
         SettingsDestination.ReportIssue -> Icons.Rounded.ReportProblem

@@ -1,5 +1,8 @@
 package moe.antimony.hoshi.features.dictionary
 
+import moe.antimony.hoshi.ui.theme.LocalHoshiEInkMode
+import moe.antimony.hoshi.ui.theme.hoshiSurfaces
+import moe.antimony.hoshi.ui.theme.hoshiContainerBorder
 import android.annotation.SuppressLint
 import android.view.MotionEvent
 import android.webkit.WebView
@@ -60,6 +63,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
@@ -79,13 +83,13 @@ import moe.antimony.hoshi.content.ContentLanguageProfile
 import moe.antimony.hoshi.features.audio.AudioRequestHandler
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.audio.WordAudioPlayer
-import moe.antimony.hoshi.features.anki.AnkiMiningContext
 import moe.antimony.hoshi.features.anki.AnkiViewModel
 import moe.antimony.hoshi.features.advancedai.sentenceSuccessContent
 import moe.antimony.hoshi.features.advancedai.wordSuccessContent
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupBridgeCallbackHolder
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupBridgeCallbacks
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupBridgeMessage
+import moe.antimony.hoshi.features.reader.readerPopupBooleanMapJson
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupFramePayload
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupIframeSync
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupResourceHandler
@@ -108,6 +112,14 @@ import kotlin.math.roundToInt
 private const val DictionaryPopupTopInset = 118.0
 private const val DictionaryPopupBottomInset = 0.0
 private val DictionaryPullResetThreshold = DictionaryPullResetTriggerDistanceDp.dp
+
+internal enum class DictionaryExternalLookupFocus {
+    Request,
+    Clear,
+}
+
+internal fun dictionaryExternalLookupFocus(query: String): DictionaryExternalLookupFocus =
+    if (query.isBlank()) DictionaryExternalLookupFocus.Request else DictionaryExternalLookupFocus.Clear
 
 internal fun dictionarySearchKeyboardOptions(
     contentLanguageProfile: ContentLanguageProfile = ContentLanguageProfile.Default,
@@ -169,11 +181,14 @@ internal fun dictionarySearchPopupOptions(
 fun DictionarySearchView(
     readerSettings: ReaderSettings,
     focusRequestKey: Int = 0,
+    pendingLookupRequest: PendingDictionaryLookupRequest? = null,
+    onPendingLookupConsumed: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     val appContainer = LocalHoshiUiDependencies.current
     val assets = remember(context) { LookupPopupAssets.load(context) }
     val searchViewModel: DictionarySearchViewModel = hiltViewModel()
@@ -188,13 +203,18 @@ fun DictionarySearchView(
     var searchBarBottomDp by remember { mutableStateOf(0.0) }
     var pullDistancePx by remember { mutableFloatStateOf(0f) }
     var localFocusRequestKey by remember { mutableIntStateOf(0) }
+    val initialFocusRequestKey = remember { focusRequestKey }
+    var suppressAutomaticFocus by remember {
+        mutableStateOf(pendingLookupRequest?.query?.isNotBlank() == true)
+    }
     val localAudioRepository = appContainer.localAudioRepository
     val dictionaryRepository = appContainer.dictionaryRepository
     val fontManager = appContainer.readerFontManager
-    val fontFaceCss = fontManager.popupFontFaceCss()
+    val fontLibraryState by fontManager.libraryState.collectAsStateWithLifecycle()
+    val fontFaceCss = remember(fontManager, fontLibraryState.revision) { fontManager.popupFontFaceCss() }
     val rootContentLanguageProfile = profileState.effectiveContentLanguageProfile
     val readerPopupBridgeHolder = remember { ReaderLookupPopupBridgeCallbackHolder() }
-    val popupDarkMode = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val popupDarkMode = hoshiSurfaces.page.luminance() < 0.5f
     val popupOptions = dictionarySearchPopupOptions(
         readerSettings = readerSettings,
         dictionarySettings = uiState.dictionarySettings,
@@ -223,6 +243,7 @@ fun DictionarySearchView(
             popupScale = readerSettings.popupScale,
         )
     }
+    val noAudioFoundText = stringResource(R.string.audio_no_audio_found)
     val readerPopupIframeDocument = remember(
         uiState.dictionaryStyles,
         uiState.dictionarySettings,
@@ -238,6 +259,7 @@ fun DictionarySearchView(
         fontFaceCss,
         readerSettings.popupScale,
         rootContentLanguageProfile,
+        noAudioFoundText,
     ) {
         LookupPopupHtml.renderIframeDocument(
             assets = null,
@@ -251,6 +273,7 @@ fun DictionarySearchView(
             darkMode = popupDarkMode,
             eInkMode = readerSettings.eInkMode,
             audioSettings = uiState.audioSettings,
+            noAudioFoundText = noAudioFoundText,
             ankiSettings = ankiUiState.popupSettings,
             fontFaceCss = fontFaceCss,
             popupScale = readerSettings.popupScale,
@@ -273,6 +296,8 @@ fun DictionarySearchView(
     }
     val iframePayloads = remember(
         uiState.results,
+        uiState.lastQuery,
+        uiState.sentenceOffset,
         themedPopups,
         childHistories,
         viewport,
@@ -286,6 +311,8 @@ fun DictionarySearchView(
     ) {
         dictionarySearchIframePayloads(
             rootResults = uiState.results,
+            sourceText = uiState.lastQuery,
+            sourceSentenceOffset = uiState.sentenceOffset,
             childPopups = themedPopups,
             childHistories = childHistories,
             rootHistory = ReaderPopupHistoryCounts(
@@ -314,6 +341,30 @@ fun DictionarySearchView(
         rootIframeAtTop = true
         pullDistancePx = 0f
         searchViewModel.onEffectiveProfileChanged(profileState.effectiveProfile.id)
+    }
+    LaunchedEffect(focusRequestKey) {
+        if (focusRequestKey != initialFocusRequestKey) {
+            suppressAutomaticFocus = false
+        }
+    }
+    LaunchedEffect(pendingLookupRequest?.requestId) {
+        val request = pendingLookupRequest ?: return@LaunchedEffect
+        childHistories = emptyMap()
+        rootIframeAtTop = true
+        pullDistancePx = 0f
+        searchViewModel.applyExternalLookup(request.query)
+        when (dictionaryExternalLookupFocus(request.query)) {
+            DictionaryExternalLookupFocus.Request -> {
+                suppressAutomaticFocus = false
+                requestSearchFocus()
+            }
+            DictionaryExternalLookupFocus.Clear -> {
+                suppressAutomaticFocus = true
+                focusManager.clearFocus(force = true)
+                keyboardController?.hide()
+            }
+        }
+        onPendingLookupConsumed()
     }
     val lookupPopup = { selection: moe.antimony.hoshi.features.reader.ReaderSelectionData ->
         searchViewModel.createPopup(
@@ -414,7 +465,7 @@ fun DictionarySearchView(
             is ReaderLookupPopupBridgeMessage.MineEntry -> {
                 val messageId = message.messageId ?: return
                 val miningContext = if (message.popupId == DictionarySearchRootPopupId) {
-                    AnkiMiningContext(sentence = uiState.lastQuery.ifBlank { uiState.query })
+                    searchViewModel.rootMiningContext()
                 } else {
                     popupById(message.popupId)?.state?.let { popupState ->
                         popupState.ankiContext.copy(
@@ -423,14 +474,20 @@ fun DictionarySearchView(
                         )
                     } ?: return
                 }
-                ankiViewModel.mineEntryAsync(message.payloadJson, miningContext) { mined ->
+                ankiViewModel.mineEntryAsync(message.formatId, message.payloadJson, miningContext) { mined ->
                     replyIframeMessage(message.popupId, messageId, mined.toString())
                 }
             }
             is ReaderLookupPopupBridgeMessage.DuplicateCheck -> {
                 val messageId = message.messageId ?: return
-                ankiViewModel.duplicateCheckAsync(message.expression) { isDuplicate ->
-                    replyIframeMessage(message.popupId, messageId, isDuplicate.toString())
+                ankiViewModel.duplicateStatesAsync(message.valuesByHandlebar) { states ->
+                    replyIframeMessage(message.popupId, messageId, readerPopupBooleanMapJson(states))
+                }
+            }
+            is ReaderLookupPopupBridgeMessage.ShowNotes -> {
+                val messageId = message.messageId ?: return
+                ankiViewModel.showNotesAsync(message.formatId, message.valuesByHandlebar) { shown ->
+                    replyIframeMessage(message.popupId, messageId, shown.toString())
                 }
             }
             is ReaderLookupPopupBridgeMessage.LookupRedirect -> {
@@ -462,6 +519,28 @@ fun DictionarySearchView(
                     }
                 }
                 replyIframeMessage(message.popupId, messageId, results.size.toString())
+            }
+            is ReaderLookupPopupBridgeMessage.KanjiRedirect -> {
+                val messageId = message.messageId ?: return
+                val result = searchViewModel.lookupKanji(message.kanji)
+                replyIframeMessage(
+                    message.popupId,
+                    messageId,
+                    if (result.entries.isEmpty()) "null" else LookupPopupHtml.kanjiJsonString(result),
+                )
+            }
+            is ReaderLookupPopupBridgeMessage.KanjiRedirectCommitted -> {
+                if (message.popupId == DictionarySearchRootPopupId) {
+                    searchViewModel.recordLookupRedirected(1)
+                } else {
+                    val current = childHistories[message.popupId] ?: ReaderPopupHistoryCounts()
+                    childHistories = childHistories + (
+                        message.popupId to current.copy(
+                            backCount = current.backCount + 1,
+                            forwardCount = 0,
+                        )
+                    )
+                }
             }
             is ReaderLookupPopupBridgeMessage.GetEntry -> {
                 val entry = searchViewModel.entryForPopup(message.popupId, message.index)
@@ -521,6 +600,11 @@ fun DictionarySearchView(
                 }
             }
             is ReaderLookupPopupBridgeMessage.SwitchAdvancedAiMode -> Unit
+            is ReaderLookupPopupBridgeMessage.SourceHistoryRestored -> {
+                if (message.popupId == DictionarySearchRootPopupId) {
+                    searchViewModel.restoreRootSourceHistory(message.sentenceOffset)
+                }
+            }
             is ReaderLookupPopupBridgeMessage.SasayakiReplayCue,
             is ReaderLookupPopupBridgeMessage.SasayakiTogglePlayback,
             is ReaderLookupPopupBridgeMessage.SasayakiPlayForward,
@@ -532,7 +616,7 @@ fun DictionarySearchView(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(hoshiSurfaces.page)
             .onSizeChanged { viewportSize = it },
     ) {
         when {
@@ -609,7 +693,11 @@ fun DictionarySearchView(
             isSearching = uiState.isSearching,
             onQueryChange = searchViewModel::updateQuery,
             onSubmit = runLookup,
-            focusRequestKey = focusRequestKey to localFocusRequestKey,
+            focusRequestKey = if (suppressAutomaticFocus) {
+                null
+            } else {
+                focusRequestKey to localFocusRequestKey
+            },
             contentLanguageProfile = rootContentLanguageProfile,
             onBottomChanged = { bottomPx ->
                 searchBarBottomDp = with(density) { bottomPx.toDp().value.toDouble() }
@@ -617,7 +705,7 @@ fun DictionarySearchView(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface),
+                .background(hoshiSurfaces.page),
         )
     }
 }
@@ -754,10 +842,10 @@ private fun DictionaryPullResetIndicator(
     Surface(
         modifier = modifier.padding(top = topPaddingDp.dp + 8.dp),
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surface,
+        color = hoshiSurfaces.group,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 2.dp,
+        border = hoshiContainerBorder(),
+        shadowElevation = if (LocalHoshiEInkMode.current) 0.dp else 2.dp,
     ) {
         Text(
             text = stringResource(label),
@@ -818,7 +906,7 @@ private fun DictionarySearchTopBar(
     isSearching: Boolean,
     onQueryChange: (String) -> Unit,
     onSubmit: () -> Unit,
-    focusRequestKey: Any,
+    focusRequestKey: Any?,
     contentLanguageProfile: ContentLanguageProfile,
     onBottomChanged: (Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -845,7 +933,9 @@ private fun DictionarySearchTopBar(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f))
+        if (LocalHoshiEInkMode.current) {
+            HorizontalDivider(color = hoshiSurfaces.outline)
+        }
     }
 }
 
@@ -855,7 +945,7 @@ private fun DictionarySearchBar(
     isSearching: Boolean,
     onQueryChange: (String) -> Unit,
     onSubmit: () -> Unit,
-    focusRequestKey: Any,
+    focusRequestKey: Any?,
     contentLanguageProfile: ContentLanguageProfile,
     modifier: Modifier = Modifier,
 ) {
@@ -867,7 +957,7 @@ private fun DictionarySearchBar(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = hoshiContainerBorder(),
         shadowElevation = 0.dp,
     ) {
         Row(
@@ -888,6 +978,7 @@ private fun DictionarySearchBar(
                     scrollState = fieldScrollState,
                 )
                 LaunchedEffect(focusRequestKey, fieldState) {
+                    if (focusRequestKey == null) return@LaunchedEffect
                     focusRequester.requestFocus()
                     fieldState.selectAllText()
                     keyboardController?.show()

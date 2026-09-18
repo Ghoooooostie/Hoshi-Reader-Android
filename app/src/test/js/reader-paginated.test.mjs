@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 const readerPaginatedUrl = new URL('../../main/assets/hoshi-web/reader/reader-paginated.js', import.meta.url);
 const readerContinuousUrl = new URL('../../main/assets/hoshi-web/reader/reader-continuous.js', import.meta.url);
+const readerViewportUrl = new URL('../../main/assets/hoshi-web/reader/reader-viewport.js', import.meta.url);
 const readerSasayakiUrl = new URL('../../main/assets/hoshi-web/reader/reader-sasayaki.js', import.meta.url);
 const readerTextSemanticsUrl = new URL('../../main/assets/hoshi-web/reader/reader-text-semantics.js', import.meta.url);
 const readerDomTextUrl = new URL('../../main/assets/hoshi-web/reader/reader-dom-text.js', import.meta.url);
@@ -31,10 +32,15 @@ function readerSource(url, options = {}) {
     const readerSasayaki = fs.readFileSync(readerSasayakiUrl, 'utf8');
     return fs.readFileSync(url, 'utf8')
         .replace('__HOSHI_HIGHLIGHTS_SCRIPT__', options.highlightsScript ?? '')
+        .replace('__HOSHI_READER_VIEWPORT_SCRIPT__', fs.readFileSync(readerViewportUrl, 'utf8'))
         .replace('__HOSHI_READER_SASAYAKI_SCRIPT__', readerSasayaki)
         .replace('__HOSHI_READER_TEXT_SEMANTICS_SCRIPT__', options.textSemanticsScript ?? readerTextSemanticsSource())
         .replace('__HOSHI_READER_DOM_TEXT_SCRIPT__', options.domTextScript ?? readerDomTextSource())
         .replace('__HOSHI_READER_MEDIA_SEMANTICS_SCRIPT__', options.mediaSemanticsScript ?? readerMediaSemanticsSource())
+        .replace(
+            '__HOSHI_READER_LAYOUT_SEMANTICS_SCRIPT__',
+            options.layoutSemanticsScript ?? 'window.hoshiReaderLayoutSemantics = { sanitizeInlineBlocks: function() {} };',
+        )
         .replace('__HOSHI_READER_TRANSLATION_SCRIPT__', options.translationScript ?? readerTranslationSource())
         .replaceAll('__HOSHI_RESTORE_TOKEN_LITERAL__', JSON.stringify('restore-token'))
         .replaceAll('__HOSHI_BOTTOM_OVERLAP_PX__', String(options.bottomOverlapPx ?? 0))
@@ -411,7 +417,7 @@ function loadReader(body, sourceUrl = readerPaginatedUrl, options = {}) {
         body,
         head: documentHead,
         documentElement,
-        fonts: { ready: Promise.resolve() },
+        fonts: { ready: options.fontsReady ?? Promise.resolve() },
         readyState: 'loading',
         createDocumentFragment() {
             return new TestFragment();
@@ -425,10 +431,10 @@ function loadReader(body, sourceUrl = readerPaginatedUrl, options = {}) {
         createRange() {
             return new TestRange();
         },
-        createTreeWalker(root) {
+        createTreeWalker(root, whatToShow, filter) {
             const nodes = [];
             const visit = (node) => {
-                if (node.nodeType === 3) nodes.push(node);
+                if (node.nodeType === 3 && (!filter || filter.acceptNode(node) === 1)) nodes.push(node);
                 node.childNodes?.forEach(visit);
             };
             visit(root);
@@ -518,6 +524,36 @@ function rubyParagraph() {
     paragraph.appendChild(new TestText('そ'));
     paragraph.appendChild(new TestText('れ'));
     return { paragraph, ruby };
+}
+
+for (const sourceUrl of [readerPaginatedUrl, readerContinuousUrl]) {
+    test(`${sourceUrl.pathname.split('/').pop()} counts Korean and skips ruby fallback in offsets and cues`, () => {
+        const body = new TestElement('body');
+        body.appendChild(new TestText('𠮟가、'));
+        const ruby = new TestElement('ruby');
+        const base = new TestText('한글');
+        ruby.appendChild(base);
+        for (const [tag, text] of [['rp', 'fallback'], ['rt', 'reading'], ['rp', '주석']]) {
+            const annotation = new TestElement(tag);
+            annotation.appendChild(new TestText(text));
+            ruby.appendChild(annotation);
+        }
+        body.appendChild(ruby);
+        const tail = new TestText(' ㄱㆎA');
+        body.appendChild(tail);
+        const { reader } = loadReader(body, sourceUrl);
+        reader.buildNodeOffsets();
+
+        assert.equal(reader.nodeStartOffsets.get(base), 2);
+        assert.equal(reader.nodeStartRawOffsets.get(base), 3);
+        assert.equal(reader.nodeStartOffsets.get(tail), 4);
+        assert.equal(reader.nodeStartRawOffsets.get(tail), 5);
+        assert.equal(reader.textOffsetForCharCount(body.firstChild, 1), 2);
+
+        reader.isEInkMode = () => false;
+        reader.applySasayakiCues([{ id: 'korean', start: 2, length: 2 }]);
+        assert.equal(reader.cueWrappers.get('korean').map((wrapper) => wrapper.textContent).join(''), '한글');
+    });
 }
 
 function rubyParagraphWithWhitespaceTextNodes() {
@@ -706,12 +742,16 @@ test('paginated restoreProgress at chapter start avoids eager pagination metrics
     assert.equal(builtMetrics, 0);
 });
 
-test('reader initialization waits for image setup before offsets and restore scripts', async () => {
+test('reader initialization waits for fonts and images before sanitizing layout, offsets, and restore scripts', async () => {
     for (const sourceUrl of [readerPaginatedUrl, readerContinuousUrl]) {
         const body = new TestElement('body');
         body.appendChild(new TestText('本文'));
         const events = [];
+        let resolveFonts;
         let resolveImages;
+        const fontsReady = new Promise((resolve) => {
+            resolveFonts = resolve;
+        });
         const mediaSemanticsScript = `
           window.hoshiReaderMediaSemantics = {
             setupReaderImages: function() {
@@ -722,9 +762,18 @@ test('reader initialization waits for image setup before offsets and restore scr
             }
           };
         `;
+        const layoutSemanticsScript = `
+          window.hoshiReaderLayoutSemantics = {
+            sanitizeInlineBlocks: function(scope, vertical) {
+              window.__events.push(scope === document && vertical ? 'sanitize-vertical' : 'sanitize-horizontal');
+            }
+          };
+        `;
         const restoreScripts = "window.__events.push('restore'); window.hoshiReader.restoreProgress(0);";
         const { reader, window } = loadReader(body, sourceUrl, {
             mediaSemanticsScript,
+            layoutSemanticsScript,
+            fontsReady,
             restoreScripts,
             restoreMessages: [],
         });
@@ -740,44 +789,77 @@ test('reader initialization waits for image setup before offsets and restore scr
         assert.deepEqual(events, ['setup']);
 
         resolveImages();
+        for (let i = 0; i < 3; i += 1) {
+            await Promise.resolve();
+        }
+        assert.deepEqual(events, ['setup']);
+
+        resolveFonts();
+        for (let i = 0; i < 10; i += 1) {
+            await Promise.resolve();
+        }
+
+        assert.deepEqual(events.slice(0, 4), ['setup', 'sanitize-vertical', 'offsets', 'restore']);
+    }
+});
+
+for (const [firstText, secondText] of [['一二', '三四五'], ['가힣', 'ㄱㆎ한']]) {
+    test(`paginated restoreProgress lands on the page containing ${secondText}`, async () => {
+        const body = new TestElement('body');
+        body.scrollTop = 0;
+        body.scrollHeight = 3_200;
+        const first = new TestText(firstText);
+        first.rects = [testRect(0, 40)];
+        const punctuation = new TestText('。');
+        punctuation.rects = [testRect(780, 800)];
+        const second = new TestText(secondText);
+        second.rects = [testRect(1_620, 1_660)];
+        body.appendChild(first);
+        body.appendChild(punctuation);
+        body.appendChild(second);
+        const restoreMessages = [];
+        const { reader } = loadReader(body, readerPaginatedUrl, { restoreMessages });
+        reader.pageHeight = 800;
+        reader.pageWidth = 480;
+        reader.registerSnapScroll = (position) => {
+            reader.snapPosition = position;
+        };
+        reader.refreshSasayakiCuePresentation = () => {};
+
+        await reader.restoreProgress(0.6);
         for (let i = 0; i < 5; i += 1) {
             await Promise.resolve();
         }
 
-        assert.deepEqual(events.slice(0, 3), ['setup', 'offsets', 'restore']);
-    }
-});
+        assert.equal(body.scrollTop, 1_600);
+        assert.equal(reader.snapPosition, 1_600);
+        assert.deepEqual(restoreMessages, ['restore-token']);
+    });
+}
 
-test('paginated restoreProgress lands on the page containing the target character', async () => {
+test('continuous Korean restore lands inside the target text after a supplementary character', async () => {
     const body = new TestElement('body');
-    body.scrollTop = 0;
-    body.scrollHeight = 3_200;
-    const first = new TestText('一二');
-    first.rects = [testRect(0, 40)];
-    const punctuation = new TestText('。');
-    punctuation.rects = [testRect(780, 800)];
-    const second = new TestText('三四五');
-    second.rects = [testRect(1_620, 1_660)];
+    const first = new TestElement('p');
+    first.appendChild(new TestText('𠮟가'));
+    const second = new TestElement('p');
+    second.appendChild(new TestText('ㄱㆎ한'));
     body.appendChild(first);
-    body.appendChild(punctuation);
     body.appendChild(second);
-    const restoreMessages = [];
-    const { reader } = loadReader(body, readerPaginatedUrl, { restoreMessages });
-    reader.pageHeight = 800;
-    reader.pageWidth = 480;
-    reader.registerSnapScroll = (position) => {
-        reader.snapPosition = position;
+    const { reader, document } = loadReader(body, readerContinuousUrl, { writingMode: 'horizontal-tb' });
+    const createElement = document.createElement;
+    const landings = [];
+    document.createElement = (tag) => {
+        const element = createElement(tag);
+        element.scrollIntoView = () => {
+            landings.push({ parent: element.parentNode, precedingText: element.previousSibling?.textContent });
+        };
+        return element;
     };
-    reader.refreshSasayakiCuePresentation = () => {};
 
     await reader.restoreProgress(0.6);
-    for (let i = 0; i < 5; i += 1) {
-        await Promise.resolve();
-    }
 
-    assert.equal(body.scrollTop, 1_600);
-    assert.equal(reader.snapPosition, 1_600);
-    assert.deepEqual(restoreMessages, ['restore-token']);
+    assert.deepEqual(landings, [{ parent: second, precedingText: 'ㄱ' }]);
+    assert.equal(second.textContent, 'ㄱㆎ한');
 });
 
 test('continuous restoreProgress zero resets every WebView scroll surface', async () => {
@@ -835,28 +917,30 @@ test('continuous restoreProgress one lands on the last text block end', async ()
     assert.deepEqual(restoreMessages, ['restore-token']);
 });
 
-test('paged and continuous progress counts matchable text before the viewport', () => {
-    for (const sourceUrl of [readerPaginatedUrl, readerContinuousUrl]) {
-        const body = new TestElement('body');
-        const before = new TestText('古都');
-        before.rects = [testRect(-60, -20)];
-        const punctuation = new TestText('。');
-        punctuation.rects = [testRect(20, 40)];
-        const visible = new TestText('３年生');
-        visible.rects = [testRect(20, 40)];
-        body.appendChild(before);
-        body.appendChild(punctuation);
-        body.appendChild(visible);
-        const { reader, document } = loadReader(body, sourceUrl, {
-            writingMode: sourceUrl === readerContinuousUrl ? 'horizontal-tb' : 'vertical-rl',
-        });
-        reader.pageHeight = 800;
-        reader.pageWidth = 480;
-        document.documentElement.scrollTop = 0;
+for (const [beforeText, visibleText] of [['古都', '３年生'], ['가힣', 'ㄱㆎ한']]) {
+    test(`paged and continuous progress counts ${beforeText} before the viewport`, () => {
+        for (const sourceUrl of [readerPaginatedUrl, readerContinuousUrl]) {
+            const body = new TestElement('body');
+            const before = new TestText(beforeText);
+            before.rects = [testRect(-60, -20)];
+            const punctuation = new TestText('。');
+            punctuation.rects = [testRect(20, 40)];
+            const visible = new TestText(visibleText);
+            visible.rects = [testRect(20, 40)];
+            body.appendChild(before);
+            body.appendChild(punctuation);
+            body.appendChild(visible);
+            const { reader, document } = loadReader(body, sourceUrl, {
+                writingMode: sourceUrl === readerContinuousUrl ? 'horizontal-tb' : 'vertical-rl',
+            });
+            reader.pageHeight = 800;
+            reader.pageWidth = 480;
+            document.documentElement.scrollTop = 0;
 
-        assert.equal(reader.calculateProgress(), 2 / 5);
-    }
-});
+            assert.equal(reader.calculateProgress(), 2 / 5);
+        }
+    });
+}
 
 test('paginated content metrics include final partial page when real text reaches it', () => {
     const body = new TestElement('body');
@@ -930,7 +1014,7 @@ test('reader initialization completes when an image has already failed loading',
         };
 
         reader.initialize();
-        for (let i = 0; i < 5; i += 1) {
+        for (let i = 0; i < 10; i += 1) {
             await Promise.resolve();
         }
 
@@ -1081,6 +1165,48 @@ test('paginated Sasayaki media stop plan lists every image page before target cu
         Array.from(stops, (stop) => stop.scroll),
         [800, 1_600],
     );
+});
+
+test('paginated Sasayaki media stop plan ignores wide inline gaiji', () => {
+    const body = new TestElement('body');
+    body.scrollHeight = 2_400;
+    body.scrollWidth = 480;
+    body.scrollTop = 0;
+    body.scrollLeft = 0;
+    body.appendChild(new TestText('一'));
+    const gaijiWide = imgAt(900, 1_000);
+    gaijiWide.classList.add('gaiji-wide');
+    body.appendChild(gaijiWide);
+    const target = new TestText('二三');
+    target.rects = [testRect(1_700, 1_730)];
+    body.appendChild(target);
+    const { reader } = loadReader(body, readerPaginatedUrl);
+    reader.pageHeight = 800;
+
+    const stops = reader.sasayakiMediaStopsBeforeCue({ id: 'cue', start: 1, length: 2 });
+
+    assert.deepEqual(Array.from(stops), []);
+});
+
+test('paginated Sasayaki media stop plan ignores every class token containing gaiji', () => {
+    const body = new TestElement('body');
+    body.scrollHeight = 2_400;
+    body.scrollWidth = 480;
+    body.scrollTop = 0;
+    body.scrollLeft = 0;
+    body.appendChild(new TestText('一'));
+    const gaijiVariant = imgAt(900, 1_000);
+    gaijiVariant.classList.add('publisher-GaIjI-tall');
+    body.appendChild(gaijiVariant);
+    const target = new TestText('二三');
+    target.rects = [testRect(1_700, 1_730)];
+    body.appendChild(target);
+    const { reader } = loadReader(body, readerPaginatedUrl);
+    reader.pageHeight = 800;
+
+    const stops = reader.sasayakiMediaStopsBeforeCue({ id: 'cue', start: 1, length: 2 });
+
+    assert.deepEqual(Array.from(stops), []);
 });
 
 test('paginated Sasayaki media stop plan includes the current image page before target cue', () => {

@@ -1,0 +1,173 @@
+TASK 10235:moe.antimony.hoshi.debug id=1846 userId=0 displayId=0(type=INTERNAL)
+  ACTIVITY moe.antimony.hoshi.debug/moe.antimony.hoshi.MainActivity 1cb461f pid=10866 userId=0 uid=10235 displayId=0(type=INTERNAL)
+    Local Activity b79f180 State:
+      mResumed=true mStopped=false mFinished=false
+      mIsInMultiWindowMode=false mIsInPictureInPictureMode=false
+      mChangingConfigurations=false
+      mCurrentConfig={1.0 460mcc1mnc [zh_CN] ldltr sw384dp w384dp h853dp 450dpi nrml long hdr widecg port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 0 - 1080, 2400) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} as.3 s.2 fontWeightAdjustment=0 iconChanged=21}
+      mLoadersStarted=true
+      Active Fragments in d8069c6:
+        #0: ReportFragment{50b8d87 #0 androidx.lifecycle.LifecycleDispatcher.report_fragment_tag}
+          mFragmentId=#0 mContainerId=#0 mTag=androidx.lifecycle.LifecycleDispatcher.report_fragment_tag
+          mState=5 mIndex=0 mWho=android:fragment:0 mBackStackNesting=0
+          mAdded=true mRemoving=false mFromLayout=false mInLayout=false
+          mHidden=false mDetached=false mMenuVisible=true mHasMenu=false
+          mRetainInstance=false mRetaining=false mUserVisibleHint=true
+          mFragmentManager=FragmentManager{d8069c6 in HostCallbacks{87494b4}}
+          mHost=android.app.Activity$HostCallbacks@87494b4
+          Child FragmentManager{62a58dd in ReportFragment{50b8d87}}:
+            FragmentManager misc state:
+              mHost=android.app.Activity$HostCallbacks@87494b4
+              mContainer=android.app.Fragment$1@f095c52
+              mParent=ReportFragment{50b8d87 #0 androidx.lifecycle.LifecycleDispatcher.report_fragment_tag}
+              mCurState=5 mStateSaved=false mDestroyed=false
+      Added Fragments:
+        #0: ReportFragment{50b8d87 #0 androidx.lifecycle.LifecycleDispatcher.report_fragment_tag}
+      FragmentManager misc state:
+        mHost=android.app.Activity$HostCallbacks@87494b4
+        mContainer=android.app.Activity$HostCallbacks@87494b4
+        mCurState=5 mStateSaved=false mDestroyed=false
+    ViewRoot:
+      mAdded=true
+      mRemoved=false
+      mStopped=false
+      mPausedForTransition=false
+      mConsumeBatchedInputScheduled=false
+      mConsumeBatchedInputImmediatelyScheduled=false
+      mPendingInputEventCount=0
+      mProcessInputEventsScheduled=false
+      mTraversalScheduled=false
+      mReportNextDraw=false
+      mLastReportedMergedConfiguration={mGlobalConfig={1.0 460mcc1mnc [zh_CN] ldltr sw384dp w384dp h853dp 450dpi nrml long hdr widecg port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 0 - 1080, 2400) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.3 s.104170 fontWeightAdjustment=0 iconChanged=21} mOverrideConfig={1.0 460mcc1mnc [zh_CN] ldltr sw384dp w384dp h853dp 450dpi nrml long hdr widecg port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 0 - 1080, 2400) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} as.3 s.2 fontWeightAdjustment=0 iconChanged=21}}
+      mLastConfigurationFromResources={1.0 460mcc1mnc [zh_CN] ldltr sw384dp w384dp h853dp 450dpi nrml long hdr widecg port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 0 - 1080, 2400) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} as.3 s.2 fontWeightAdjustment=0 iconChanged=21}
+      mLastReportedActivityWindowInfo=ActivityWindowInfo{isEmbedded=false, taskBounds=Rect(0, 0 - 1080, 2400), taskFragmentBounds=Rect(0, 0 - 1080, 2400)}
+      mIsAmbientMode=false
+      mUnbufferedInputSource=0
+      mAttachInfo=       AttachInfo:
+        mHasWindowFocus=true
+        mWindowVisibility=0
+        mInTouchMode=true
+        mUnbufferedDispatchRequested=false
+      mWindowAttributes={(0,0)(fillxfill) sim={adjust=pan} layoutInDisplayCutoutMode=always ty=BASE_APPLICATION wanim=0x103030e
+  fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+  pfl=NO_MOVE_ANIMATION EDGE_TO_EDGE_ENFORCED FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+  vsysui=LIGHT_STATUS_BAR LIGHT_NAVIGATION_BAR
+  apr=LIGHT_STATUS_BARS LIGHT_NAVIGATION_BARS
+  bhv=DEFAULT
+  fitSides=
+  frameRateBoostOnTouch=true
+  dvrrWindowFrameRateHint=true}
+      android.view.ViewRootImpl$NativePreImeInputStage: mQueueLength=0
+      android.view.ViewRootImpl$ImeInputStage: mQueueLength=0
+      android.view.ViewRootImpl$NativePostImeInputStage: mQueueLength=0
+      android.view.ViewRootImpl$WindowInputEventReceiver
+       mInputChannel: 389bb3e moe.antimony.hoshi.debug/moe.antimony.hoshi.MainActivity
+       mSeqMap: {}
+       mReceiverPtr:
+        mInputConsumer:
+          mResampleTouch = true
+          mChannel = 389bb3e moe.antimony.hoshi.debug/moe.antimony.hoshi.MainActivity
+          mMsgDeferred: false
+          Batches:
+              <empty>
+          mSeqChains:
+              <empty>
+          mConsumeTimes:
+              <empty>
+          
+        mBatchedInputEventPending: false
+        mOutboundQueue:
+          <empty>
+        
+    Choreographer:
+      mFrameScheduled=false
+      mLastFrameTime=720967035 (21070 ms ago)
+    InsetsController:
+        InsetsState
+          mDisplayFrame=Rect(0, 0 - 1080, 2400)
+          mDisplayCutout=DisplayCutout{insets=Rect(0, 116 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(540, 0 - 602, 116), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2400 physicalDisplayWidth=1080 physicalDisplayHeight=2400 density={2.8125} cutoutSpec={M0,63.01m-30.73,0a30.73,30.73 0,1 1,61.46 0a30.73,30.73 0,1 1,-61.46 0} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}
+          mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=101, center=Point(101, 101)}, RoundedCorner{position=TopRight, radius=101, center=Point(979, 101)}, RoundedCorner{position=BottomRight, radius=101, center=Point(979, 2299)}, RoundedCorner{position=BottomLeft, radius=101, center=Point(101, 2299)}]}
+          mRoundedCornerFrame=Rect(0, 0 - 1080, 2400)
+          mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(866, 0 - 1097, 116) rotation=0}
+          mDisplayShape=DisplayShape{ spec=-1893857183 displayWidth=1080 displayHeight=2400 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}
+            InsetsSource id=c1150000 type=statusBars frame=[0,0][1080,116] visible=true flags= sideHint=TOP boundingRects=null
+            InsetsSource id=c1150005 type=mandatorySystemGestures frame=[0,0][1080,150] visible=true flags= sideHint=TOP boundingRects=null
+            InsetsSource id=c1150006 type=tappableElement frame=[0,0][1080,116] visible=true flags= sideHint=TOP boundingRects=null
+            InsetsSource id=3 type=ime frame=[0,0][0,0] visible=false flags= sideHint=NONE boundingRects=null
+            InsetsSource id=27 type=displayCutout frame=[0,0][1080,116] visible=true flags= sideHint=TOP boundingRects=null
+            InsetsSource id=3a420001 type=navigationBars frame=[0,2330][1080,2400] visible=true flags=SUPPRESS_SCRIM sideHint=BOTTOM boundingRects=null
+            InsetsSource id=3a420004 type=systemGestures frame=[0,0][67,2400] visible=true flags= sideHint=LEFT boundingRects=null
+            InsetsSource id=3a420005 type=mandatorySystemGestures frame=[0,2330][1080,2400] visible=true flags= sideHint=BOTTOM boundingRects=null
+            InsetsSource id=3a420006 type=tappableElement frame=[0,0][0,0] visible=true flags= sideHint=NONE boundingRects=null
+            InsetsSource id=3a420024 type=systemGestures frame=[1013,0][1080,2400] visible=true flags= sideHint=RIGHT boundingRects=null
+        mIsPredictiveBackImeHideAnimInProgress=false
+    WindowOnBackDispatcher:
+        Top Callback: androidx.navigationevent.OnBackInvokedInput$createOnBackAnimationCallback$1@f084d6b
+        Callbacks: 
+          Callback: android.app.Activity$$ExternalSyntheticLambda0@d28d92a Priority=-1
+          Callback: androidx.navigationevent.OnBackInvokedInput$createOnBackAnimationCallback$1@f084d6b Priority=0
+    ImeBackAnimationController:
+        mLastProgress=0.0
+        mTriggerBack=false
+        mIsPreCommitAnimationInProgress=false
+        mStartRootScrollY=0
+        isBackAnimationAllowed=true
+        isAdjustPan=true
+        isHideAnimationInProgress=false
+    View Hierarchy:
+      com.android.internal.policy.DecorView{eb7788b V.E...... R.....I. 0,0-1080,2400 aid=0}[MainActivity]
+        androidx.core.view.insets.SystemBarStateMonitor$1{38103b9 V.E...... ........ 0,0-1080,2400}
+        android.widget.LinearLayout{9d093b0 V.E...... ......I. 0,0-1080,2400}
+          android.view.ViewStub{5c4c695 G.E...... ......I. 0,0-0,0 #10201ed android:id/action_mode_bar_stub}
+          android.widget.FrameLayout{d847af3 V.E...... ......I. 0,0-1080,2400 #1020002 android:id/content}
+            androidx.compose.ui.platform.ComposeView{2343962 V.E...... ......I. 0,0-1080,2400}
+              androidx.compose.ui.platform.AndroidComposeView{b4ada63 VFED..... ......I. 0,0-1080,2400 aid=1073741824}
+                android.view.View{58823aa V.ED..... ........ 0,0-0,0}
+                androidx.compose.ui.platform.AndroidViewsHandler{4eeb229 V.E...... ......ID 0,0-1080,2400}
+                androidx.compose.material.ripple.RippleContainer{e241dbc V.E...... ......I. 0,0-0,0}
+                  androidx.compose.material.ripple.RippleHostView{19d3375 V.ED..... ......I. 0,0-990,158}
+        androidx.core.view.insets.ProtectionLayout{9962581 V.E...... ........ 0,0-1080,2400}
+          android.view.View{15add68 V.ED..... ........ 0,0-1080,116}
+          android.view.View{7a2ca5 I.ED..... ......ID 0,0-0,2400}
+          android.view.View{a3d787a I.ED..... ......ID 1080,0-1080,2400}
+          android.view.View{f3da82b I.ED..... ......ID 0,2400-1080,2400}
+        android.view.View{5512b9b V.ED..... ........ 0,0-1080,2400}
+    FlymeViewRootState:
+      TracingBarrier=0
+      CheckThreadException=NULL
+      DisplayState=2
+      LastDisplayChangedTime=0 (1789748410989ms ago)
+    Looper (main, tid 2) {3bafb38}
+      (MessageQueue is using Legacy implementation)
+      Message 0: { when=+12h41m31s902ms callback=androidx.work.impl.background.greedy.DelayedWorkTracker$1 target=android.os.Handler }
+      (Total messages: 1, polling=false, quitting=false)
+    ResourcesManager:
+      total apks: 5
+      resources: 4
+      resource impls: 3
+    1 dumpables:
+    #0: AutofillManager
+        AutofillManager:
+          sessionId: 2147483647
+          state: UNKNOWN
+          context: moe.antimony.hoshi.MainActivity@b79f180
+          service client: null
+          client: android.view.autofill.AutofillClientController@4783711 (android.os.BinderProxy@2f8c7b0)
+          enabled: false
+          enabledAugmentedOnly: false
+          hasService: true
+          hasCallback: true
+          onInvisibleCalled false
+          last autofilled data: null
+          id of last fill UI shown: null
+          tracked views: null
+          fillable ids: null
+          entered ids: null
+          save trigger id: null
+          save on finish(): false
+          options: logLvl=0, compatMode=false, augmented=false, appDisabledExpiration=0
+          fill dialog enabled: false
+          fill dialog enabled hints: []
+          compat mode enabled: false
+          debug: false verbose: false
+        Autofill Compat Mode: false

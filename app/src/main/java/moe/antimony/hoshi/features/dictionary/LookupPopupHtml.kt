@@ -2,6 +2,7 @@ package moe.antimony.hoshi.features.dictionary
 
 import android.content.Context
 import de.manhhao.hoshi.LookupResult
+import de.manhhao.hoshi.KanjiResult
 import de.manhhao.hoshi.TraceCandidate
 import de.manhhao.hoshi.TraceSource
 import kotlinx.serialization.json.JsonObject
@@ -13,6 +14,7 @@ import kotlinx.serialization.json.putJsonArray
 import moe.antimony.hoshi.content.ContentLanguageProfile
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.anki.AnkiPopupSettings
+import moe.antimony.hoshi.features.anki.AnkiFormatIcon
 import moe.antimony.hoshi.features.reader.coerceReaderPopupScale
 import java.util.Locale
 
@@ -24,6 +26,7 @@ internal data class LookupPopupAssets(
     val selectionEnglishJs: String = "",
     val selectionJs: String = "",
     val readerPopupHostJs: String = "",
+    val popupGesturesJs: String = "",
 ) {
     companion object {
         @Volatile
@@ -42,6 +45,7 @@ internal data class LookupPopupAssets(
             selectionEnglishJs = context.readAsset("hoshi-web/shared/selection-en.js"),
             selectionJs = context.readAsset("hoshi-web/shared/selection.js"),
             readerPopupHostJs = context.readAsset("hoshi-web/popup/reader-popup-host.js"),
+            popupGesturesJs = context.readAsset("hoshi-web/popup/popup-gestures.js"),
         )
 
         private fun Context.readAsset(path: String): String =
@@ -70,6 +74,7 @@ internal object LookupPopupHtml {
         darkMode: Boolean = false,
         eInkMode: Boolean = false,
         audioSettings: AudioSettings = AudioSettings(),
+        noAudioFoundText: String = "No audio found",
         ankiSettings: AnkiPopupSettings = AnkiPopupSettings(),
         fontFaceCss: String = "",
         popupScale: Double = 1.0,
@@ -111,6 +116,15 @@ internal object LookupPopupHtml {
         val selectionConfigureJs = """<script>window.hoshiSelection?.configure?.({ language: $selectionLanguageId });</script>"""
         val popupJs = assets?.let { """<script>${it.popupJs}</script>""" }
             ?: """<script src="$PopupAssetBaseUrl/popup.js"></script>"""
+        val popupGesturesJs = assets
+            ?.popupGesturesJs
+            ?.takeIf(String::isNotBlank)
+            ?.let { """<script>$it</script>""" }
+            ?: if (assets == null) {
+                """<script src="$PopupAssetBaseUrl/popup-gestures.js"></script>"""
+            } else {
+                ""
+            }
         return """
             <!DOCTYPE html>
             <html lang="${contentLanguageProfile.htmlLang}" data-hoshi-color-scheme="$colorScheme" data-hoshi-eink-mode="$eInkMode">
@@ -174,9 +188,13 @@ internal object LookupPopupHtml {
                             popupScrolled: { postMessage: function() { window.HoshiAndroidPopup.postMessage('popupScrolled'); } },
                             switchAdvancedAiMode: { postMessage: function(mode) { window.HoshiAndroidPopup.postMessage('switchAdvancedAiMode', mode); } },
                             mineEntry: { postMessage: function(content) { return window.HoshiAndroidPopup.requestMessage('mineEntry', content); } },
-                            duplicateCheck: { postMessage: function(expression) { return window.HoshiAndroidPopup.requestMessage('duplicateCheck', expression); } },
+                            duplicateCheck: { postMessage: function(values) { return window.HoshiAndroidPopup.requestMessage('duplicateCheck', values); } },
+                            showNotes: { postMessage: function(content) { return window.HoshiAndroidPopup.requestMessage('showNotes', content); } },
                             getEntry: { postMessage: function(index) { return window.HoshiAndroidPopup.requestMessage('getEntry', index); } },
-                            lookupRedirect: { postMessage: function(query) { return window.HoshiAndroidPopup.requestMessage('lookupRedirect', query); } }
+                            lookupRedirect: { postMessage: function(query) { return window.HoshiAndroidPopup.requestMessage('lookupRedirect', query); } },
+                            sourceHistoryRestored: { postMessage: function(offset) { window.HoshiAndroidPopup.postMessage('sourceHistoryRestored', { sentenceOffset: offset }); } },
+                            kanjiRedirect: { postMessage: function(kanji) { return window.HoshiAndroidPopup.requestMessage('kanjiRedirect', kanji); } },
+                            kanjiRedirectCommitted: { postMessage: function() { window.HoshiAndroidPopup.postMessage('kanjiRedirectCommitted'); } }
                         }
                     };
                     window.scanNonJapaneseText = ${normalizedSettings.scanNonJapaneseText};
@@ -190,6 +208,7 @@ internal object LookupPopupHtml {
                     window.deduplicatePitchAccents = ${normalizedSettings.deduplicatePitchAccents};
                     window.compactPitchAccents = ${normalizedSettings.compactPitchAccents};
                     window.audioSources = ${audioSourcesJson(audioSettings)};
+                    window.noAudioFoundText = ${JsonPrimitive(noAudioFoundText)};
                     window.audioRequestEndpoint = "https://appassets.androidplatform.net/audio";
                     window.dictionaryMediaRequestEndpoint = "https://appassets.androidplatform.net/image";
                     window.disablePopupImageViewportMaxHeight = true;
@@ -200,6 +219,9 @@ internal object LookupPopupHtml {
                     window.useAnkiConnect = ${ankiSettings.useAnkiConnect};
                     window.embedMedia = ${ankiSettings.embedMedia};
                     window.compactGlossariesAnki = ${ankiSettings.compactGlossaries};
+                    window.ankiFormats = ${ankiFormatsJson(ankiSettings)};
+                    window.ankiBackendAvailable = ${ankiSettings.isBackendAvailable};
+                    window.disableShowNotes = ${ankiSettings.disableShowNotes};
                     window.customCSS = ${JsonPrimitive(normalizedSettings.customCSS)};
                     window.swipeThreshold = $effectiveSwipeThreshold;
                     window.reducedMotionScrolling = $reducedMotionScrolling;
@@ -212,7 +234,8 @@ internal object LookupPopupHtml {
                     window.popupId = null;
                     window.hoshiPostPopupScrollState = function() {
                         var scrollRoot = document.scrollingElement || document.documentElement || document.body;
-                        var scrollTop = scrollRoot ? (scrollRoot.scrollTop || window.scrollY || 0) : 0;
+                        var scrollTop = window.hoshiPopupGeometry?.scrollTop()
+                            ?? (scrollRoot ? (scrollRoot.scrollTop || window.scrollY || 0) : 0);
                         window.HoshiAndroidPopup.postMessage('scrollState', {
                             atTop: scrollTop <= 1,
                             scrollTop: scrollTop
@@ -228,7 +251,8 @@ internal object LookupPopupHtml {
                 $popupJs
             </head>
             <body>
-                <script>${popupGestureScript()}</script>
+                $popupGesturesJs
+                <div id="search-text" hidden style="--hoshi-search-text-size: ${normalizedSettings.searchTextSize}px;"></div>
                 <div id="entries-container"></div>
                 <div class="overlay">
                     <div class="overlay-close" onclick="closeOverlay()">×</div>
@@ -310,7 +334,7 @@ internal object LookupPopupHtml {
                                     }
                                 }
                                 if (window.replacePopupResults) {
-                                    window.replacePopupResults(window.entryCount, initialEntries);
+                                    window.replacePopupResults(window.entryCount, initialEntries, message.sourceText, message.sourceSentenceOffset);
                                 } else {
                                     window.lookupEntries = initialEntries;
                                     window.hoshiPopupObserveContentReady?.();
@@ -325,6 +349,10 @@ internal object LookupPopupHtml {
                             }
                             if (message.type === 'navigateForward') {
                                 window.navigateForward?.();
+                                return;
+                            }
+                            if (message.type === 'navigateTerm') {
+                                window.navigatePopupTerm?.(message.direction);
                             }
                         });
                         webkit.messageHandlers.shellReady.postMessage(null);
@@ -337,6 +365,25 @@ internal object LookupPopupHtml {
     }
 
     internal fun entryJsonString(result: LookupResult): String = result.toEntryJson().toString()
+
+    internal fun kanjiJsonString(result: KanjiResult): String =
+        buildJsonObject {
+            put("character", result.character)
+            putJsonArray("entries") {
+                result.entries.forEach { entry ->
+                    add(
+                        buildJsonObject {
+                            put("dictName", entry.dictName)
+                            put("onyomi", entry.onyomi)
+                            put("kunyomi", entry.kunyomi)
+                            putJsonArray("meanings") {
+                                entry.definitions.forEach { add(JsonPrimitive(it)) }
+                            }
+                        },
+                    )
+                }
+            }
+        }.toString()
 
     private fun dictionaryStylesJson(styles: Map<String, String>): JsonObject =
         buildJsonObject {
@@ -355,7 +402,19 @@ internal object LookupPopupHtml {
             settings.audioSources
                 .filter { it.isEnabled }
                 .forEach { source ->
-                    add(JsonPrimitive(if (source == AudioSettings.LocalAudioSource) AudioSettings.InternalLocalAudioUrl else source.url))
+                    add(
+                        buildJsonObject {
+                            put("name", source.name)
+                            put(
+                                "url",
+                                if (source == AudioSettings.LocalAudioSource) {
+                                    AudioSettings.InternalLocalAudioUrl
+                                } else {
+                                    source.url
+                                },
+                            )
+                        },
+                    )
                 }
         }.toString()
 
@@ -400,70 +459,6 @@ internal object LookupPopupHtml {
             window.hoshiPopupPrewarmFonts();
             setTimeout(window.hoshiPopupPrewarmFonts, 0);
             setTimeout(window.hoshiPopupPrewarmFonts, 100);
-        })();
-    """.trimIndent()
-
-    private fun popupGestureScript(): String = """
-        (function() {
-            if (window.reducedMotionScrolling) {
-                var reducedMotionStartY = 0;
-                var root = function() {
-                    return document.scrollingElement || document.documentElement || document.body;
-                };
-                var scrollByPopupHeight = function(direction) {
-                    var scrollRoot = root();
-                    var popupHeight = document.documentElement.clientHeight || window.innerHeight || scrollRoot.clientHeight;
-                    var maxScroll = Math.max(0, scrollRoot.scrollHeight - popupHeight);
-                    var current = scrollRoot.scrollTop || window.scrollY || 0;
-                    var target = Math.max(0, Math.min(maxScroll, current + popupHeight * window.reducedMotionScrollScale * direction));
-                    scrollRoot.scrollTop = target;
-                    window.scrollTo(0, target);
-                };
-                document.addEventListener('touchstart', function(e) {
-                    if (e.touches.length === 1) {
-                        reducedMotionStartY = e.touches[0].clientY;
-                    }
-                }, { passive: true });
-                document.addEventListener('touchmove', function(e) {
-                    if (e.touches.length === 1 && e.cancelable) {
-                        e.preventDefault();
-                    }
-                }, { passive: false });
-                document.addEventListener('touchend', function(e) {
-                    if (!e.changedTouches.length) return;
-                    var delta = reducedMotionStartY - e.changedTouches[0].clientY;
-                    var threshold = window.reducedMotionSwipeThreshold;
-                    if (delta > threshold) {
-                        scrollByPopupHeight(1);
-                    } else if (delta < -threshold) {
-                        scrollByPopupHeight(-1);
-                    }
-                }, { passive: true });
-                document.addEventListener('wheel', function(e) {
-                    if (e.deltaY === 0) return;
-                    scrollByPopupHeight(e.deltaY > 0 ? 1 : -1);
-                    e.preventDefault();
-                }, { passive: false });
-            }
-            if (!window.swipeThreshold) {
-                return;
-            }
-            var startX, startY;
-            document.addEventListener('touchstart', function(e) {
-                startX = e.touches[0].clientX;
-                startY = e.touches[0].clientY;
-            });
-            document.addEventListener('touchend', function(e) {
-                var dx = e.changedTouches[0].clientX - startX;
-                var dy = e.changedTouches[0].clientY - startY;
-                var absDx = Math.abs(dx);
-                var absDy = Math.abs(dy);
-                var isHorizontalDismiss = absDx > window.swipeThreshold && absDx > absDy * 1.75;
-                var hasSelection = window.getSelection().toString();
-                if (isHorizontalDismiss && !hasSelection) {
-                    webkit.messageHandlers.swipeDismiss.postMessage(null);
-                }
-            });
         })();
     """.trimIndent()
 
@@ -523,8 +518,26 @@ internal object LookupPopupHtml {
                 add(
                     buildJsonObject {
                         put("dictionary", pitch.dictName)
-                        putJsonArray("pitchPositions") {
-                            pitch.pitchPositions.distinct().forEach { add(JsonPrimitive(it)) }
+                        putJsonArray("pitches") {
+                            pitch.pitches
+                                .distinctBy { accent -> accent.pattern.takeIf(String::isNotBlank) ?: accent.position.toString() }
+                                .forEach { accent ->
+                                    add(
+                                        buildJsonObject {
+                                            if (accent.pattern.isNotBlank()) {
+                                                put("position", accent.pattern)
+                                            } else {
+                                                put("position", accent.position)
+                                            }
+                                            putJsonArray("nasal") {
+                                                accent.nasal.forEach { add(JsonPrimitive(it)) }
+                                            }
+                                            putJsonArray("devoice") {
+                                                accent.devoice.forEach { add(JsonPrimitive(it)) }
+                                            }
+                                        },
+                                    )
+                                }
                         }
                         putJsonArray("transcriptions") {
                             pitch.transcriptions.distinct().forEach { add(JsonPrimitive(it)) }
@@ -672,6 +685,23 @@ internal object LookupPopupHtml {
             outline-offset: -1px !important;
         }
 
+        html[data-hoshi-eink-mode="true"] .audio-candidate-menu {
+            background: #fff !important;
+            color: #000 !important;
+            border: 1px solid #000 !important;
+            border-radius: 0 !important;
+        }
+
+        html[data-hoshi-eink-mode="true"] .audio-candidate-menu-item {
+            border-radius: 0 !important;
+        }
+
+        html[data-hoshi-eink-mode="true"] .audio-candidate-menu-item:not(:disabled):active {
+            background: #fff !important;
+            outline: 1px solid #000 !important;
+            outline-offset: -1px !important;
+        }
+
         html[data-hoshi-eink-mode="true"] .glossary-group > summary::before {
             opacity: 1 !important;
         }
@@ -721,6 +751,7 @@ internal object LookupPopupHtml {
 
         html[data-hoshi-color-scheme="dark"][data-hoshi-eink-mode="true"] .frequency-values,
         html[data-hoshi-color-scheme="dark"][data-hoshi-eink-mode="true"] .button-slot,
+        html[data-hoshi-color-scheme="dark"][data-hoshi-eink-mode="true"] .audio-candidate-menu,
         html[data-hoshi-color-scheme="dark"][data-hoshi-eink-mode="true"] .overlay {
             background-color: #000 !important;
             color: #fff !important;
@@ -730,6 +761,16 @@ internal object LookupPopupHtml {
             outline: 1px solid #fff !important;
         }
 
+        html[data-hoshi-color-scheme="dark"][data-hoshi-eink-mode="true"] .audio-candidate-menu {
+            border-color: #fff !important;
+        }
+
+        html[data-hoshi-color-scheme="dark"][data-hoshi-eink-mode="true"] .audio-candidate-menu-item:not(:disabled):active {
+            background: #000 !important;
+            outline: 1px solid #fff !important;
+            outline-offset: -1px !important;
+        }
+
         html[data-hoshi-color-scheme="dark"][data-hoshi-eink-mode="true"] .overlay {
             border-top: 1px solid #fff !important;
         }
@@ -737,6 +778,26 @@ internal object LookupPopupHtml {
 
     private const val PopupAssetBaseUrl = "https://appassets.androidplatform.net/popup"
 }
+
+private fun ankiFormatsJson(settings: AnkiPopupSettings) = buildJsonArray {
+    settings.formats.forEach { format ->
+        add(buildJsonObject {
+            put("id", format.id)
+            put("icon", format.icon.popupName)
+            put("isValid", format.isValid)
+        })
+    }
+}
+
+private val AnkiFormatIcon.popupName: String
+    get() = when (this) {
+        AnkiFormatIcon.Square -> "square"
+        AnkiFormatIcon.SquareSmall -> "square-small"
+        AnkiFormatIcon.Circle -> "circle"
+        AnkiFormatIcon.CircleSmall -> "circle-small"
+        AnkiFormatIcon.Diamond -> "diamond"
+        AnkiFormatIcon.DiamondSmall -> "diamond-small"
+    }
 
 private fun selectionSupportAssetNames(contentLanguageProfile: ContentLanguageProfile): List<String> =
     when (contentLanguageProfile.dictionaryLanguageId) {

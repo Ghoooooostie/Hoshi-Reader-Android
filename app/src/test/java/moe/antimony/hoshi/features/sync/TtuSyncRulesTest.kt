@@ -135,6 +135,46 @@ class TtuSyncRulesTest {
     }
 
     @Test
+    fun progressJsonPreservesTtuDataIdsOutsideIntRange() {
+        val input =
+            """{"dataId":-1959131391809764,"exploredCharCount":76793,"progress":1.0,"lastBookmarkModified":1785337187112}"""
+
+        val progress = runCatching {
+            Json.decodeFromString(TtuProgress.serializer(), input)
+        }.getOrNull()
+
+        assertEquals(-1_959_131_391_809_764L, progress?.dataId)
+        assertEquals(input, progress?.let(Json::encodeToString))
+    }
+
+    @Test
+    fun remoteLastAccessUsesNewestProgressOrAudioBeforeBookDataFallback() {
+        val files = DriveSyncFiles(
+            bookData = DriveFile("book", "bookdata_1_6_200_9000_8000.zip"),
+            progress = DriveFile("progress", "progress_1_6_3000_0.8.json"),
+            audioBook = DriveFile("audio", "audioBook_1_6_4000_8.0.json"),
+            statistics = DriveFile("stats", "statistics_1_6_9999_10.json"),
+        )
+        assertEquals(4000L, files.lastAccessMillis)
+        assertEquals(3000L, files.copy(audioBook = null).lastAccessMillis)
+        assertEquals(4000L, files.copy(progress = null).lastAccessMillis)
+        assertEquals(5000L, files.copy(progress = DriveFile("p", "progress_1_6_5000_0.json")).lastAccessMillis)
+        assertEquals(8000L, files.copy(progress = null, audioBook = null).lastAccessMillis)
+        assertEquals(8000L, files.copy(
+            progress = DriveFile("p", "progress_1_6_invalid_0.json"),
+            audioBook = DriveFile("a", "audioBook_1_6_invalid_0.json"),
+        ).lastAccessMillis)
+        assertEquals(null, files.copy(bookData = null, progress = null, audioBook = null).lastAccessMillis)
+        for (name in listOf("bookdata.zip", "bookdata_1_6_200_9000_bad.zip", "other_1_6_200_9000_8000.zip")) {
+            assertEquals(null, files.copy(
+                bookData = DriveFile("bad", name), progress = null, audioBook = null,
+            ).lastAccessMillis)
+        }
+        // File selection still uses modification time, independently of last access.
+        assertEquals(9000L, TtuSyncRules.parseBookDataTimestampMillis(files.bookData))
+    }
+
+    @Test
     fun driveSyncFilesPreferLatestTimestampedTtuFiles() {
         val syncFiles = listOf(
             DriveFile(id = "old-bookdata", name = "bookdata_1_6_200_1000_500.zip"),
@@ -153,6 +193,7 @@ class TtuSyncRulesTest {
         assertEquals("new-statistics", syncFiles.statistics?.id)
         assertEquals("new-audio", syncFiles.audioBook?.id)
         assertEquals("cover", syncFiles.cover?.id)
+        assertEquals(6000L, syncFiles.lastAccessMillis)
     }
 
     @Test

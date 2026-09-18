@@ -27,7 +27,10 @@ import moe.antimony.hoshi.features.bookshelf.BookshelfSettingsRepository
 import moe.antimony.hoshi.features.bookshelf.bookshelfSettingsRepository
 import moe.antimony.hoshi.features.dictionary.DictionarySettingsRepository
 import moe.antimony.hoshi.features.dictionary.dictionarySettingsRepository
+import moe.antimony.hoshi.features.display.AppDisplaySettingsRepository
+import moe.antimony.hoshi.features.display.appDisplaySettingsRepository
 import moe.antimony.hoshi.features.reader.ReaderSettingsRepository
+import moe.antimony.hoshi.features.reader.readerDisplaySettingsMigrationSource
 import moe.antimony.hoshi.features.reader.readerSettingsRepository
 import moe.antimony.hoshi.features.sasayaki.SasayakiSettingsRepository
 import moe.antimony.hoshi.features.sasayaki.sasayakiSettingsRepository
@@ -40,6 +43,18 @@ import moe.antimony.hoshi.features.update.UpdateDownloadStore
 import moe.antimony.hoshi.features.update.UpdateSettingsRepository
 import moe.antimony.hoshi.features.update.updateDownloadStore
 import moe.antimony.hoshi.features.update.updateSettingsRepository
+import moe.antimony.hoshi.features.wallpaper.AndroidBookCoverExportTarget
+import moe.antimony.hoshi.features.wallpaper.AndroidBookCoverImageRenderer
+import moe.antimony.hoshi.features.wallpaper.AndroidBookCoverLockScreenTarget
+import moe.antimony.hoshi.features.wallpaper.AndroidBookCoverScreenSizeProvider
+import moe.antimony.hoshi.features.wallpaper.AndroidIReaderBookCoverTarget
+import moe.antimony.hoshi.features.wallpaper.BookCoverPublisher
+import moe.antimony.hoshi.features.wallpaper.BookCoverScreenSizeProvider
+import moe.antimony.hoshi.features.wallpaper.BookCoverWallpaperCapabilityProvider
+import moe.antimony.hoshi.features.wallpaper.BookCoverWallpaperSettingsRepository
+import moe.antimony.hoshi.features.wallpaper.DefaultBookCoverPublisher
+import moe.antimony.hoshi.features.wallpaper.IReaderBookCoverCapabilityProvider
+import moe.antimony.hoshi.features.wallpaper.bookCoverWallpaperSettingsRepository
 import moe.antimony.hoshi.profiles.ProfileRepository
 
 @Module
@@ -86,12 +101,27 @@ internal object HoshiAppModule {
 
     @Provides
     @Singleton
-    fun provideReaderSettingsRepository(
+    fun provideAppDisplaySettingsRepository(
         @ApplicationContext context: Context,
         profileRepository: ProfileRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): AppDisplaySettingsRepository = context.appDisplaySettingsRepository(
+        migrationSource = context.readerDisplaySettingsMigrationSource(profileRepository, ioDispatcher),
+    )
+
+    @Provides
+    @Singleton
+    fun provideReaderSettingsRepository(
+        @ApplicationContext context: Context,
+        profileRepository: ProfileRepository,
+        appDisplaySettingsRepository: AppDisplaySettingsRepository,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): ReaderSettingsRepository =
-        context.readerSettingsRepository(profileRepository, ioDispatcher)
+        context.readerSettingsRepository(
+            profileRepository = profileRepository,
+            displaySettings = appDisplaySettingsRepository.settings,
+            ioDispatcher = ioDispatcher,
+        )
 
     @Provides
     @Singleton
@@ -152,6 +182,43 @@ internal object HoshiAppModule {
     @Singleton
     fun provideUpdateSettingsRepository(@ApplicationContext context: Context): UpdateSettingsRepository =
         context.updateSettingsRepository()
+
+    @Provides
+    @Singleton
+    fun provideBookCoverWallpaperSettingsRepository(
+        @ApplicationContext context: Context,
+    ): BookCoverWallpaperSettingsRepository = context.bookCoverWallpaperSettingsRepository()
+
+    @Provides
+    @Singleton
+    fun provideBookCoverPublisher(
+        settingsRepository: BookCoverWallpaperSettingsRepository,
+        renderer: AndroidBookCoverImageRenderer,
+        lockScreenTarget: AndroidBookCoverLockScreenTarget,
+        exportTarget: AndroidBookCoverExportTarget,
+        iReaderTarget: AndroidIReaderBookCoverTarget,
+    ): BookCoverPublisher = DefaultBookCoverPublisher(
+        settings = settingsRepository.settings,
+        renderer = renderer,
+        lockScreenTarget = lockScreenTarget,
+        exportTarget = exportTarget,
+        iReaderTarget = iReaderTarget,
+    )
+
+    @Provides
+    fun provideBookCoverWallpaperCapabilityProvider(
+        target: AndroidBookCoverLockScreenTarget,
+    ): BookCoverWallpaperCapabilityProvider = target
+
+    @Provides
+    fun provideIReaderBookCoverCapabilityProvider(
+        target: AndroidIReaderBookCoverTarget,
+    ): IReaderBookCoverCapabilityProvider = target
+
+    @Provides
+    fun provideBookCoverScreenSizeProvider(
+        provider: AndroidBookCoverScreenSizeProvider,
+    ): BookCoverScreenSizeProvider = provider
 
     @Provides
     @Singleton

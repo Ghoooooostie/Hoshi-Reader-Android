@@ -312,6 +312,37 @@ test('public navigation helpers forward messages to the active iframe', () => {
     ]);
 });
 
+test('term navigation targets only the top popup iframe', () => {
+    const scene = popupHost();
+    scene.host.renderStack({
+        popups: [
+            rootPopupPayload(),
+            {
+                ...rootPopupPayload(),
+                id: 'child',
+                frame: { left: 20, top: 20, width: 200, height: 180 },
+            },
+        ],
+    });
+    const [rootShell, childShell] = scene.document.getElementById('hoshi-reader-popup-layer').children;
+    const rootMessages = [];
+    const childMessages = [];
+    rootShell.querySelector('.hoshi-reader-popup-iframe').contentWindow.postMessage = (message) => rootMessages.push(message);
+    childShell.querySelector('.hoshi-reader-popup-iframe').contentWindow.postMessage = (message) => childMessages.push(message);
+
+    scene.host.navigateTopTerm('next');
+    scene.host.navigateTopTerm('previous');
+
+    assert.deepEqual(rootMessages, []);
+    assert.deepEqual(
+        childMessages.map((message) => JSON.parse(JSON.stringify(message))),
+        [
+            { type: 'navigateTerm', direction: 'next' },
+            { type: 'navigateTerm', direction: 'previous' },
+        ],
+    );
+});
+
 test('outside pointer dismissal is opt-in for process text iframe host', () => {
     const scene = popupHost();
     const nativeMessages = [];
@@ -396,6 +427,24 @@ test('root popup shifts below wrapped selection highlights instead of covering l
     const shell = scene.document.getElementById('hoshi-reader-popup-layer').children[0];
 
     assert.equal(shell.style.top, '84px');
+});
+
+test('iframe render messages forward only non-null source text', () => {
+    for (const sourceText of ['前𠮟る後', '', null, undefined]) {
+        const scene = popupHost();
+        scene.host.renderStack({ popups: [{ ...rootPopupPayload(), sourceText, sourceSentenceOffset: 0 }] });
+        const iframe = scene.document.getElementById('hoshi-reader-popup-layer').children[0].querySelector('.hoshi-reader-popup-iframe');
+        const messages = [];
+        iframe.contentWindow.postMessage = message => messages.push(message);
+        iframe.dispatchEvent('load');
+        const message = messages.find(message => message.type === 'renderPopup');
+        assert.equal(Object.hasOwn(message, 'sourceText'), sourceText != null);
+        assert.equal(Object.hasOwn(message, 'sourceSentenceOffset'), sourceText != null);
+        if (sourceText != null) {
+            assert.equal(message.sourceText, sourceText);
+            assert.equal(message.sourceSentenceOffset, 0);
+        }
+    }
 });
 
 test('active iframe rerenders when same popup id receives new entry payload', () => {

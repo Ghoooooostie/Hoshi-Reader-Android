@@ -68,6 +68,7 @@ class SettingsDetailLayoutTest {
                 ) {
                     ReaderAppearanceScreen(
                         settings = ReaderSettings(),
+                        profileName = "Japanese",
                         onSettingsChange = {},
                         sasayakiSettings = moe.antimony.hoshi.features.sasayaki.SasayakiSettings(),
                         onSasayakiSettingsChange = {},
@@ -81,12 +82,38 @@ class SettingsDetailLayoutTest {
             }
         }
 
-        val themeBounds = composeRule.onNodeWithText("Theme").getUnclippedBoundsInRoot()
+        val themeBounds = composeRule.onNodeWithText("Text").getUnclippedBoundsInRoot()
 
         composeRule.onAllNodesWithText("Appearance").assertCountEquals(2)
         assertTrue(
             "Appearance content should start directly below the compact header, but Theme was at $themeBounds",
             themeBounds.top < 160.dp,
+        )
+    }
+
+    @Test
+    fun dictionaryFrequencyLabelStaysOnOneLineAtCompactWidth() {
+        composeRule.setContent {
+            MaterialTheme {
+                Box(
+                    modifier = Modifier
+                        .requiredSize(width = 360.dp, height = 780.dp)
+                        .testTag(RootTag),
+                ) {
+                    DictionaryView(
+                        onClose = {},
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
+
+        val frequencyBounds = composeRule.onNodeWithText("Frequency")
+            .getUnclippedBoundsInRoot()
+
+        assertTrue(
+            "Frequency should stay on one line at compact width, but was $frequencyBounds",
+            frequencyBounds.bottom - frequencyBounds.top < 30.dp,
         )
     }
 

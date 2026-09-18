@@ -1,5 +1,7 @@
 package moe.antimony.hoshi.features.reader
 
+import moe.antimony.hoshi.ui.theme.hoshiSurfaces
+import moe.antimony.hoshi.ui.theme.hoshiContainerOutline
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -14,7 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
+import moe.antimony.hoshi.ui.HoshiAlertDialog as AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -58,9 +60,7 @@ internal fun ReaderGoToBookHeader(
     onJumpToCharacter: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val currentCharacter = book.characterCountAt(currentPosition.index, currentPosition.progress)
-    val totalCharacters = book.bookInfo.characterCount
-    val percent = if (totalCharacters > 0) currentCharacter.toDouble() / totalCharacters.toDouble() * 100.0 else 0.0
+    val progress = book.contentsProgress(currentPosition, progressDisplay)
     val metrics = readerSheetDensityMetrics()
     Row(
         modifier = modifier
@@ -87,15 +87,46 @@ internal fun ReaderGoToBookHeader(
                 maxLines = 1,
             )
             Text(
-                text = "${progressDisplay.rangeText(currentCharacter, totalCharacters)} (${String.format(Locale.US, "%.1f", percent)}%)",
+                text = progress.book,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                text = progress.chapter,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
             )
         }
         TextButton(onClick = onJumpToCharacter) {
             Text(stringResource(R.string.reader_jump))
         }
     }
+}
+
+internal data class ReaderContentsProgress(
+    val book: String,
+    val chapter: String,
+)
+
+internal fun EpubBook.contentsProgress(
+    position: ReaderChapterPosition,
+    progressDisplay: ReaderProgressDisplay,
+): ReaderContentsProgress {
+    val absoluteCharacter = characterCountAt(position.index, position.progress)
+    val range = tocRangeAt(position)
+    return ReaderContentsProgress(
+        book = readerContentsProgressText(absoluteCharacter, bookInfo.characterCount, progressDisplay),
+        chapter = readerContentsProgressText(range.currentCharacter(absoluteCharacter), range.totalCharacters, progressDisplay),
+    )
+}
+
+private fun readerContentsProgressText(
+    current: Int,
+    total: Int,
+    progressDisplay: ReaderProgressDisplay,
+): String {
+    val percent = if (total > 0) current.toDouble() / total.toDouble() * 100.0 else 0.0
+    return "${progressDisplay.rangeText(current, total)} (${String.format(Locale.US, "%.1f", percent)}%)"
 }
 
 @Composable
@@ -135,7 +166,7 @@ internal fun ReaderChapterListRow(
     val isCurrentEInkRow = eInkMode && row.isCurrent
     val currentRowColor = when {
         isCurrentEInkRow -> MaterialTheme.colorScheme.onSurface
-        row.isCurrent -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f)
+        row.isCurrent -> hoshiSurfaces.nested
         else -> Color.Transparent
     }
     val rowContentColor = if (isCurrentEInkRow) {
@@ -156,6 +187,7 @@ internal fun ReaderChapterListRow(
                 color = currentRowColor,
                 shape = RoundedCornerShape(metrics.chapterRowCornerRadiusDp.dp),
             )
+            .then(if (row.isCurrent) Modifier.hoshiContainerOutline(RoundedCornerShape(metrics.chapterRowCornerRadiusDp.dp)) else Modifier)
             .clickable(onClick = onClick)
             .padding(
                 start = (row.indentLevel * 18).dp,
@@ -281,27 +313,27 @@ internal data class ReaderChapterRow(
     val indentLevel: Int,
 )
 
-internal fun EpubBook.chapterRows(currentIndex: Int): List<ReaderChapterRow> {
+internal fun EpubBook.chapterRows(currentCharacter: Int): List<ReaderChapterRow> {
     val tocRows = toc.flatMap { item ->
-        flattenChapterRows(item, indentLevel = 0, currentIndex = currentIndex)
+        flattenChapterRows(item, indentLevel = 0)
     }
-    if (tocRows.isNotEmpty()) return tocRows
-    return chapters.mapIndexed { index, chapter ->
+    val rows = if (tocRows.isNotEmpty()) tocRows else chapters.mapIndexed { index, chapter ->
         ReaderChapterRow(
             label = chapter.href.substringAfterLast('/').substringBeforeLast('.').ifBlank { title },
             spineIndex = index,
             fragment = null,
             characterCount = bookInfo.chapterInfo[chapter.href]?.currentTotal,
-            isCurrent = index == currentIndex,
+            isCurrent = false,
             indentLevel = 0,
         )
     }
+    val currentRowIndex = rows.indexOfLast { (it.characterCount ?: Int.MAX_VALUE) <= currentCharacter }
+    return rows.mapIndexed { index, row -> row.copy(isCurrent = index == currentRowIndex) }
 }
 
 private fun EpubBook.flattenChapterRows(
     item: EpubTocItem,
     indentLevel: Int,
-    currentIndex: Int,
 ): List<ReaderChapterRow> {
     val row = item.href?.let { href ->
         val spineIndex = chapterIndexForHref(href) ?: return@let null
@@ -309,13 +341,13 @@ private fun EpubBook.flattenChapterRows(
             label = item.label,
             spineIndex = spineIndex,
             fragment = href.substringAfter('#', "").ifBlank { null },
-            characterCount = bookInfo.chapterInfo[chapters[spineIndex].href]?.currentTotal,
-            isCurrent = spineIndex == currentIndex,
+            characterCount = tocCharacterStart(href),
+            isCurrent = false,
             indentLevel = indentLevel,
         )
     }
     return listOfNotNull(row) + item.children.flatMap { child ->
-        flattenChapterRows(child, indentLevel = indentLevel + 1, currentIndex = currentIndex)
+        flattenChapterRows(child, indentLevel = indentLevel + 1)
     }
 }
 
@@ -345,10 +377,3 @@ internal fun EpubBook.chapterPositionForCharacter(characterCount: Int): ReaderCh
     }
     return ReaderChapterPosition(index = index, progress = progress.coerceIn(0.0, 1.0))
 }
-
-private fun String.readerHrefBase(): String =
-    trim()
-        .replace('\\', '/')
-        .removePrefix("/")
-        .substringBefore('#')
-        .substringBefore('?')

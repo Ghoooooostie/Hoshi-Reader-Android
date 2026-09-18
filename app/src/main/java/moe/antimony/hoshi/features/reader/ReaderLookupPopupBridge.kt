@@ -13,6 +13,7 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
@@ -110,6 +111,8 @@ internal data class ReaderLookupPopupFramePayload(
     val iframeUrl: String,
     val contentKey: String? = null,
     val advancedAi: LookupPopupAdvancedAiPayload? = null,
+    val sourceText: String? = null,
+    val sourceSentenceOffset: Int? = null,
 ) {
     companion object {
         fun fromPopup(
@@ -124,6 +127,7 @@ internal data class ReaderLookupPopupFramePayload(
             iframeUrl: String = readerLookupPopupIframeUrl(),
             includeInitialEntryJson: Boolean = true,
             advancedAi: LookupPopupAdvancedAiPayload? = null,
+            sourceText: String? = null,
         ): ReaderLookupPopupFramePayload {
             val state = popup.state
             val selectionRect = state.selection.rect
@@ -176,6 +180,7 @@ internal data class ReaderLookupPopupFramePayload(
                 iframeUrl = iframeUrl,
                 contentKey = lookupPopupContentKey(state.results, advancedAi),
                 advancedAi = advancedAi,
+                sourceText = sourceText,
             )
         }
 
@@ -249,19 +254,44 @@ internal sealed class ReaderLookupPopupBridgeMessage {
     data class MineEntry(
         override val popupId: String,
         override val messageId: String?,
+        val formatId: String,
         val payloadJson: String,
     ) : ReaderLookupPopupBridgeMessage()
 
     data class DuplicateCheck(
         override val popupId: String,
         override val messageId: String?,
-        val expression: String,
+        val valuesByHandlebar: Map<String, String>,
+    ) : ReaderLookupPopupBridgeMessage()
+
+    data class ShowNotes(
+        override val popupId: String,
+        override val messageId: String?,
+        val formatId: String,
+        val valuesByHandlebar: Map<String, String>,
     ) : ReaderLookupPopupBridgeMessage()
 
     data class LookupRedirect(
         override val popupId: String,
         override val messageId: String?,
         val query: String,
+    ) : ReaderLookupPopupBridgeMessage()
+
+    data class SourceHistoryRestored(
+        override val popupId: String,
+        override val messageId: String?,
+        val sentenceOffset: Int?,
+    ) : ReaderLookupPopupBridgeMessage()
+
+    data class KanjiRedirect(
+        override val popupId: String,
+        override val messageId: String?,
+        val kanji: String,
+    ) : ReaderLookupPopupBridgeMessage()
+
+    data class KanjiRedirectCommitted(
+        override val popupId: String,
+        override val messageId: String?,
     ) : ReaderLookupPopupBridgeMessage()
 
     data class GetEntry(
@@ -346,20 +376,48 @@ internal sealed class ReaderLookupPopupBridgeMessage {
                         mode = AudioPlaybackMode.fromRawValue(body.string("mode")),
                     )
                 }
-                "mineEntry" -> MineEntry(
-                    popupId = popupId,
-                    messageId = messageId ?: return null,
-                    payloadJson = payload["body"]?.takeIf { it !is JsonNull }?.toString() ?: return null,
-                )
+                "mineEntry" -> {
+                    val body = payload.obj("body") ?: return null
+                    MineEntry(
+                        popupId = popupId,
+                        messageId = messageId ?: return null,
+                        formatId = body.string("formatId") ?: return null,
+                        payloadJson = body["payload"]?.takeIf { it !is JsonNull }?.toString() ?: return null,
+                    )
+                }
                 "duplicateCheck" -> DuplicateCheck(
                     popupId = popupId,
                     messageId = messageId ?: return null,
-                    expression = payload.string("body") ?: return null,
+                    valuesByHandlebar = payload.obj("body")?.stringMap() ?: return null,
                 )
+                "showNotes" -> {
+                    val body = payload.obj("body") ?: return null
+                    ShowNotes(
+                        popupId = popupId,
+                        messageId = messageId ?: return null,
+                        formatId = body.string("formatId") ?: return null,
+                        valuesByHandlebar = body.obj("values")?.stringMap() ?: return null,
+                    )
+                }
                 "lookupRedirect" -> LookupRedirect(
                     popupId = popupId,
                     messageId = messageId ?: return null,
                     query = payload.string("body") ?: return null,
+                )
+                "sourceHistoryRestored" -> {
+                    val body = payload.obj("body") ?: return null
+                    val offset = if (body["sentenceOffset"] is JsonNull) null else
+                        body.int("sentenceOffset")?.takeIf { it >= 0 } ?: return null
+                    SourceHistoryRestored(popupId, messageId, offset)
+                }
+                "kanjiRedirect" -> KanjiRedirect(
+                    popupId = popupId,
+                    messageId = messageId ?: return null,
+                    kanji = payload.string("body")?.takeIf { it.codePointCount(0, it.length) == 1 } ?: return null,
+                )
+                "kanjiRedirectCommitted" -> KanjiRedirectCommitted(
+                    popupId = popupId,
+                    messageId = messageId,
                 )
                 "getEntry" -> GetEntry(
                     popupId = popupId,
@@ -433,7 +491,14 @@ private fun JsonObject.boolean(name: String): Boolean? =
     (this[name] as? JsonPrimitive)
         ?.booleanOrNull
 
+private fun JsonObject.stringMap(): Map<String, String> = entries.mapNotNull { (key, value) ->
+    (value as? JsonPrimitive)?.contentOrNull?.let { key to it }
+}.toMap()
+
 private val readerPopupJson = Json { encodeDefaults = true }
+
+internal fun readerPopupBooleanMapJson(values: Map<String, Boolean>): String =
+    readerPopupJson.encodeToString(values)
 
 private const val PopupIframeUrl = "https://appassets.androidplatform.net/popup/iframe.html"
 
@@ -506,8 +571,8 @@ internal class ReaderLookupPopupResourceHandler(
 
     private fun handleFontRequest(uri: Uri): WebResourceResponse? {
         if (uri.scheme != "https" || uri.host != "appassets.androidplatform.net") return null
-        val fileName = uri.lastPathSegment?.takeIf { uri.path.orEmpty().startsWith("/fonts/") } ?: return null
-        val fontFile = fontManager.fontFileForRequest(fileName) ?: return null
+        val relativePath = readerLookupPopupFontPath(uri.path) ?: return null
+        val fontFile = fontManager.fontFileForRequest(relativePath) ?: return null
         return WebResourceResponse(
             fontFile.popupFontMediaType(),
             null,
@@ -533,6 +598,11 @@ internal class ReaderLookupPopupResourceHandler(
         )
 }
 
+internal fun readerLookupPopupFontPath(path: String?): String? = path
+    ?.takeIf { it.startsWith("/fonts/") }
+    ?.removePrefix("/fonts/")
+    ?.takeIf(String::isNotBlank)
+
 internal data class LookupPopupAssetResponse(
     val mimeType: String,
     val content: String,
@@ -546,6 +616,7 @@ internal fun lookupPopupAssetResponse(name: String, assets: LookupPopupAssets): 
         "selection-en.js" -> assets.selectionEnglishJs
         "selection.js" -> assets.selectionJs
         "popup.js" -> assets.popupJs
+        "popup-gestures.js" -> assets.popupGesturesJs
         "reader-popup-host.js" -> assets.readerPopupHostJs
         else -> return null
     }

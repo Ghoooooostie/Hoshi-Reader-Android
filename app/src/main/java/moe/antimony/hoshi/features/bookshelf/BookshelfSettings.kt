@@ -11,9 +11,17 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import moe.antimony.hoshi.epub.BookSortOption
 
+enum class BookshelfCoverMode {
+    Show,
+    Blur,
+    Hide,
+}
+
 data class BookshelfSettings(
     val sortOption: BookSortOption = BookSortOption.Recent,
     val showReading: Boolean = false,
+    val hideCollapsedShelfThumbnails: Boolean = false,
+    val coverMode: BookshelfCoverMode = BookshelfCoverMode.Show,
 )
 
 class BookshelfSettingsRepository(
@@ -24,6 +32,8 @@ class BookshelfSettingsRepository(
             BookshelfSettings(
                 sortOption = bookSortOptionFromRawValue(preferences[KEY_SORT_OPTION]),
                 showReading = preferences[KEY_SHOW_READING] ?: false,
+                coverMode = bookshelfCoverModeFromRawValue(preferences[KEY_COVER_MODE]),
+                hideCollapsedShelfThumbnails = preferences[KEY_HIDE_COLLAPSED_SHELF_THUMBNAILS] ?: false,
             )
         }
 
@@ -33,16 +43,22 @@ class BookshelfSettingsRepository(
                 BookshelfSettings(
                     sortOption = bookSortOptionFromRawValue(preferences[KEY_SORT_OPTION]),
                     showReading = preferences[KEY_SHOW_READING] ?: false,
+                    coverMode = bookshelfCoverModeFromRawValue(preferences[KEY_COVER_MODE]),
+                    hideCollapsedShelfThumbnails = preferences[KEY_HIDE_COLLAPSED_SHELF_THUMBNAILS] ?: false,
                 ),
             )
             preferences[KEY_SORT_OPTION] = next.sortOption.name
             preferences[KEY_SHOW_READING] = next.showReading
+            preferences[KEY_HIDE_COLLAPSED_SHELF_THUMBNAILS] = next.hideCollapsedShelfThumbnails
+            preferences[KEY_COVER_MODE] = next.coverMode.name
         }
     }
 
     private companion object {
         val KEY_SORT_OPTION = stringPreferencesKey("bookshelfSortOption")
         val KEY_SHOW_READING = booleanPreferencesKey("bookshelfShowReading")
+        val KEY_HIDE_COLLAPSED_SHELF_THUMBNAILS = booleanPreferencesKey("bookshelfHideCollapsedShelfThumbnails")
+        val KEY_COVER_MODE = stringPreferencesKey("bookshelfCoverMode")
     }
 }
 
@@ -53,3 +69,6 @@ fun Context.bookshelfSettingsRepository(): BookshelfSettingsRepository =
 
 private fun bookSortOptionFromRawValue(rawValue: String?): BookSortOption =
     BookSortOption.entries.firstOrNull { it.name == rawValue } ?: BookSortOption.Recent
+
+internal fun bookshelfCoverModeFromRawValue(rawValue: String?): BookshelfCoverMode =
+    BookshelfCoverMode.entries.firstOrNull { it.name == rawValue } ?: BookshelfCoverMode.Show

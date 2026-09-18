@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.IntSize
 import moe.antimony.hoshi.features.dictionary.LookupPopupItem
+import moe.antimony.hoshi.features.sasayaki.SasayakiSheetTab
 
 internal class ReaderWebViewStateHolder(
     initialSettings: ReaderSettings,
@@ -16,17 +17,31 @@ internal class ReaderWebViewStateHolder(
     var showAppearance by mutableStateOf(false)
         private set
 
+    var showDisplaySettings by mutableStateOf(false)
+        private set
+
     var showGoTo by mutableStateOf(false)
         private set
 
     var showTranslationAi by mutableStateOf(false)
         private set
 
+    var selectedGoToTab by mutableStateOf(readerGoToDefaultTab())
+        private set
+
     var showSasayaki by mutableStateOf(false)
         private set
 
+    var selectedSasayakiTab by mutableStateOf(SasayakiSheetTab.Resources)
+        private set
+
+    private var hasInitializedSasayakiTab = false
+
     var showStatistics by mutableStateOf(false)
         private set
+
+    val hasStatisticsBlockingSheet: Boolean
+        get() = showAppearance || showDisplaySettings || showGoTo || showSasayaki || showStatistics
 
     var showReaderMenu by mutableStateOf(false)
         private set
@@ -130,6 +145,10 @@ internal class ReaderWebViewStateHolder(
         showTranslationAi = false
     }
 
+    fun selectGoToTab(tab: ReaderGoToTab) {
+        selectedGoToTab = tab
+    }
+
     fun openAppearanceFromMenu() {
         showReaderMenu = false
         showAppearance = true
@@ -139,13 +158,30 @@ internal class ReaderWebViewStateHolder(
         showAppearance = false
     }
 
-    fun openSasayakiFromMenu() {
+    fun openDisplaySettingsFromMenu() {
         showReaderMenu = false
+        showDisplaySettings = true
+    }
+
+    fun dismissDisplaySettings() {
+        showDisplaySettings = false
+    }
+
+    fun openSasayakiFromMenu(initialTab: SasayakiSheetTab) {
+        showReaderMenu = false
+        if (!hasInitializedSasayakiTab) {
+            selectedSasayakiTab = initialTab
+            hasInitializedSasayakiTab = true
+        }
         showSasayaki = true
     }
 
     fun dismissSasayaki() {
         showSasayaki = false
+    }
+
+    fun selectSasayakiTab(tab: SasayakiSheetTab) {
+        selectedSasayakiTab = tab
     }
 
     fun openStatisticsFromMenu() {
@@ -296,8 +332,10 @@ internal class ReaderWebViewStateHolder(
 internal data class ReaderContentReloadKey(
     val verticalWriting: Boolean,
     val selectedFont: String,
+    val selectedFontFamilyId: String?,
+    val selectedFontVariantId: String?,
     val fontSize: Int,
-    val hideFurigana: Boolean,
+    val furiganaMode: FuriganaMode,
     val viewMode: ReaderViewMode,
     val visualNovelScreenMode: VisualNovelScreenMode,
     val visualNovelSentencesPerScreen: Int,
@@ -317,8 +355,10 @@ internal fun ReaderSettings.readerContentReloadKey(): ReaderContentReloadKey =
     ReaderContentReloadKey(
         verticalWriting = verticalWriting,
         selectedFont = selectedFont,
+        selectedFontFamilyId = selectedFontFamilyId,
+        selectedFontVariantId = selectedFontVariantId,
         fontSize = fontSize,
-        hideFurigana = hideFurigana,
+        furiganaMode = furiganaMode,
         viewMode = viewMode,
         visualNovelScreenMode = visualNovelScreenMode,
         visualNovelSentencesPerScreen = visualNovelSentencesPerScreen.coerceIn(1, 12),

@@ -1,5 +1,10 @@
 package moe.antimony.hoshi
 
+import moe.antimony.hoshi.features.display.DisplayAccentSource
+import moe.antimony.hoshi.features.reader.ReaderSettingsHostError
+import moe.antimony.hoshi.features.reader.ReaderSettingsHostViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -15,13 +20,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import kotlinx.coroutines.launch
-import moe.antimony.hoshi.features.reader.ReaderSettings
+import moe.antimony.hoshi.features.dictionary.PendingDictionaryLookupRequest
 import moe.antimony.hoshi.features.reader.usesDarkInterface
 import moe.antimony.hoshi.features.reader.usesDarkSystemBarIcons
 import moe.antimony.hoshi.features.sasayaki.SasayakiPlaybackReturnAction
@@ -36,25 +38,23 @@ class MainActivity : ComponentActivity() {
 
     private var pendingImportUri by mutableStateOf<Uri?>(null)
     private var pendingSasayakiReaderBookId by mutableStateOf<String?>(null)
+    private var pendingDictionaryLookupRequest by mutableStateOf<PendingDictionaryLookupRequest?>(null)
+    private var dictionaryLookupRequestId = 0L
     private var readerKeyEventHandler: ((KeyEvent) -> Boolean)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pendingImportUri = intent.importUri()
         pendingSasayakiReaderBookId = intent.sasayakiReaderBookIdOrActivePlayback()
+        pendingDictionaryLookupRequest = intent.pendingDictionaryLookupRequest()
         enableEdgeToEdge()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
         }
         setContent {
-            val readerSettingsRepository = uiDependencies.readerSettingsRepository
-            val scope = rememberCoroutineScope()
-            var readerSettings by remember { mutableStateOf<ReaderSettings?>(null) }
-            LaunchedEffect(readerSettingsRepository) {
-                readerSettingsRepository.settings.collect { settings ->
-                    readerSettings = settings
-                }
-            }
+            val settingsViewModel: ReaderSettingsHostViewModel = hiltViewModel()
+            val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+            val readerSettings = settingsState.settings
             val systemDark = isSystemInDarkTheme()
             val loadedReaderSettings = readerSettings
             LaunchedEffect(loadedReaderSettings?.lockCurrentOrientation) {
@@ -68,20 +68,19 @@ class MainActivity : ComponentActivity() {
                     darkTheme = darkTheme,
                     eInkMode = loadedReaderSettings?.eInkMode ?: false,
                     useDarkSystemBarIcons = useDarkSystemBarIcons,
+                    accentSeed = loadedReaderSettings?.displaySettings?.takeIf { it.accentSource == DisplayAccentSource.Custom }?.accentSeed,
                 ) {
+                    ReaderSettingsHostError(settingsState, settingsViewModel)
                     val loadedReaderSettings = readerSettings ?: return@HoshiReaderTheme
                     AppShell(
                         pendingImportUri = pendingImportUri,
                         onPendingImportConsumed = { pendingImportUri = null },
                         pendingSasayakiReaderBookId = pendingSasayakiReaderBookId,
                         onPendingSasayakiReaderConsumed = { pendingSasayakiReaderBookId = null },
+                        pendingDictionaryLookupRequest = pendingDictionaryLookupRequest,
+                        onPendingDictionaryLookupConsumed = { pendingDictionaryLookupRequest = null },
                         readerSettings = loadedReaderSettings,
-                        onReaderSettingsChange = { settings ->
-                            readerSettings = settings
-                            scope.launch {
-                                readerSettingsRepository.update { settings }
-                            }
-                        },
+                        onReaderSettingsChange = settingsViewModel::update,
                         onReaderKeyEventHandlerChange = { handler ->
                             readerKeyEventHandler = handler
                         }
@@ -105,6 +104,7 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         intent.importUri()?.let { pendingImportUri = it }
         intent.sasayakiReaderBookIdOrActivePlayback()?.let { pendingSasayakiReaderBookId = it }
+        intent.pendingDictionaryLookupRequest()?.let { pendingDictionaryLookupRequest = it }
     }
 
     private fun Intent?.importUri(): Uri? =
@@ -118,6 +118,13 @@ class MainActivity : ComponentActivity() {
         sasayakiReaderBookId()
             ?: takeIf { it?.action == Intent.ACTION_MAIN }
                 ?.let { uiDependencies.sasayakiPlaybackServiceRuntime.activePlaybackBookId() }
+
+    private fun Intent?.pendingDictionaryLookupRequest(): PendingDictionaryLookupRequest? {
+        val nextRequestId = dictionaryLookupRequestId + 1L
+        return PendingDictionaryLookupRequest.fromIntent(this, nextRequestId)?.also {
+            dictionaryLookupRequestId = nextRequestId
+        }
+    }
 }
 
 internal fun requestedOrientationForLockCurrentOrientation(lockCurrentOrientation: Boolean): Int =

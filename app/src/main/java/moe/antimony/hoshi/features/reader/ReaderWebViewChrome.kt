@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -28,6 +27,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ShowChart
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.FastRewind
+import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Pause
@@ -385,14 +385,25 @@ internal fun BoxScope.ReaderBottomChrome(
     onDismissMenu: () -> Unit,
     onGoTo: () -> Unit,
     onTranslationAi: () -> Unit,
-    onAppearance: () -> Unit,
+    onDisplaySettings: () -> Unit,
+    onReadingSettings: () -> Unit,
     onStatistics: (() -> Unit)?,
     onSasayaki: (() -> Unit)?,
     metrics: ReaderBottomChromeMetrics,
     modifier: Modifier = Modifier,
 ) {
-    val controlsHeightDp = metrics.buttonSizeDp
-    val bottomChromeHeightDp = 8 + controlsHeightDp + metrics.bottomPaddingDp + metrics.bottomSafeAreaDp
+    val bubbleMetrics = readerInfoBubbleMetrics()
+    val progressLineHeight = with(LocalDensity.current) {
+        MaterialTheme.typography.labelMedium.lineHeight.toDp()
+    }
+    val controlsHeight = maxOf(
+        metrics.buttonSizeDp.dp,
+        progressLineHeight * layout.bottomCenterLineCount +
+            bubbleMetrics.verticalPaddingDp.dp * 2 +
+            2.dp,
+    )
+    val bottomChromeHeight =
+        8.dp + controlsHeight + metrics.bottomPaddingDp.dp + metrics.bottomSafeAreaDp.dp
     if (menuExpanded) {
         Box(
             modifier = Modifier
@@ -405,7 +416,8 @@ internal fun BoxScope.ReaderBottomChrome(
             metrics = metrics,
             onGoTo = onGoTo,
             onTranslationAi = onTranslationAi,
-            onAppearance = onAppearance,
+            onDisplaySettings = onDisplaySettings,
+            onReadingSettings = onReadingSettings,
             onStatistics = onStatistics,
             onSasayaki = onSasayaki,
             modifier = Modifier
@@ -416,7 +428,7 @@ internal fun BoxScope.ReaderBottomChrome(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(bottomChromeHeightDp.dp)
+            .height(bottomChromeHeight)
             .padding(
                 start = metrics.horizontalPaddingDp.dp,
                 end = metrics.horizontalPaddingDp.dp,
@@ -426,15 +438,13 @@ internal fun BoxScope.ReaderBottomChrome(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 8.dp)
-                .height(controlsHeightDp.dp)
+                .height(controlsHeight)
                 .fillMaxWidth(),
         ) {
             if (layout.bottomCenterLineCount > 0) {
-                val bubbleMetrics = readerInfoBubbleMetrics()
                 Surface(
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .heightIn(max = layout.bottomCenterMaxHeightDp.dp)
                         .readerChromeShadow(
                             elevationDp = colors.bubbleShadowElevationDp,
                             shadowColor = Color(colors.bubbleShadowColor),
@@ -475,7 +485,9 @@ internal fun BoxScope.ReaderBottomChrome(
                                 text = state.progressText(settings, progressDisplay),
                                 color = Color(colors.infoText),
                                 style = MaterialTheme.typography.labelMedium,
-                                maxLines = 1,
+                                maxLines = 2,
+                                softWrap = false,
+                                textAlign = TextAlign.Center,
                             )
                         }
                     }
@@ -634,7 +646,8 @@ private fun ReaderMenuCard(
     metrics: ReaderBottomChromeMetrics,
     onGoTo: () -> Unit,
     onTranslationAi: () -> Unit,
-    onAppearance: () -> Unit,
+    onDisplaySettings: () -> Unit,
+    onReadingSettings: () -> Unit,
     onStatistics: (() -> Unit)?,
     onSasayaki: (() -> Unit)?,
     modifier: Modifier = Modifier,
@@ -676,18 +689,32 @@ private fun ReaderMenuCard(
                     )
                 }
                 when (destination) {
-                    ReaderMenuDestination.Appearance -> ReaderMenuItem(
-                        text = stringResource(R.string.settings_appearance),
+                    ReaderMenuDestination.Display -> ReaderMenuItem(
+                        text = stringResource(R.string.settings_display),
                         icon = {
                             Icon(
-                                imageVector = readerBottomMenuIcon(ReaderMenuDestination.Appearance),
+                                imageVector = readerBottomMenuIcon(ReaderMenuDestination.Display),
                                 contentDescription = null,
                                 tint = Color(colors.menuContent),
                             )
                         },
                         colors = colors,
                         metrics = metrics,
-                        onClick = onAppearance,
+                        onClick = onDisplaySettings,
+                    )
+
+                    ReaderMenuDestination.ReadingSettings -> ReaderMenuItem(
+                        text = stringResource(R.string.settings_appearance),
+                        icon = {
+                            Icon(
+                                imageVector = readerBottomMenuIcon(ReaderMenuDestination.ReadingSettings),
+                                contentDescription = null,
+                                tint = Color(colors.menuContent),
+                            )
+                        },
+                        colors = colors,
+                        metrics = metrics,
+                        onClick = onReadingSettings,
                     )
 
                     ReaderMenuDestination.GoTo -> ReaderMenuItem(
@@ -753,7 +780,8 @@ private fun ReaderMenuCard(
 
 internal fun readerBottomMenuIcon(destination: ReaderMenuDestination): ImageVector =
     when (destination) {
-        ReaderMenuDestination.Appearance -> Icons.Rounded.Palette
+        ReaderMenuDestination.Display -> Icons.Rounded.Palette
+        ReaderMenuDestination.ReadingSettings -> Icons.Rounded.FormatSize
         ReaderMenuDestination.GoTo -> Icons.Rounded.TravelExplore
         ReaderMenuDestination.TranslationAi -> Icons.Rounded.Translate
         ReaderMenuDestination.Statistics -> Icons.AutoMirrored.Rounded.ShowChart

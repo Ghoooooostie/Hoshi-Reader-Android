@@ -99,6 +99,23 @@ Do not infer a root cause from wall-clock timing alone. A slow flow with low
 sampled CPU often means waiting, lifecycle retention, IO, binder, or scheduling,
 not an expensive loop.
 
+## Statistics Dashboard Scrolling
+
+Keep the selected period, expanded book count, heatmap position, theme and font
+scale the same when comparing vertical scroll runs. Warm the entire dashboard,
+then record at least three identical sets of fast down/up swipes with
+`dumpsys gfxinfo`; collect sampling or system traces separately so profiling
+overhead does not contaminate frame timings. Record whether timings came from
+Debug or an R8-optimized release build; Debug comparisons describe only that
+build, not release performance.
+
+Distinguish horizontal heatmap drawing from whole-card recreation during
+vertical scrolling. With unchanged data, moving the fixed dashboard sections
+offscreen and back must not repeatedly compose `TodayStatisticsSection`,
+`StatisticsHeatmap` or the reading-time card. Horizontal heatmap scrolling must
+still draw only visible weeks, without expanding all history into UI nodes.
+Check first entry and expanded book lists as well as the warm three-card case.
+
 ## Repeated-Entry Slowdowns
 
 For bugs that get worse after leaving and re-entering Reader, measure resource
@@ -113,6 +130,33 @@ counts before and after each cycle:
 If old WebView targets accumulate, investigate lifecycle release first. Do not
 optimize chapter parsing or Reader JavaScript until the old instances are
 proven not to be executing.
+
+## Bookshelf Cover Scrolling
+
+Bookshelf cover profiling must distinguish expensive source-cover generation
+from cheap display-thumbnail decoding. A warm return to a previously visited
+book row may decode a bounded 256/512/768 px derivative if Coil's memory entry
+was reclaimed; it must not decode the EPUB's original cover again while the
+source fingerprint and derivative cache remain valid.
+
+For a repeatable real-device check:
+
+- record the local book count and whether the derivative cache is cold or warm;
+- clear logcat only, never app data, immediately before the measured pass;
+- count `HoshiCoverPipeline: source_decode` markers for original-cover work;
+- scroll from the first to last book and back, then repeat the same round trip;
+- require the second warm round trip to emit no source-decode markers;
+- pair the marker count with `dumpsys gfxinfo` or Perfetto frame evidence when
+  making a smoothness claim.
+
+Source fingerprints include path, modification time, and length. Changing a
+cover must create a new derivative key. Deterministically malformed or
+incomplete source images are suppressed for the process lifetime so a corrupt
+cover cannot retry on every composition. Other derivative-generation and cache
+I/O failures instead use a short retry cooldown and fall back to the original
+cover through Coil. Derivative decode failures must invalidate the affected
+size bucket so the next request rebuilds it rather than repeatedly decoding the
+same bad cache entry.
 
 ## Reader JavaScript Hotspots
 

@@ -13,6 +13,14 @@ import javax.inject.Inject
 
 class MainActivityConfigurationTest {
     @Test
+    fun displayHostsHandleNightModeChangesWithoutDestroyingReaderOrLookup() {
+        listOf(mainActivityManifestElement(), processTextLookupActivityManifestElement()).forEach { activity ->
+            val changes = activity.getAttribute("android:configChanges").split('|').toSet()
+            assertTrue("${activity.getAttribute("android:name")} must preserve its WebView on a system theme change.", "uiMode" in changes)
+        }
+    }
+
+    @Test
     fun appLabelsComeFromBuildVariantPlaceholder() {
         val expectedLabel = "\${appLabel}"
 
@@ -180,6 +188,28 @@ class MainActivityConfigurationTest {
         )
     }
 
+    @Test
+    fun processTextLookupActivityHandlesHoshiSearchDeepLinks() {
+        val activity = processTextLookupActivityManifestElement()
+
+        assertTrue(
+            "Hoshi search deep links must open through the isolated lookup activity.",
+            activity.hasDeepLinkIntentFilter(
+                actionName = "android.intent.action.VIEW",
+                scheme = "hoshi",
+                host = "search",
+            ),
+        )
+        assertFalse(
+            "MainActivity must not open behind the default lookup overlay.",
+            mainActivityManifestElement().hasDeepLinkIntentFilter(
+                actionName = "android.intent.action.VIEW",
+                scheme = "hoshi",
+                host = "search",
+            ),
+        )
+    }
+
     private fun mainActivityManifestElement(): Element {
         return activityManifestElement(".MainActivity")
     }
@@ -225,6 +255,36 @@ class MainActivityConfigurationTest {
             val filter = filters.item(filterIndex) as Element
             val actionCount = filter.getElementsByTagName("action").length
             if (actionCount > 1) return true
+        }
+        return false
+    }
+
+    private fun Element.hasDeepLinkIntentFilter(
+        actionName: String,
+        scheme: String,
+        host: String,
+    ): Boolean {
+        val filters = getElementsByTagName("intent-filter")
+        for (filterIndex in 0 until filters.length) {
+            val filter = filters.item(filterIndex) as Element
+            val actions = filter.getElementsByTagName("action")
+            val categories = filter.getElementsByTagName("category")
+            val data = filter.getElementsByTagName("data")
+            val actionNames = (0 until actions.length).map { index ->
+                (actions.item(index) as Element).getAttribute("android:name")
+            }
+            val categoryNames = (0 until categories.length).map { index ->
+                (categories.item(index) as Element).getAttribute("android:name")
+            }
+            val uriPairs = (0 until data.length).map { index ->
+                val item = data.item(index) as Element
+                item.getAttribute("android:scheme") to item.getAttribute("android:host")
+            }
+            if (actionNames != listOf(actionName)) continue
+            if ("android.intent.category.DEFAULT" !in categoryNames) continue
+            if ("android.intent.category.BROWSABLE" !in categoryNames) continue
+            if ((scheme to host) !in uriPairs) continue
+            return true
         }
         return false
     }

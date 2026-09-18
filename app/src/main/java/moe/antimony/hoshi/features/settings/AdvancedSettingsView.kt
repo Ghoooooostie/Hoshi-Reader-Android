@@ -1,5 +1,7 @@
 package moe.antimony.hoshi.features.settings
 
+import moe.antimony.hoshi.ui.theme.hoshiSurfaces
+import moe.antimony.hoshi.ui.theme.hoshiContainerBorder
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +16,7 @@ import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -35,14 +38,14 @@ import moe.antimony.hoshi.features.anki.AnkiConnectView
 import moe.antimony.hoshi.features.audio.AudioSettingsView
 import moe.antimony.hoshi.features.backup.BackupSettingsView
 import moe.antimony.hoshi.features.reader.ReaderSettings
-import moe.antimony.hoshi.features.reader.ReaderStatisticsSettingsView
 import moe.antimony.hoshi.features.sasayaki.SasayakiSettingsView
 import moe.antimony.hoshi.features.sync.SyncSettingsView
+import moe.antimony.hoshi.features.wallpaper.BookCoverWallpaperSettingsView
 
 @Composable
 fun AdvancedSettingsView(
     readerSettings: ReaderSettings,
-    onReaderSettingsChange: (ReaderSettings) -> Unit,
+    onReaderSettingsChange: ((ReaderSettings) -> ReaderSettings) -> Unit,
     onClose: () -> Unit,
     onBooksRestored: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -50,15 +53,6 @@ fun AdvancedSettingsView(
     var destination by remember { mutableStateOf<AdvancedDestination?>(null) }
     if (destination == AdvancedDestination.Audio) {
         AudioSettingsView(
-            onClose = { destination = null },
-            modifier = modifier,
-        )
-        return
-    }
-    if (destination == AdvancedDestination.Statistics) {
-        ReaderStatisticsSettingsView(
-            settings = readerSettings,
-            onSettingsChange = onReaderSettingsChange,
             onClose = { destination = null },
             modifier = modifier,
         )
@@ -100,13 +94,20 @@ fun AdvancedSettingsView(
         )
         return
     }
+    if (destination == AdvancedDestination.BookCoverWallpaper) {
+        BookCoverWallpaperSettingsView(
+            onClose = { destination = null },
+            modifier = modifier,
+        )
+        return
+    }
 
     val colorScheme = MaterialTheme.colorScheme
     SettingsDetailScaffold(
         title = stringResource(R.string.settings_advanced),
         onClose = onClose,
         modifier = modifier.fillMaxSize(),
-        containerColor = colorScheme.background,
+        containerColor = hoshiSurfaces.page,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -150,22 +151,22 @@ fun AdvancedSettingsView(
 
 internal enum class AdvancedDestination {
     Audio,
-    Statistics,
     Sasayaki,
     AdvancedAi,
     Backup,
     Syncing,
     AnkiConnect,
+    BookCoverWallpaper,
 }
 
 internal enum class AdvancedSettingsIcon {
     Speaker,
-    Chart,
     Waveform,
     Spark,
     Cloud,
     AnkiConnect,
     ExternalDrive,
+    Wallpaper,
 }
 
 internal data class AdvancedSettingsRow(
@@ -187,12 +188,6 @@ internal fun advancedSettingsSections(): List<AdvancedSettingsSection> =
                     titleRes = R.string.advanced_audio,
                     destination = AdvancedDestination.Audio,
                     icon = AdvancedSettingsIcon.Speaker,
-                ),
-                AdvancedSettingsRow(
-                    titleRes = R.string.advanced_statistics,
-                    destination = AdvancedDestination.Statistics,
-                    icon = AdvancedSettingsIcon.Chart,
-                    subtitleRes = R.string.advanced_statistics_subtitle,
                 ),
                 AdvancedSettingsRow(
                     titleRes = R.string.advanced_sasayaki_audiobooks,
@@ -225,6 +220,16 @@ internal fun advancedSettingsSections(): List<AdvancedSettingsSection> =
         AdvancedSettingsSection(
             rows = listOf(
                 AdvancedSettingsRow(
+                    titleRes = R.string.settings_book_cover_wallpaper,
+                    destination = AdvancedDestination.BookCoverWallpaper,
+                    icon = AdvancedSettingsIcon.Wallpaper,
+                    subtitleRes = R.string.settings_book_cover_wallpaper_subtitle,
+                ),
+            ),
+        ),
+        AdvancedSettingsSection(
+            rows = listOf(
+                AdvancedSettingsRow(
                     titleRes = R.string.settings_backup,
                     destination = AdvancedDestination.Backup,
                     icon = AdvancedSettingsIcon.ExternalDrive,
@@ -236,10 +241,10 @@ internal fun advancedSettingsSections(): List<AdvancedSettingsSection> =
 private fun AdvancedSettingsIcon.imageVector(): ImageVector =
     when (this) {
         AdvancedSettingsIcon.Speaker -> Icons.AutoMirrored.Rounded.VolumeUp
-        AdvancedSettingsIcon.Chart -> Icons.AutoMirrored.Rounded.ShowChart
         AdvancedSettingsIcon.Waveform -> Icons.Rounded.GraphicEq
         AdvancedSettingsIcon.Spark -> Icons.Rounded.AutoAwesome
         AdvancedSettingsIcon.Cloud -> Icons.Rounded.Cloud
         AdvancedSettingsIcon.AnkiConnect -> Icons.Rounded.Link
         AdvancedSettingsIcon.ExternalDrive -> Icons.Rounded.Storage
+        AdvancedSettingsIcon.Wallpaper -> Icons.Rounded.Wallpaper
     }

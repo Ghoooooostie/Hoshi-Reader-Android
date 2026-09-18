@@ -220,13 +220,18 @@
     }
 
     function iframeRenderMessage(payload) {
-        return {
+        const message = {
             type: 'renderPopup',
             popupId: payload.id,
             entriesCount: payload.entriesCount || 0,
             initialEntryJson: payload.initialEntryJson || null,
             advancedAi: payload.advancedAi || null
         };
+        if (payload.sourceText != null) {
+            message.sourceText = payload.sourceText;
+            message.sourceSentenceOffset = payload.sourceSentenceOffset ?? null;
+        }
+        return message;
     }
 
     function renderIframe(record) {
@@ -748,6 +753,13 @@
         postNative({ name: 'navigateForward', popupId });
     }
 
+    function navigateTopTerm(direction) {
+        if (direction !== 'previous' && direction !== 'next') return;
+        const popupId = topPopupId();
+        const record = popupId ? frames.get(popupId) : null;
+        record?.iframe.contentWindow?.postMessage({ type: 'navigateTerm', direction }, ORIGIN);
+    }
+
     function adjustSelectionBody(popupId, body) {
         const record = frames.get(popupId);
         if (!record || !body?.rect) return body;
@@ -927,6 +939,7 @@
         highlightSelection,
         navigateBack,
         navigateForward,
+        navigateTopTerm,
         renderSasayakiHighlight,
         clearSasayakiHighlight,
         preloadIdleRootFrame

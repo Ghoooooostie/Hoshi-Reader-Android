@@ -27,6 +27,30 @@ img.block-img {
     -webkit-column-break-inside: avoid !important;
     object-fit: contain !important;
 }
+img[class*="gaiji" i],
+img.hoshi-text-color-image {
+    filter: url("#hoshi-gaiji-text-color-filter") !important;
+    mix-blend-mode: normal !important;
+}
+.hoshi-gaiji-fallback {
+    display: inline;
+    font: inherit;
+    vertical-align: baseline;
+    white-space: nowrap;
+    color: inherit;
+}
+.hoshi-gaiji-fallback-single {
+    display: inline-block;
+    box-sizing: border-box;
+    width: 1em;
+    height: 1em;
+    line-height: 1;
+    text-align: center;
+    text-orientation: upright;
+}
+.hoshi-gaiji-fallback::before {
+    content: attr(data-hoshi-gaiji-alt);
+}
 img.block-img.blurred,
 svg.blurred {
     filter: blur(24px) !important;
@@ -124,4 +148,15 @@ html:not([data-hoshi-reader-eink-mode="true"]) .hoshi-sasayaki-cue.hoshi-sasayak
 __HOSHI_HIGHLIGHT_COLOR_CSS__
 a {
     color: rgba(66, 108, 245, 1) !important;
+}
+
+ruby.furigana-hidden > rt,
+ruby.furigana-hidden > rp {
+    visibility: hidden !important;
+}
+ruby.furigana-hidden {
+    text-decoration-line: underline !important;
+    text-decoration-style: dotted !important;
+    text-decoration-color: rgba(160, 160, 160, 0.8) !important;
+    text-underline-offset: 0.05em !important;
 }

@@ -24,20 +24,15 @@ class ReaderAppearanceSasayakiTest {
     }
 
     @Test
-    fun appearanceShowsStatisticsRowsWhenStatisticsAreEnabled() {
+    fun appearanceKeepsStatisticsDisplayPreferencesAvailable() {
         assertEquals(
             listOf(
                 ReaderAppearanceStatisticsRow.Toggle,
                 ReaderAppearanceStatisticsRow.ReadingSpeed,
                 ReaderAppearanceStatisticsRow.ReadingTime,
             ),
-            readerAppearanceStatisticsRows(ReaderSettings(enableStatistics = true)),
+            readerAppearanceStatisticsRows(),
         )
-    }
-
-    @Test
-    fun appearanceHidesStatisticsRowsWhenStatisticsAreDisabled() {
-        assertTrue(readerAppearanceStatisticsRows(ReaderSettings(enableStatistics = false)).isEmpty())
     }
 
     @Test
@@ -51,6 +46,11 @@ class ReaderAppearanceSasayakiTest {
         )
         assertTrue(
             !readerAppearanceShowsAlwaysShowProgress(
+                ReaderSettings(showProgress = false, showChapterProgress = false),
+            ),
+        )
+        assertTrue(
+            readerAppearanceShowsAlwaysShowProgress(
                 ReaderSettings(showCharacters = false, showPercentage = false),
             ),
         )
@@ -67,21 +67,6 @@ class ReaderAppearanceSasayakiTest {
     @Test
     fun appearanceHidesSasayakiToggleWhenSasayakiIsDisabled() {
         assertTrue(readerAppearanceSasayakiRows(SasayakiSettings(enabled = false)).isEmpty())
-    }
-
-    @Test
-    fun appearanceShowsCustomThemeControlsOnlyForCustomTheme() {
-        assertTrue(readerAppearanceShowsCustomInterfaceTheme(ReaderSettings(theme = ReaderTheme.Custom)))
-        assertTrue(!readerAppearanceShowsCustomInterfaceTheme(ReaderSettings(theme = ReaderTheme.Sepia)))
-        assertEquals(
-            listOf(
-                ReaderAppearanceCustomColorRow.Background,
-                ReaderAppearanceCustomColorRow.Text,
-                ReaderAppearanceCustomColorRow.Info,
-            ),
-            readerAppearanceCustomColorRows(ReaderSettings(theme = ReaderTheme.Custom)),
-        )
-        assertTrue(readerAppearanceCustomColorRows(ReaderSettings(theme = ReaderTheme.Light)).isEmpty())
     }
 
     @Test
@@ -102,5 +87,20 @@ class ReaderAppearanceSasayakiTest {
         assertEquals(40, readerAppearanceBottomSafeAreaFromSlider(39.2f))
         assertEquals(40, readerAppearanceBottomSafeAreaFromSlider(40.8f))
         assertEquals(72, readerAppearanceBottomSafeAreaFromSlider(100f))
+    }
+
+    @Test
+    fun pageSwipeThresholdIsVisibleOnlyForPagedReaderModes() {
+        assertTrue(readerAppearanceShowsPageSwipeThreshold(ReaderViewMode.Paginated))
+        assertTrue(readerAppearanceShowsPageSwipeThreshold(ReaderViewMode.VisualNovel))
+        assertTrue(!readerAppearanceShowsPageSwipeThreshold(ReaderViewMode.Continuous))
+    }
+
+    @Test
+    fun pageSwipeThresholdSliderUsesEighteenPixelSteps() {
+        assertEquals(19, readerAppearancePageSwipeThresholdSliderSteps())
+        assertEquals(0, readerAppearancePageSwipeThresholdFromSlider(0f))
+        assertEquals(72, readerAppearancePageSwipeThresholdFromSlider(70f))
+        assertEquals(360, readerAppearancePageSwipeThresholdFromSlider(500f))
     }
 }

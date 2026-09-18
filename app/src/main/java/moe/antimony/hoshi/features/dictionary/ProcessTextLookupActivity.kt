@@ -1,6 +1,11 @@
 package moe.antimony.hoshi.features.dictionary
 
+import moe.antimony.hoshi.features.display.DisplayAccentSource
+import moe.antimony.hoshi.features.reader.ReaderAiLongPressMode
+import moe.antimony.hoshi.features.reader.ReaderSettingsHostError
+import moe.antimony.hoshi.features.reader.ReaderSettingsHostViewModel
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
@@ -25,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -37,6 +43,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.antimony.hoshi.ProcessTextLookupRequest
+import moe.antimony.hoshi.MainActivity
+import moe.antimony.hoshi.R
 import moe.antimony.hoshi.content.ContentLanguageProfile
 import moe.antimony.hoshi.dictionary.DictionaryRepository
 import moe.antimony.hoshi.features.advancedai.AdvancedAiAvailability
@@ -55,9 +63,12 @@ import moe.antimony.hoshi.features.audio.AudioSettingsRepository
 import moe.antimony.hoshi.features.audio.LocalAudioRepository
 import moe.antimony.hoshi.features.audio.WordAudioPlayer
 import moe.antimony.hoshi.features.anki.AnkiViewModel
+import moe.antimony.hoshi.features.anki.AnkiMiningContext
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupBridgeCallbackHolder
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupBridgeCallbacks
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupBridgeMessage
+import moe.antimony.hoshi.features.reader.ReaderLookupPopupFramePayload
+import moe.antimony.hoshi.features.reader.readerPopupBooleanMapJson
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupIframeSync
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupResourceHandler
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupViewport
@@ -97,7 +108,25 @@ class ProcessTextLookupActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val request = ProcessTextLookupRequest.fromIntent(intent) ?: run {
+        val deepLinkRequest = DictionaryDeepLinkRequest.fromIntent(intent)
+        if (deepLinkRequest?.destination == DictionaryDeepLinkDestination.MainApp) {
+            startActivity(
+                Intent(this, MainActivity::class.java).apply {
+                    action = OpenDictionaryLookupAction
+                    putExtra(OpenDictionaryLookupTextExtra, deepLinkRequest.text)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                },
+            )
+            finish()
+            return
+        }
+        val request = deepLinkRequest
+            ?.takeIf { it.destination == DictionaryDeepLinkDestination.Overlay }
+            ?.let { ProcessTextLookupRequest(query = it.text.trim()) }
+            ?: ProcessTextLookupRequest.fromIntent(intent)
+            ?: run {
             finish()
             return
         }
@@ -107,20 +136,19 @@ class ProcessTextLookupActivity : ComponentActivity() {
         setFinishOnTouchOutside(true)
 
         setContent {
-            var readerSettings by remember { mutableStateOf<ReaderSettings?>(null) }
-            LaunchedEffect(dependencies) {
-                dependencies.readerSettingsRepository.settings.collect { settings ->
-                    readerSettings = settings
-                }
-            }
-            val loadedReaderSettings = readerSettings ?: return@setContent
+            val settingsViewModel: ReaderSettingsHostViewModel = hiltViewModel()
+            val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+            val loadedReaderSettings = settingsState.settings
             val profileState by dependencies.profileRepository.state.collectAsStateWithLifecycle()
             val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
             HoshiReaderTheme(
-                darkTheme = loadedReaderSettings.usesDarkInterface(systemDark),
-                eInkMode = loadedReaderSettings.eInkMode,
-                useDarkSystemBarIcons = loadedReaderSettings.usesDarkSystemBarIcons(systemDark),
+                darkTheme = loadedReaderSettings?.usesDarkInterface(systemDark) ?: systemDark,
+                eInkMode = loadedReaderSettings?.eInkMode ?: false,
+                useDarkSystemBarIcons = loadedReaderSettings?.usesDarkSystemBarIcons(systemDark) ?: !systemDark,
+                accentSeed = loadedReaderSettings?.displaySettings?.takeIf { it.accentSource == DisplayAccentSource.Custom }?.accentSeed,
             ) {
+                ReaderSettingsHostError(settingsState, settingsViewModel)
+                if (loadedReaderSettings == null) return@HoshiReaderTheme
                 ProcessTextLookupOverlay(
                     query = request.query,
                     readerSettings = loadedReaderSettings,
@@ -155,8 +183,12 @@ private fun ProcessTextLookupOverlay(
     val ankiUiState by ankiViewModel.uiState.collectAsStateWithLifecycle()
     val assets = remember(context) { LookupPopupAssets.load(context) }
     val scope = rememberCoroutineScope()
-    val fontFaceCss = dependencies.readerFontManager.popupFontFaceCss()
+    val fontLibraryState by dependencies.readerFontManager.libraryState.collectAsStateWithLifecycle()
+    val fontFaceCss = remember(dependencies.readerFontManager, fontLibraryState.revision) {
+        dependencies.readerFontManager.popupFontFaceCss()
+    }
     val popupSettings = popups.firstOrNull()?.state
+    val noAudioFoundText = stringResource(R.string.audio_no_audio_found)
     val readerPopupIframeDocument = remember(
         popupSettings?.dictionaryStyles,
         popupSettings?.dictionarySettings,
@@ -171,6 +203,7 @@ private fun ProcessTextLookupOverlay(
         readerSettings.eInkMode,
         ankiUiState.popupSettings,
         fontFaceCss,
+        noAudioFoundText,
     ) {
         LookupPopupHtml.renderIframeDocument(
             assets = null,
@@ -184,6 +217,7 @@ private fun ProcessTextLookupOverlay(
             darkMode = darkMode,
             eInkMode = readerSettings.eInkMode,
             audioSettings = popupSettings?.audioSettings ?: AudioSettings(),
+            noAudioFoundText = noAudioFoundText,
             ankiSettings = ankiUiState.popupSettings,
             fontFaceCss = fontFaceCss,
             popupScale = readerSettings.popupScale,
@@ -219,13 +253,6 @@ private fun ProcessTextLookupOverlay(
                 val dictionarySettings = dependencies.dictionarySettingsRepository.settings.first().normalized()
                 val audioSettings = dependencies.audioSettingsRepository.settings.first()
                 val styles = dependencies.dictionaryRepository.dictionaryStyles()
-                val selection = ReaderSelectionData(
-                    text = query,
-                    sentence = query,
-                    rect = ReaderSelectionRect(x = 0.0, y = 0.0, width = 1.0, height = 1.0),
-                    normalizedOffset = 0,
-                    sentenceOffset = 0,
-                )
                 val results = dependencies.dictionaryRepository.lookup(
                     query,
                     dictionarySettings.maxResults,
@@ -233,8 +260,8 @@ private fun ProcessTextLookupOverlay(
                 )
                 val ready = dependencies.advancedAiSettingsRepository.settings.first().sentenceAvailability()
                     as? AdvancedAiAvailability.Ready
-                val popup = lookupPopupItem(
-                    selection = selection,
+                val popup = processTextLookupRoot(
+                    query = query,
                     results = results,
                     dictionaryStyles = styles,
                     dictionarySettings = dictionarySettings,
@@ -306,15 +333,13 @@ private fun ProcessTextLookupOverlay(
             viewport = viewport,
             topInset = topInset.toDouble(),
         )
-        val iframePayloads = readerLookupPopupFramePayloads(
+        val iframePayloads = processTextLookupFramePayloads(
+            query = query,
             popups = displayedPopups,
             histories = popupHistories,
             readerAiPopupModes = emptyMap(),
             viewport = viewport,
-            sasayakiWasPaused = false,
-            sasayakiIsPlaying = false,
             iframeUrl = readerPopupIframeUrl,
-            rootSelectionHighlight = null,
             resolveUiText = { it.resolve(context) },
         )
         fun setIframePopups(next: List<LookupPopupItem>) {
@@ -444,6 +469,7 @@ private fun ProcessTextLookupOverlay(
                     val popup = popupById(message.popupId) ?: return
                     val messageId = message.messageId ?: return
                     ankiViewModel.mineEntryAsync(
+                        message.formatId,
                         message.payloadJson,
                         popup.state.ankiContext.copy(
                             sentenceAnalyze = popup.state.advancedAiState.sentenceSuccessContent(),
@@ -455,8 +481,14 @@ private fun ProcessTextLookupOverlay(
                 }
                 is ReaderLookupPopupBridgeMessage.DuplicateCheck -> {
                     val messageId = message.messageId ?: return
-                    ankiViewModel.duplicateCheckAsync(message.expression) { isDuplicate ->
-                        replyIframeMessage(message.popupId, messageId, isDuplicate.toString())
+                    ankiViewModel.duplicateStatesAsync(message.valuesByHandlebar) { states ->
+                        replyIframeMessage(message.popupId, messageId, readerPopupBooleanMapJson(states))
+                    }
+                }
+                is ReaderLookupPopupBridgeMessage.ShowNotes -> {
+                    val messageId = message.messageId ?: return
+                    ankiViewModel.showNotesAsync(message.formatId, message.valuesByHandlebar) { shown ->
+                        replyIframeMessage(message.popupId, messageId, shown.toString())
                     }
                 }
                 is ReaderLookupPopupBridgeMessage.LookupRedirect -> {
@@ -472,7 +504,12 @@ private fun ProcessTextLookupOverlay(
                         setIframePopups(
                             popups.map { existing ->
                                 if (existing.id == message.popupId) {
-                                    existing.copy(state = existing.state.copy(results = results))
+                                    processTextLookupRedirect(
+                                        popup = existing,
+                                        query = message.query,
+                                        results = results,
+                                        isRoot = popupIndex(message.popupId) == 0,
+                                    )
                                 } else {
                                     existing
                                 }
@@ -487,6 +524,24 @@ private fun ProcessTextLookupOverlay(
                             )
                     }
                     replyIframeMessage(message.popupId, messageId, results.size.toString())
+                }
+                is ReaderLookupPopupBridgeMessage.KanjiRedirect -> {
+                    val messageId = message.messageId ?: return
+                    val result = dependencies.dictionaryRepository.lookupKanji(message.kanji)
+                    replyIframeMessage(
+                        message.popupId,
+                        messageId,
+                        if (result.entries.isEmpty()) "null" else LookupPopupHtml.kanjiJsonString(result),
+                    )
+                }
+                is ReaderLookupPopupBridgeMessage.KanjiRedirectCommitted -> {
+                    val current = popupHistories[message.popupId] ?: ReaderPopupHistoryCounts()
+                    popupHistories = popupHistories + (
+                        message.popupId to current.copy(
+                            backCount = current.backCount + 1,
+                            forwardCount = 0,
+                        )
+                    )
                 }
                 is ReaderLookupPopupBridgeMessage.GetEntry -> {
                     val entry = popupById(message.popupId)?.state?.results?.getOrNull(message.index)
@@ -520,6 +575,15 @@ private fun ProcessTextLookupOverlay(
                                 forwardCount = current.forwardCount - 1,
                             )
                             )
+                    }
+                }
+                is ReaderLookupPopupBridgeMessage.SourceHistoryRestored -> {
+                    if (popupIndex(message.popupId) == 0) {
+                        setIframePopups(
+                            popups.map { popup ->
+                                processTextRestoreSourceHistory(popup, message.sentenceOffset, popup.id == message.popupId)
+                            },
+                        )
                     }
                 }
                 is ReaderLookupPopupBridgeMessage.ContentReady,
@@ -612,6 +676,34 @@ private fun ProcessTextLookupIframeHost(
     )
 }
 
+internal fun processTextLookupRoot(
+    query: String,
+    results: List<LookupResult>,
+    dictionaryStyles: Map<String, String>,
+    dictionarySettings: DictionarySettings,
+    audioSettings: AudioSettings,
+    readerSettings: ReaderSettings,
+    darkMode: Boolean,
+    contentLanguageProfile: ContentLanguageProfile,
+    allowEmptyResults: Boolean = true,
+): LookupPopupItem? = lookupPopupItem(
+    selection = ReaderSelectionData(
+        text = query,
+        sentence = query,
+        rect = ReaderSelectionRect(x = 0.0, y = 0.0, width = 1.0, height = 1.0),
+        normalizedOffset = 0,
+        sentenceOffset = 0,
+    ),
+    results = results,
+    dictionaryStyles = dictionaryStyles,
+    dictionarySettings = dictionarySettings,
+    audioSettings = audioSettings,
+    readerSettings = readerSettings,
+    darkMode = darkMode,
+    contentLanguageProfile = contentLanguageProfile,
+    allowEmptyResults = allowEmptyResults,
+)
+
 internal fun lookupPopupItem(
     selection: ReaderSelectionData,
     results: List<LookupResult>,
@@ -646,8 +738,74 @@ internal fun lookupPopupItem(
             audioSettings = audioSettings,
             popupActionBar = false,
             contentLanguageProfile = contentLanguageProfile,
+            ankiContext = AnkiMiningContext(sentence = selection.sentence, sentenceOffset = 0),
         ),
     )
+}
+
+internal fun processTextLookupRedirect(
+    popup: LookupPopupItem,
+    query: String,
+    results: List<LookupResult>,
+    isRoot: Boolean,
+): LookupPopupItem {
+    if (results.isEmpty()) return popup
+    val state = popup.state
+    if (!isRoot) return popup.copy(state = state.copy(results = results))
+    val originalSentence = state.selection.sentence
+    val sentenceOffset = if (originalSentence.endsWith(query)) originalSentence.length - query.length else null
+    return popup.copy(
+        state = state.copy(
+            results = results,
+            selection = state.selection.copy(text = query, sentenceOffset = sentenceOffset),
+            ankiContext = state.ankiContext.copy(sentence = originalSentence, sentenceOffset = sentenceOffset),
+        ),
+    )
+}
+
+internal fun processTextRestoreSourceHistory(
+    popup: LookupPopupItem,
+    sentenceOffset: Int?,
+    isRoot: Boolean,
+): LookupPopupItem {
+    if (!isRoot) return popup
+    val state = popup.state
+    val sentence = state.selection.sentence
+    if (sentenceOffset != null && sentenceOffset !in 0..sentence.length) return popup
+    return popup.copy(
+        state = state.copy(
+            selection = state.selection.copy(
+                text = sentenceOffset?.let(sentence::substring) ?: state.selection.text,
+                sentenceOffset = sentenceOffset,
+            ),
+            ankiContext = state.ankiContext.copy(sentenceOffset = sentenceOffset),
+        ),
+    )
+}
+
+internal fun processTextLookupFramePayloads(
+    query: String,
+    popups: List<LookupPopupItem>,
+    histories: Map<String, ReaderPopupHistoryCounts>,
+    viewport: ReaderLookupPopupViewport,
+    iframeUrl: String,
+    readerAiPopupModes: Map<String, ReaderAiLongPressMode> = emptyMap(),
+    resolveUiText: (UiText) -> String = { error("Unexpected popup UI text $it") },
+): List<ReaderLookupPopupFramePayload> = readerLookupPopupFramePayloads(
+    popups = popups,
+    histories = histories,
+    readerAiPopupModes = readerAiPopupModes,
+    viewport = viewport,
+    sasayakiWasPaused = false,
+    sasayakiIsPlaying = false,
+    iframeUrl = iframeUrl,
+    rootSelectionHighlight = null,
+    resolveUiText = resolveUiText,
+).mapIndexed { index, payload ->
+    if (index == 0) payload.copy(
+        sourceText = query,
+        sourceSentenceOffset = popups[index].state.ankiContext.sentenceOffset,
+    ) else payload
 }
 
 internal object ProcessTextLookupOverlayLayout {

@@ -68,7 +68,7 @@ sealed interface SyncResult {
 
 @Serializable
 data class TtuProgress(
-    val dataId: Int,
+    val dataId: Long,
     val exploredCharCount: Int,
     val progress: Double,
     val lastBookmarkModified: Long,
@@ -94,7 +94,13 @@ data class DriveSyncFiles(
     val progress: DriveFile?,
     val statistics: DriveFile?,
     val audioBook: DriveFile?,
-)
+) {
+    val lastAccessMillis: Long?
+        get() = listOfNotNull(
+            TtuSyncRules.parseProgressTimestampMillis(progress),
+            TtuSyncRules.parseAudioBookTimestampMillis(audioBook),
+        ).maxOrNull() ?: TtuSyncRules.parseBookDataLastAccessMillis(bookData)
+}
 
 data class ResolvedBookPosition(
     val spineIndex: Int,

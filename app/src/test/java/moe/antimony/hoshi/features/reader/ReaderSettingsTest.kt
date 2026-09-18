@@ -1,6 +1,10 @@
 package moe.antimony.hoshi.features.reader
 
 import androidx.compose.ui.graphics.Color
+import moe.antimony.hoshi.features.display.AppDisplaySettings
+import moe.antimony.hoshi.features.display.DisplayPalettePreset
+import moe.antimony.hoshi.features.display.DisplayPaletteSlot
+import moe.antimony.hoshi.features.display.DisplayPaletteSelection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -8,6 +12,101 @@ import org.junit.Test
 import java.io.File
 
 class ReaderSettingsTest {
+    @Test
+    fun projectedReaderUsesIndependentEInkBrightness() {
+        for (dark in listOf(false, true)) {
+            val settings = ReaderSettings(
+                displaySettings = AppDisplaySettings(
+                    autoSwitch = false,
+                    manualPaletteSlot = if (dark) DisplayPaletteSlot.Light else DisplayPaletteSlot.Dark,
+                    eInkMode = true,
+                    eInkDarkTheme = dark,
+                ),
+            )
+            val projected = settings.resolvedForDisplay(systemDark = !dark)
+            assertEquals(dark, projected.usesDarkInterface(!dark))
+            assertEquals(settings.backgroundColor(!dark), projected.backgroundColor(!dark))
+            assertEquals(settings.textColorCss(!dark), projected.textColorCss(!dark))
+        }
+    }
+
+    @Test
+    fun globalDisplaySettingsDriveExistingReaderColorAndThemeHelpers() {
+        val settings = ReaderSettings(
+            theme = ReaderTheme.Light,
+            displaySettings = AppDisplaySettings(
+                autoSwitch = true,
+                eInkMode = false,
+                lightPalette = DisplayPaletteSelection(DisplayPalettePreset.Sepia),
+                darkPalette = DisplayPaletteSelection(
+                    preset = DisplayPalettePreset.Custom,
+                    customBackgroundColor = 0xCC101820L,
+                    customTextColor = 0x80203040L,
+                    customInfoColor = 0x40506070L,
+                ),
+            ),
+        )
+
+        assertEquals(0xFFF2E2C9L, settings.backgroundColor(systemDark = false))
+        assertEquals("#332A1B", settings.textColorCss(systemDark = false))
+        assertTrue(settings.usesSepiaLightContent(systemDark = false))
+        assertEquals(0xCC101820L, settings.backgroundColor(systemDark = true))
+        assertEquals("#20304080", settings.textColorCss(systemDark = true))
+        assertTrue(settings.usesDarkInterface(systemDark = true))
+    }
+
+    @Test
+    fun resolvedForDisplayProjectsEInkBrightnessAndRetainsUnderlyingCustomColors() {
+        val global = AppDisplaySettings(
+            autoSwitch = true,
+            eInkMode = true,
+            darkPalette = DisplayPaletteSelection(
+                preset = DisplayPalettePreset.Custom,
+                customBackgroundColor = 0xFF101820L,
+                customTextColor = 0xFFE0E8F0L,
+                customInfoColor = 0xFF8090A0L,
+            ),
+        )
+
+        val projected = ReaderSettings(displaySettings = global).resolvedForDisplay(systemDark = true)
+
+        assertEquals(ReaderTheme.Dark, projected.theme)
+        assertEquals(ReaderInterfaceTheme.Dark, projected.uiTheme)
+        assertEquals(0xFF101820L, projected.customBackgroundColor)
+        assertEquals(0xFFE0E8F0L, projected.customTextColor)
+        assertEquals(0xFF8090A0L, projected.customInfoColor)
+        assertTrue(projected.eInkMode)
+    }
+
+    @Test
+    fun resolvedForDisplayProjectsDarkSepiaPresetColors() {
+        val projected = ReaderSettings(
+            displaySettings = AppDisplaySettings(
+                autoSwitch = false,
+                manualPaletteSlot = DisplayPaletteSlot.Dark,
+                darkPalette = DisplayPaletteSelection(DisplayPalettePreset.DarkSepia),
+            ),
+        ).resolvedForDisplay(systemDark = false)
+
+        assertEquals(ReaderTheme.Custom, projected.theme)
+        assertEquals(ReaderInterfaceTheme.Dark, projected.uiTheme)
+        assertEquals(0xFF17150FL, projected.customBackgroundColor)
+        assertEquals(0xFFF2E2C9L, projected.customTextColor)
+    }
+
+    @Test
+    fun selectingFontVariantUpdatesStableIdsAndPerFamilyMemory() {
+        val family = ReaderRecommendedFontCatalog.families.first { it.id == "recommended:kleeone" }
+        val variant = family.variants.first { it.weight == 600 }
+
+        val selected = ReaderSettings().withFontSelection(family, variant)
+
+        assertEquals("Klee One", selected.selectedFont)
+        assertEquals(family.id, selected.selectedFontFamilyId)
+        assertEquals(variant.id, selected.selectedFontVariantId)
+        assertEquals(variant.id, selected.fontVariantSelections[family.id])
+    }
+
     @Test
     fun defaultsMatchIosUserConfigFirstRunValuesWithAndroidFontPreset() {
         val settings = ReaderSettings()
@@ -30,13 +129,15 @@ class ReaderSettingsTest {
         assertEquals(0xFF999999L, settings.customInfoColor)
         assertFalse(settings.continuousMode)
         assertFalse(settings.blurImages)
-        assertFalse(settings.enableStatistics)
-        assertTrue(settings.showStatisticsTab)
-        assertEquals(StatisticsAutostartMode.Off, settings.statisticsAutostartMode)
+        assertFalse(settings.statisticsAutostartOnBookOpen)
+        assertFalse(settings.statisticsAutostartOnPageTurn)
         assertFalse(settings.showStatisticsToggle)
         assertFalse(settings.showReadingSpeed)
         assertFalse(settings.showReadingTime)
+        assertTrue(settings.showProgress)
+        assertFalse(settings.showChapterProgress)
         assertEquals(20, settings.chapterSwipeDistance)
+        assertEquals(72, settings.pageSwipeThresholdPx)
         assertTrue(settings.popupSwipeToDismiss)
         assertEquals(30, settings.popupSwipeThreshold)
         assertFalse(settings.openLastReadBookOnLaunch)
@@ -52,57 +153,29 @@ class ReaderSettingsTest {
     }
 
     @Test
-    fun statisticsAutostartModesUseIosRawLabels() {
-        assertEquals("Off", StatisticsAutostartMode.Off.rawValue)
-        assertEquals("Page Turn", StatisticsAutostartMode.PageTurn.rawValue)
-        assertEquals("On", StatisticsAutostartMode.On.rawValue)
+    fun pageSwipeThresholdKeepsLegacyDefaultAndAllowsDisabledValue() {
+        assertEquals(0, (-1).coerceReaderPageSwipeThresholdPx())
+        assertEquals(0, 0.coerceReaderPageSwipeThresholdPx())
+        assertEquals(72, 72.coerceReaderPageSwipeThresholdPx())
+        assertEquals(360, 500.coerceReaderPageSwipeThresholdPx())
     }
 
     @Test
-    fun enablingStatisticsTurnsOnReaderDisplayStatisticsControls() {
-        val settings = ReaderSettings(
-            enableStatistics = false,
-            showStatisticsToggle = false,
-            showReadingSpeed = false,
-            showReadingTime = false,
+    fun legacyStatisticsAutostartModesMapToIndependentTriggers() {
+        val cases = listOf(
+            null to (false to false),
+            "Off" to (false to false),
+            "On" to (true to false),
+            "Page Turn" to (false to true),
+            "Unexpected" to (false to false),
         )
 
-        val enabled = settings.withStatisticsEnabled(true)
+        cases.forEach { (rawValue, expected) ->
+            val migrated = migrateLegacyStatisticsAutostart(rawValue)
 
-        assertTrue(enabled.enableStatistics)
-        assertTrue(enabled.showStatisticsToggle)
-        assertTrue(enabled.showReadingSpeed)
-        assertTrue(enabled.showReadingTime)
-    }
-
-    @Test
-    fun statisticsDisplayControlsRemainUserControlledAfterAlreadyEnabled() {
-        val settings = ReaderSettings(
-            enableStatistics = true,
-            showStatisticsToggle = false,
-            showReadingSpeed = false,
-            showReadingTime = false,
-        )
-
-        val enabled = settings.withStatisticsEnabled(true)
-
-        assertTrue(enabled.enableStatistics)
-        assertFalse(enabled.showStatisticsToggle)
-        assertFalse(enabled.showReadingSpeed)
-        assertFalse(enabled.showReadingTime)
-    }
-
-    @Test
-    fun statisticsTabVisibilityRemainsUserControlledWhenEnablingStatistics() {
-        val settings = ReaderSettings(
-            enableStatistics = false,
-            showStatisticsTab = false,
-        )
-
-        val enabled = settings.withStatisticsEnabled(true)
-
-        assertTrue(enabled.enableStatistics)
-        assertFalse(enabled.showStatisticsTab)
+            assertEquals(expected.first, migrated.onBookOpen)
+            assertEquals(expected.second, migrated.onPageTurn)
+        }
     }
 
     @Test
@@ -248,6 +321,70 @@ class ReaderSettingsTest {
         assertFalse(css.contains("font-family:"))
         assertTrue(css.contains("font-size: 22px !important;"))
         assertTrue(css.contains("writing-mode: vertical-rl !important;"))
+    }
+
+    @Test
+    fun readerCssUsesRealFacesAndSelectedVariableWeight() {
+        val spec = ReaderFontRenderSpec(
+            familyId = "recommended:notosansjp",
+            variantId = "wght-600-normal",
+            cssFamily = "hoshi-font-recommended-notosansjp",
+            displayName = "Noto Sans JP",
+            weight = 600,
+            italic = false,
+            variationSettings = mapOf("wght" to 600f),
+            faces = listOf(
+                ReaderFontFace(
+                    url = "https://appassets.androidplatform.net/fonts/System/NotoSansJP-wght.ttf",
+                    weight = 400,
+                    italic = false,
+                    variableWeightRange = 100..900,
+                ),
+                ReaderFontFace(
+                    url = "https://appassets.androidplatform.net/fonts/System/NotoSansJP-wght.ttf",
+                    weight = 600,
+                    italic = false,
+                    variableWeightRange = 100..900,
+                ),
+            ),
+        )
+
+        val css = ReaderContentStyles.styleTag(
+            settings = ReaderSettings(
+                selectedFont = "Noto Sans JP",
+                selectedFontFamilyId = spec.familyId,
+                selectedFontVariantId = spec.variantId,
+            ),
+            fontRenderSpec = spec,
+        )
+
+        assertTrue(css.contains("font-family: 'hoshi-font-recommended-notosansjp';"))
+        assertTrue(css.contains("font-weight: 100 900;"))
+        assertEquals(1, css.windowed("@font-face".length).count { it == "@font-face" })
+        assertTrue(css.contains("font-weight: 600 !important;"))
+        assertTrue(css.contains("font-variation-settings: 'wght' 600 !important;"))
+    }
+
+    @Test
+    fun publisherRenderSpecLeavesFamilyStyleAndWeightUntouched() {
+        val spec = ReaderFontRenderSpec(
+            familyId = ReaderFontManager.publisherFamilyId,
+            variantId = ReaderFontManager.publisherVariantId,
+            cssFamily = null,
+            displayName = ReaderFontManager.publisherFont,
+            weight = 400,
+            italic = false,
+            publisherFont = true,
+        )
+
+        val css = ReaderContentStyles.styleTag(
+            settings = ReaderSettings(selectedFont = ReaderFontManager.publisherFont),
+            fontRenderSpec = spec,
+        )
+
+        assertFalse(css.contains("font-family:"))
+        assertFalse(css.contains("font-weight:"))
+        assertFalse(css.contains("font-style:"))
     }
 
     @Test
@@ -551,6 +688,28 @@ class ReaderSettingsTest {
     }
 
     @Test
+    fun readerGaijiUsesReaderTextColorMaskForEverySemanticClass() {
+        val contentCss = ReaderContentStyles.styleTag(
+            settings = ReaderSettings(
+                theme = ReaderTheme.Custom,
+                uiTheme = ReaderInterfaceTheme.Light,
+                customBackgroundColor = 0xFFD0B2CA,
+                customTextColor = 0xFF5F8FFF,
+            ),
+        )
+
+        assertEquals("#5f8fff", cssCustomProperty(contentCss, "--hoshi-text-color"))
+        listOf("img[class*=\"gaiji\" i]", "img.hoshi-text-color-image").forEach { selector ->
+            val declarations = cssDeclarationsForSelector(contentCss, selector)
+            assertEquals(
+                "url(\"#hoshi-gaiji-text-color-filter\") !important",
+                declarations["filter"],
+            )
+            assertEquals("normal !important", declarations["mix-blend-mode"])
+        }
+    }
+
+    @Test
     fun eInkModeOverridesCustomThemeContentColors() {
         val settings = ReaderSettings(
             theme = ReaderTheme.Custom,
@@ -681,7 +840,7 @@ class ReaderSettingsTest {
     fun readerCssUsesIosAppearanceFlags() {
         val css = ReaderContentStyles.styleTag(
             ReaderSettings(
-                hideFurigana = true,
+                furiganaMode = FuriganaMode.Hidden,
                 avoidPageBreak = true,
                 justifyText = true,
             ),
@@ -720,22 +879,24 @@ class ReaderSettingsTest {
             surfaceVariant = Color.White,
             primaryContainer = Color.Black,
             onPrimaryContainer = Color.White,
-            outlineVariant = Color.Black,
         )
 
         assertEquals(Color.White, colors.container)
         assertEquals(Color.Black, colors.selected)
         assertEquals(Color.White, colors.selectedContent)
         assertEquals(Color.Black, colors.unselectedContent)
-        assertEquals(Color.Black, colors.border)
     }
 
     private fun cssDeclarationsForSelector(css: String, selector: String): Map<String, String> {
-        val escapedSelector = Regex.escape(selector)
-        val block = Regex("""$escapedSelector\s*\{([^}]*)}""")
-            .find(css)
+        val block = Regex("""([^{}]+)\{([^{}]*)}""")
+            .findAll(css)
+            .firstOrNull { match ->
+                match.groupValues[1]
+                    .split(",")
+                    .any { it.trim() == selector }
+            }
             ?.groupValues
-            ?.get(1)
+            ?.get(2)
             ?: return emptyMap()
         return block
             .split(";")
@@ -748,4 +909,11 @@ class ReaderSettingsTest {
             }
             .toMap()
     }
+
+    private fun cssCustomProperty(css: String, property: String): String? =
+        Regex("""${Regex.escape(property)}\s*:\s*([^;]+);""")
+            .find(css)
+            ?.groupValues
+            ?.get(1)
+            ?.trim()
 }

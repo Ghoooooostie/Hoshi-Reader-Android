@@ -4,12 +4,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Redo
 import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.ui.graphics.vector.ImageVector
+import moe.antimony.hoshi.features.display.DisplayPalettePreset
+import moe.antimony.hoshi.features.display.resolveDisplaySettings
 import java.util.Locale
 
 data class ReaderChromeState(
     val title: String,
     val currentCharacter: Int,
     val totalCharacters: Int,
+    val chapterCurrentCharacter: Int = 0,
+    val chapterTotalCharacters: Int = 0,
     val backTargetCharacter: Int? = null,
     val forwardTargetCharacter: Int? = null,
     val statistics: ReaderStatisticsChromeState? = null,
@@ -18,16 +22,37 @@ data class ReaderChromeState(
         settings: ReaderSettings,
         progressDisplay: ReaderProgressDisplay = ReaderProgressDisplay.characters(),
     ): String {
+        val lines = mutableListOf<String>()
+        if (settings.showProgress) {
+            progressLine(currentCharacter, totalCharacters, settings, progressDisplay)
+                .takeIf { it.isNotEmpty() }
+                ?.let(lines::add)
+        }
+        if (settings.showChapterProgress) {
+            progressLine(chapterCurrentCharacter, chapterTotalCharacters, settings, progressDisplay)
+                .takeIf { it.isNotEmpty() }
+                ?.let { lines += "($it)" }
+        }
+        val separator = if (settings.alwaysShowProgress || settings.showProgressTop) " " else "\n"
+        return lines.joinToString(separator)
+    }
+
+    private fun progressLine(
+        current: Int,
+        total: Int,
+        settings: ReaderSettings,
+        progressDisplay: ReaderProgressDisplay,
+    ): String {
         val parts = mutableListOf<String>()
         if (settings.showCharacters) {
-            parts += progressDisplay.countText(currentCharacter)
-            if (totalCharacters > 0) {
-                parts[parts.lastIndex] = progressDisplay.rangeText(currentCharacter, totalCharacters)
+            parts += progressDisplay.countText(current)
+            if (total > 0) {
+                parts[parts.lastIndex] = progressDisplay.rangeText(current, total)
             }
         }
         if (settings.showPercentage) {
-            val percent = if (totalCharacters > 0) {
-                currentCharacter.toDouble() / totalCharacters.toDouble() * 100.0
+            val percent = if (total > 0) {
+                current.toDouble() / total.toDouble() * 100.0
             } else {
                 0.0
             }
@@ -41,7 +66,6 @@ data class ReaderChromeState(
         progressDisplay: ReaderProgressDisplay = ReaderProgressDisplay.characters(),
     ): String {
         val statistics = statistics ?: return ""
-        if (!settings.enableStatistics) return ""
         val parts = mutableListOf<String>()
         if (settings.showReadingSpeed) {
             parts += progressDisplay.speedText(statistics.readingSpeed)
@@ -80,7 +104,6 @@ data class ReaderChromeLayout(
     val showProgressInBottomBar: Boolean,
     val showStatisticsInBottomBar: Boolean,
     val bottomCenterLineCount: Int,
-    val bottomCenterMaxHeightDp: Int,
 )
 
 data class ReaderContentChromeInsets(
@@ -104,7 +127,8 @@ data class ReaderChromeVisibility(
 )
 
 enum class ReaderMenuDestination {
-    Appearance,
+    Display,
+    ReadingSettings,
     GoTo,
     TranslationAi,
     Statistics,
@@ -189,8 +213,9 @@ fun readerChromeLayout(
     return ReaderChromeLayout(
         showProgressInBottomBar = showProgressInBottomBar,
         showStatisticsInBottomBar = showStatisticsInBottomBar,
-        bottomCenterLineCount = listOf(showStatisticsInBottomBar, showProgressInBottomBar).count { it },
-        bottomCenterMaxHeightDp = ReaderBottomChromeButtonSizeDp,
+        bottomCenterLineCount =
+            (if (showStatisticsInBottomBar) 1 else 0) +
+                (if (showProgressInBottomBar) progress.lineSequence().count() else 0),
     )
 }
 
@@ -324,7 +349,8 @@ fun readerBottomMenuVisualOrder(
     if (showStatistics) add(ReaderMenuDestination.Statistics)
     add(ReaderMenuDestination.GoTo)
     if (showTranslationAi) add(ReaderMenuDestination.TranslationAi)
-    add(ReaderMenuDestination.Appearance)
+    add(ReaderMenuDestination.ReadingSettings)
+    add(ReaderMenuDestination.Display)
 }
 
 fun readerSasayakiBottomPlaybackControls(
@@ -387,8 +413,10 @@ fun readerJumpBackIcon(): ImageVector = Icons.AutoMirrored.Rounded.Undo
 fun readerJumpForwardIcon(): ImageVector = Icons.AutoMirrored.Rounded.Redo
 
 fun readerChromeColors(settings: ReaderSettings, systemDark: Boolean): ReaderChromeColors {
+    val display = settings.displaySettings?.let { resolveDisplaySettings(it, systemDark) }
+    val resolvedSettings = settings.resolvedForDisplay(systemDark)
     val colors = when {
-        settings.eInkMode && settings.usesDarkInterface(systemDark) -> ReaderChromeColors(
+        resolvedSettings.eInkMode && resolvedSettings.usesDarkInterface(systemDark) -> ReaderChromeColors(
             buttonContainer = 0xFF000000,
             buttonBorder = 0xFFFFFFFF,
             buttonOutline = 0x00000000,
@@ -405,7 +433,7 @@ fun readerChromeColors(settings: ReaderSettings, systemDark: Boolean): ReaderChr
             bubbleInnerShadowColor = 0x00000000,
             infoText = 0xFFFFFFFF,
         )
-        settings.eInkMode -> ReaderChromeColors(
+        resolvedSettings.eInkMode -> ReaderChromeColors(
             buttonContainer = 0xFFFFFFFF,
             buttonBorder = 0xFF000000,
             buttonOutline = 0x00000000,
@@ -422,7 +450,8 @@ fun readerChromeColors(settings: ReaderSettings, systemDark: Boolean): ReaderChr
             bubbleInnerShadowColor = 0x00000000,
             infoText = 0xFF000000,
         )
-        settings.theme == ReaderTheme.Sepia && settings.sepiaInvertInDark && systemDark -> ReaderChromeColors(
+        display?.palette == DisplayPalettePreset.DarkSepia ||
+            (resolvedSettings.theme == ReaderTheme.Sepia && resolvedSettings.usesDarkInterface(systemDark)) -> ReaderChromeColors(
             buttonContainer = 0xE6191713,
             buttonBorder = 0xFF4A4438,
             buttonOutline = 0x00000000,
@@ -439,7 +468,7 @@ fun readerChromeColors(settings: ReaderSettings, systemDark: Boolean): ReaderChr
             bubbleInnerShadowColor = 0x00000000,
             infoText = 0xCCF2E2C9,
         )
-        settings.usesDarkInterface(systemDark) -> ReaderChromeColors(
+        resolvedSettings.usesDarkInterface(systemDark) -> ReaderChromeColors(
             buttonContainer = 0xE6141414,
             buttonBorder = 0xFF484848,
             buttonOutline = 0x00000000,
@@ -491,8 +520,10 @@ fun readerChromeColors(settings: ReaderSettings, systemDark: Boolean): ReaderChr
             infoText = 0xB3111111,
         )
     }
-    return if (!settings.eInkMode && settings.theme == ReaderTheme.Custom) {
-        colors.copy(infoText = settings.customInfoColor)
+    return if (display != null) {
+        colors.copy(infoText = display.infoColor)
+    } else if (!resolvedSettings.eInkMode && resolvedSettings.theme == ReaderTheme.Custom) {
+        colors.copy(infoText = resolvedSettings.customInfoColor)
     } else {
         colors
     }

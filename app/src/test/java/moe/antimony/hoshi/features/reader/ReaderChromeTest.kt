@@ -8,6 +8,8 @@ import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.TravelExplore
+import moe.antimony.hoshi.features.display.DisplayPaletteSlot
+import moe.antimony.hoshi.features.display.DisplayPalettePreset
 import moe.antimony.hoshi.features.sasayaki.SasayakiSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,6 +19,51 @@ import org.junit.Test
 import java.io.File
 
 class ReaderChromeTest {
+    @Test
+    fun resolvedPresetInfoColorsMatchVisibleReaderInformation() {
+        for (preset in moe.antimony.hoshi.features.display.DisplayPalettePreset.entries.filter { it != moe.antimony.hoshi.features.display.DisplayPalettePreset.Custom }) {
+            val display = moe.antimony.hoshi.features.display.AppDisplaySettings(
+                autoSwitch = false,
+                manualPaletteSlot = if (preset in listOf(DisplayPalettePreset.Dark, DisplayPalettePreset.DarkSepia)) DisplayPaletteSlot.Dark else DisplayPaletteSlot.Light,
+                lightPalette = moe.antimony.hoshi.features.display.DisplayPaletteSelection(preset),
+                darkPalette = moe.antimony.hoshi.features.display.DisplayPaletteSelection(preset),
+            )
+            assertEquals(
+                readerChromeColors(ReaderSettings(displaySettings = display), false).infoText,
+                moe.antimony.hoshi.features.display.resolveDisplaySettings(display, false).infoColor,
+            )
+        }
+    }
+
+    @Test
+    fun globalWarmDarkPaletteKeepsWarmChromeEvenWhenSystemIsLight() {
+        val settings = ReaderSettings(displaySettings = moe.antimony.hoshi.features.display.AppDisplaySettings(
+            autoSwitch = false,
+            manualPaletteSlot = DisplayPaletteSlot.Dark,
+                darkPalette = moe.antimony.hoshi.features.display.DisplayPaletteSelection(
+                moe.antimony.hoshi.features.display.DisplayPalettePreset.DarkSepia,
+            ),
+        ))
+        val colors = readerChromeColors(settings, systemDark = false)
+        assertEquals(0xFFF2E2C9L, colors.buttonContent)
+        assertEquals(0xCCF2E2C9L, colors.infoText)
+    }
+
+    @Test
+    fun globalCustomPaletteUpdatesInfoWithoutDependingOnLegacyProfileTheme() {
+        val settings = ReaderSettings(theme = ReaderTheme.Light, displaySettings =
+            moe.antimony.hoshi.features.display.AppDisplaySettings(
+                autoSwitch = false,
+                manualPaletteSlot = DisplayPaletteSlot.Dark,
+                darkPalette = moe.antimony.hoshi.features.display.DisplayPaletteSelection(
+                    preset = moe.antimony.hoshi.features.display.DisplayPalettePreset.Custom,
+                    customBackgroundColor = 0xFF000000,
+                    customInfoColor = 0x80332211,
+                ),
+            ))
+        assertEquals(0x80332211L, readerChromeColors(settings, systemDark = false).infoText)
+    }
+
     @Test
     fun wordDisplayUnitRoundsCharacterCountsUp() {
         val display = ReaderProgressDisplay.word()
@@ -58,7 +105,6 @@ class ReaderChromeTest {
             statistics = ReaderStatisticsChromeState(readingSpeed = 3_600, readingTimeSeconds = 65.0),
         ).statisticsText(
             ReaderSettings(
-                enableStatistics = true,
                 showReadingSpeed = true,
                 showReadingTime = true,
             ),
@@ -116,7 +162,6 @@ class ReaderChromeTest {
             statistics = ReaderStatisticsChromeState(readingSpeed = 3600, readingTimeSeconds = 65.0),
         ).statisticsText(
             ReaderSettings(
-                enableStatistics = true,
                 showReadingSpeed = true,
                 showReadingTime = true,
             ),
@@ -136,6 +181,41 @@ class ReaderChromeTest {
         assertEquals("0.21%", state.progressText(ReaderSettings(showCharacters = false)))
         assertEquals("355 / 169325", state.progressText(ReaderSettings(showPercentage = false)))
         assertEquals("", state.progressText(ReaderSettings(showCharacters = false, showPercentage = false)))
+    }
+
+    @Test
+    fun formatsBookAndTrueChapterProgressLikeIos() {
+        val state = ReaderChromeState(
+            title = "Book",
+            currentCharacter = 6,
+            totalCharacters = 10,
+            chapterCurrentCharacter = 2,
+            chapterTotalCharacters = 4,
+        )
+
+        assertEquals(
+            "6 / 10 60.00% (2 / 4 50.00%)",
+            state.progressText(ReaderSettings(showProgress = true, showChapterProgress = true)),
+        )
+        assertEquals(
+            "6 / 10 60.00%\n(2 / 4 50.00%)",
+            state.progressText(
+                ReaderSettings(
+                    showProgress = true,
+                    showChapterProgress = true,
+                    alwaysShowProgress = false,
+                    showProgressTop = false,
+                ),
+            ),
+        )
+        assertEquals(
+            "(2 / 4 50.00%)",
+            state.progressText(ReaderSettings(showProgress = false, showChapterProgress = true)),
+        )
+        assertEquals(
+            "",
+            state.progressText(ReaderSettings(showProgress = false, showChapterProgress = false)),
+        )
     }
 
     @Test
@@ -344,11 +424,13 @@ class ReaderChromeTest {
     }
 
     @Test
-    fun bottomStatisticsAndProgressFitInsideBottomChromeButtonHeight() {
+    fun bottomChromeCountsStatisticsBookAndChapterLines() {
         val state = ReaderChromeState(
             title = "屍人荘の殺人",
             currentCharacter = 355,
             totalCharacters = 169325,
+            chapterCurrentCharacter = 55,
+            chapterTotalCharacters = 325,
             statistics = ReaderStatisticsChromeState(readingSpeed = 3600, readingTimeSeconds = 65.0),
         )
         val layout = readerChromeLayout(
@@ -356,14 +438,12 @@ class ReaderChromeTest {
             ReaderSettings(
                 alwaysShowProgress = false,
                 showProgressTop = false,
-                enableStatistics = true,
+                showChapterProgress = true,
                 showReadingSpeed = true,
                 showReadingTime = true,
             ),
         )
-
-        assertEquals(2, layout.bottomCenterLineCount)
-        assertEquals(readerBottomChromeMetrics().buttonSizeDp, layout.bottomCenterMaxHeightDp)
+        assertEquals(3, layout.bottomCenterLineCount)
     }
 
     @Test
@@ -707,7 +787,8 @@ class ReaderChromeTest {
                 ReaderMenuDestination.Statistics,
                 ReaderMenuDestination.GoTo,
                 ReaderMenuDestination.TranslationAi,
-                ReaderMenuDestination.Appearance,
+                ReaderMenuDestination.ReadingSettings,
+                ReaderMenuDestination.Display,
             ),
             readerBottomMenuVisualOrder(showStatistics = true, showSasayaki = true, showTranslationAi = true),
         )
@@ -719,7 +800,8 @@ class ReaderChromeTest {
             listOf(
                 ReaderMenuDestination.GoTo,
                 ReaderMenuDestination.TranslationAi,
-                ReaderMenuDestination.Appearance,
+                ReaderMenuDestination.ReadingSettings,
+                ReaderMenuDestination.Display,
             ),
             readerBottomMenuVisualOrder(showStatistics = false, showSasayaki = false, showTranslationAi = true),
         )

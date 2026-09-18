@@ -6,6 +6,55 @@ import org.junit.Test
 
 class AudioSourceResolverTest {
     @Test
+    fun localAudioCandidatesAreRankedNamedAndDeduplicated() {
+        val candidates = LocalAudioResolver.resolveCandidates(
+            term = "食べる",
+            reading = "タベル",
+            sourceOrder = listOf("forvo", "nhk16", "custom"),
+            rows = listOf(
+                LocalAudioEntry(source = "forvo", expression = "食べない", reading = "たべる", file = "audio/reading.mp3", display = "Alice"),
+                LocalAudioEntry(source = "nhk16", expression = "食べる", reading = "たべる", file = "audio/exact.opus", display = "1"),
+                LocalAudioEntry(source = "nhk16", expression = "食べる", reading = "たべる", file = "audio/exact.opus", display = "duplicate"),
+                LocalAudioEntry(source = "custom", expression = "食べる", reading = "たべない", file = "audio/expression.ogg", display = "Speaker"),
+            ),
+        )
+
+        assertEquals(
+            listOf(
+                LocalAudioCandidate(
+                    name = "NHK16 1",
+                    url = "hoshi-local-audio://nhk16/audio%2Fexact.opus",
+                ),
+                LocalAudioCandidate(
+                    name = "Forvo (Alice) (食べない)",
+                    url = "hoshi-local-audio://forvo/audio%2Freading.mp3",
+                ),
+                LocalAudioCandidate(
+                    name = "custom (たべない)",
+                    url = "hoshi-local-audio://custom/audio%2Fexpression.ogg",
+                ),
+            ),
+            candidates,
+        )
+    }
+
+    @Test
+    fun localAudioCandidatesSkipDisabledAndUnsupportedRows() {
+        val candidates = LocalAudioResolver.resolveCandidates(
+            term = "猫",
+            reading = "ねこ",
+            sourceOrder = listOf("nhk16", "forvo"),
+            disabledSources = setOf("nhk16"),
+            rows = listOf(
+                LocalAudioEntry(source = "nhk16", expression = "猫", reading = "ねこ", file = "audio/disabled.mp3"),
+                LocalAudioEntry(source = "forvo", expression = "猫", reading = "ねこ", file = "audio/unsupported.wav"),
+            ),
+        )
+
+        assertEquals(emptyList<LocalAudioCandidate>(), candidates)
+    }
+
+    @Test
     fun remoteTemplateReplacesTermAndReadingWithUrlEncoding() {
         val url = AudioSourceResolver.expandTemplate(
             "https://example.test/audio/list?term={term}&reading={reading}",
@@ -75,6 +124,68 @@ class AudioSourceResolverTest {
         )
 
         assertEquals(LocalAudioEntry(source = "forvo", expression = "食べる", reading = "たべる", file = "audio/forvo.mp3"), match)
+    }
+
+    @Test
+    fun localAudioSkipsDisabledSources() {
+        val match = LocalAudioResolver.resolve(
+            term = "食べる",
+            reading = "たべる",
+            sourceOrder = listOf("nhk16", "forvo"),
+            disabledSources = setOf("nhk16"),
+            rows = listOf(
+                LocalAudioEntry(source = "nhk16", expression = "食べる", reading = "たべる", file = "audio/nhk.mp3"),
+                LocalAudioEntry(source = "forvo", expression = "食べる", reading = "たべる", file = "audio/forvo.mp3"),
+            ),
+        )
+
+        assertEquals(LocalAudioEntry(source = "forvo", expression = "食べる", reading = "たべる", file = "audio/forvo.mp3"), match)
+    }
+
+    @Test
+    fun localAudioReturnsNoMatchWhenAllSourcesAreDisabled() {
+        val match = LocalAudioResolver.resolve(
+            term = "食べる",
+            reading = "たべる",
+            sourceOrder = listOf("nhk16", "forvo"),
+            disabledSources = setOf("nhk16", "forvo"),
+            rows = listOf(
+                LocalAudioEntry(source = "nhk16", expression = "食べる", reading = "たべる", file = "audio/nhk.mp3"),
+                LocalAudioEntry(source = "forvo", expression = "食べる", reading = "たべる", file = "audio/forvo.mp3"),
+            ),
+        )
+
+        assertNull(match)
+    }
+
+    @Test
+    fun expressionOnlyEntryRanksWithExactExpressionAndReadingMatches() {
+        val match = LocalAudioResolver.resolve(
+            term = "食べる",
+            reading = "たべる",
+            sourceOrder = listOf("forvo", "nhk16"),
+            rows = listOf(
+                LocalAudioEntry(source = "forvo", expression = "食べない", reading = "たべる", file = "audio/reading.mp3"),
+                LocalAudioEntry(source = "nhk16", expression = "食べる", reading = null, file = "audio/expression.mp3"),
+            ),
+        )
+
+        assertEquals(LocalAudioEntry(source = "nhk16", expression = "食べる", reading = null, file = "audio/expression.mp3"), match)
+    }
+
+    @Test
+    fun expressionWithMismatchedReadingRanksBelowReadingMatch() {
+        val match = LocalAudioResolver.resolve(
+            term = "食べる",
+            reading = "たべる",
+            sourceOrder = listOf("nhk16", "forvo"),
+            rows = listOf(
+                LocalAudioEntry(source = "nhk16", expression = "食べる", reading = "たべない", file = "audio/expression.mp3"),
+                LocalAudioEntry(source = "forvo", expression = "食べない", reading = "たべる", file = "audio/reading.mp3"),
+            ),
+        )
+
+        assertEquals(LocalAudioEntry(source = "forvo", expression = "食べない", reading = "たべる", file = "audio/reading.mp3"), match)
     }
 
     @Test

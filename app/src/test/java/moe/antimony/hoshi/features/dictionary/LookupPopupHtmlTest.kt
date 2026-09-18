@@ -4,6 +4,9 @@ import de.manhhao.hoshi.FrequencyEntry
 import de.manhhao.hoshi.GlossaryEntry
 import de.manhhao.hoshi.LookupResult
 import de.manhhao.hoshi.PitchEntry
+import de.manhhao.hoshi.Pitch
+import de.manhhao.hoshi.KanjiEntry
+import de.manhhao.hoshi.KanjiResult
 import de.manhhao.hoshi.TermResult
 import de.manhhao.hoshi.TraceCandidate
 import de.manhhao.hoshi.TraceSource
@@ -14,6 +17,8 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import moe.antimony.hoshi.content.ContentLanguageProfile
 import moe.antimony.hoshi.features.anki.AnkiPopupSettings
+import moe.antimony.hoshi.features.anki.AnkiPopupFormat
+import moe.antimony.hoshi.features.anki.AnkiFormatIcon
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.audio.AudioSource
 import org.junit.Assert.assertFalse
@@ -21,6 +26,34 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LookupPopupHtmlTest {
+    @Test
+    fun sourceContainerPrecedesEntriesAndUsesNormalizedConfiguredSize() {
+        listOf(9 to 12, 31 to 31, 60 to 48).forEach { (configured, expected) ->
+            val html = LookupPopupHtml.renderIframeDocument(settings = DictionarySettings(searchTextSize = configured))
+            val containers = mutableListOf<Pair<String, String>>()
+            var sourceHidden = false
+            javax.swing.text.html.parser.ParserDelegator().parse(
+                java.io.StringReader(html),
+                object : javax.swing.text.html.HTMLEditorKit.ParserCallback() {
+                    override fun handleStartTag(tag: javax.swing.text.html.HTML.Tag, attributes: javax.swing.text.MutableAttributeSet, position: Int) {
+                        if (tag == javax.swing.text.html.HTML.Tag.DIV) {
+                            if (attributes.getAttribute(javax.swing.text.html.HTML.Attribute.ID) == "search-text") {
+                                sourceHidden = attributes.getAttribute("hidden") != null
+                            }
+                            containers += (attributes.getAttribute(javax.swing.text.html.HTML.Attribute.ID)?.toString() ?: "") to
+                                (attributes.getAttribute(javax.swing.text.html.HTML.Attribute.STYLE)?.toString() ?: "")
+                        }
+                    }
+                },
+                true,
+            )
+            org.junit.Assert.assertEquals("search-text", containers[0].first)
+            assertTrue(sourceHidden)
+            org.junit.Assert.assertEquals("entries-container", containers[1].first)
+            org.junit.Assert.assertEquals("--hoshi-search-text-size: ${expected}px;", containers[0].second)
+        }
+    }
+
     @Test
     fun iframePopupShellUsesDomButtonsAndAbsoluteAssets() {
         val html = LookupPopupHtml.renderIframeDocument(
@@ -66,12 +99,14 @@ class LookupPopupHtmlTest {
                 popupJs = "window.renderPopup = function() {};",
                 popupCss = ".entry-header {}",
                 selectionJs = "window.hoshiSelection = { selectText: function() {} };",
+                popupGesturesJs = "window.hoshiPopupGesturesLoaded = true;",
             ),
         )
 
         assertTrue(html.contains("<style>.entry-header {}</style>"))
         assertTrue(html.contains("<script>window.hoshiSelection = { selectText: function() {} };</script>"))
         assertTrue(html.contains("<script>window.renderPopup = function() {};</script>"))
+        assertTrue(html.contains("<script>window.hoshiPopupGesturesLoaded = true;</script>"))
     }
 
     @Test
@@ -101,9 +136,7 @@ class LookupPopupHtmlTest {
         )
 
         assertTrue(html.contains("window.swipeThreshold = 35;"))
-        assertTrue(html.contains("document.addEventListener('touchstart', function(e)"))
-        assertTrue(html.contains("document.addEventListener('touchend', function(e)"))
-        assertTrue(html.contains("webkit.messageHandlers.swipeDismiss.postMessage(null);"))
+        assertTrue(html.contains("""<script src="https://appassets.androidplatform.net/popup/popup-gestures.js"></script>"""))
         assertTrue(html.contains("overscroll-behavior: none;"))
     }
 
@@ -158,7 +191,10 @@ class LookupPopupHtmlTest {
         val html = LookupPopupHtml.renderIframeDocument(
             ankiSettings = AnkiPopupSettings(
                 isConfigured = true,
+                formats = listOf(AnkiPopupFormat("format-a", AnkiFormatIcon.CircleSmall, true)),
+                isBackendAvailable = true,
                 useAnkiConnect = true,
+                disableShowNotes = true,
             ),
             audioSettings = AudioSettings(
                 audioSources = listOf(AudioSettings.LocalAudioSource, ankiconnectAndroidSource),
@@ -167,8 +203,21 @@ class LookupPopupHtmlTest {
         )
 
         assertTrue(html.contains("window.useAnkiConnect = true;"))
-        assertTrue(html.contains("hoshi-local-audio-source://get/?term={term}&reading={reading}"))
-        assertTrue(html.contains(AudioSettings.LocalAudioUrl))
+        assertTrue(html.contains("window.ankiFormats = [{\"id\":\"format-a\",\"icon\":\"circle-small\",\"isValid\":true}];"))
+        assertTrue(html.contains("window.disableShowNotes = true;"))
+        assertTrue(html.contains("showNotes: { postMessage:"))
+        assertTrue(
+            html.contains(
+                """window.audioSources = [{"name":"Local","url":"hoshi-local-audio-source://get/?term={term}&reading={reading}"},{"name":"Ankiconnect Android","url":"${AudioSettings.LocalAudioUrl}"}];""",
+            ),
+        )
+    }
+
+    @Test
+    fun iframePopupShellInjectsLocalizedNoAudioCandidateText() {
+        val html = LookupPopupHtml.renderIframeDocument(noAudioFoundText = "未找到音频")
+
+        assertTrue(html.contains("window.noAudioFoundText = \"未找到音频\";"))
     }
 
     @Test
@@ -201,6 +250,14 @@ class LookupPopupHtmlTest {
 
         assertTrue(html.contains("""window.popupAdvancedAi = null;"""))
         assertTrue(html.contains("""window.popupAdvancedAi = message.advancedAi || null;"""))
+    }
+
+    @Test
+    fun iframePopupShellForwardsTermNavigationMessages() {
+        val html = LookupPopupHtml.renderIframeDocument()
+
+        assertTrue(html.contains("message.type === 'navigateTerm'"))
+        assertTrue(html.contains("window.navigatePopupTerm?.(message.direction)"))
     }
 
     @Test
@@ -303,7 +360,7 @@ class LookupPopupHtmlTest {
                 pitches = arrayOf(
                     PitchEntry(
                         dictName = "English",
-                        pitchPositions = intArrayOf(),
+                        pitches = emptyArray(),
                         transcriptions = arrayOf("/riːd/", "/rɛd/"),
                     ),
                 ),
@@ -311,7 +368,57 @@ class LookupPopupHtmlTest {
         )
 
         assertTrue(entryJson.contains(""""transcriptions":["/riːd/","/rɛd/"]"""))
-        assertTrue(entryJson.contains(""""pitchPositions":[]"""))
+        assertTrue(entryJson.contains(""""pitches":[]"""))
+    }
+
+    @Test
+    fun completePitchSchemaUsesPatternWhenPresentAndKeepsMoraFeatures() {
+        val entryJson = LookupPopupHtml.entryJsonString(
+            lookupResult(
+                expression = "猫",
+                reading = "ねこ",
+                glossary = "cat",
+                pitches = arrayOf(
+                    PitchEntry(
+                        dictName = "アクセント",
+                        pitches = arrayOf(
+                            Pitch(position = 1, pattern = "", nasal = intArrayOf(1), devoice = intArrayOf(2)),
+                            Pitch(position = 9, pattern = "LHL", nasal = intArrayOf(2), devoice = intArrayOf()),
+                            Pitch(position = 7, pattern = "LHL", nasal = intArrayOf(), devoice = intArrayOf()),
+                        ),
+                        transcriptions = emptyArray(),
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(entryJson.contains(""""position":1,"nasal":[1],"devoice":[2]"""))
+        assertTrue(entryJson.contains(""""position":"LHL","nasal":[2],"devoice":[]"""))
+        assertFalse(entryJson.contains(""""position":9"""))
+        assertFalse(entryJson.contains(""""position":7"""))
+    }
+
+    @Test
+    fun kanjiResultJsonUsesPopupMeaningsSchema() {
+        val json = LookupPopupHtml.kanjiJsonString(
+            KanjiResult(
+                character = "星",
+                entries = arrayOf(
+                    KanjiEntry(
+                        dictName = "KANJIDIC",
+                        onyomi = "セイ, ショウ",
+                        kunyomi = "ほし",
+                        tags = "jouyou",
+                        definitions = arrayOf("star", "spot"),
+                        stats = emptyArray(),
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(json.contains(""""character":"星"""))
+        assertTrue(json.contains(""""dictName":"KANJIDIC"""))
+        assertTrue(json.contains(""""meanings":["star","spot"]"""))
     }
 
     private fun lookupResult(
