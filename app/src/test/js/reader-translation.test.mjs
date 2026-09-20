@@ -167,8 +167,10 @@ class TestElement {
 function createTranslationEnvironment() {
     const body = new TestElement('body');
     let pointTarget = null;
+    const scrollingElement = { scrollTop: 0, scrollLeft: 0 };
     const document = {
         body,
+        scrollingElement,
         createElement: tagName => new TestElement(tagName),
         querySelectorAll: selector => body.querySelectorAll(selector),
         querySelector: selector => body.querySelector(selector),
@@ -178,6 +180,9 @@ function createTranslationEnvironment() {
         document,
         innerWidth: 400,
         innerHeight: 800,
+        scrollX: 0,
+        scrollY: 0,
+        scrollTo: () => {},
         getComputedStyle: element => ({ display: element.computedDisplay }),
     };
     vm.runInNewContext(fs.readFileSync(translationUrl, 'utf8'), {
@@ -187,6 +192,8 @@ function createTranslationEnvironment() {
     });
     return {
         body,
+        window,
+        scrollingElement,
         api: window.hoshiReaderPageTranslation,
         hitAt: element => {
             pointTarget = element;
@@ -280,4 +287,75 @@ test('revealing another paragraph re-hides the previously revealed translation',
     api.revealTranslation(targets[1].id);
     assert.equal(secondBlock.classList.contains('hoshi-reader-translation-hidden'), false);
     assert.equal(firstBlock.classList.contains('hoshi-reader-translation-hidden'), true);
+});
+
+test('paged reader restores the reading anchor when a translation shifts the layout', () => {
+    const { body, api, window } = createTranslationEnvironment();
+    const first = addParagraph(body, '第一段原文');
+    first.rect = { width: 100, height: 20, left: 0, top: 0, right: 100, bottom: 20 };
+
+    let scroll = 0;
+    let shifted = false;
+    window.hoshiReader = {
+        isVertical: () => true,
+        getScrollContext: () => ({ vertical: true, scrollEl: {}, pageSize: 400, maxScroll: 100000 }),
+        getPagePosition: () => scroll,
+        setPagePosition: (context, position) => {
+            scroll = Math.min(Math.max(0, position), context.maxScroll);
+            return scroll;
+        },
+        // 模拟译文插入后重新分页，把锚点向下顶了 80px。
+        warmPaginationMetrics: () => {
+            if (shifted) return;
+            shifted = true;
+            first.rect.top += 80;
+            first.rect.bottom += 80;
+        },
+    };
+
+    const targets = JSON.parse(api.collectVisibleTargets());
+    api.applyTranslation(targets[0].id, '第一段译文');
+
+    assert.equal(scroll, 80);
+});
+
+test('continuous reader restores the reading anchor when a translation shifts the layout', () => {
+    const { body, api, window, scrollingElement } = createTranslationEnvironment();
+    const first = addParagraph(body, '第一段原文');
+    first.rect = { width: 100, height: 20, left: 0, top: 0, right: 100, bottom: 20 };
+
+    let shifted = false;
+    window.hoshiReader = {
+        isVertical: () => false,
+        warmPaginationMetrics: () => {
+            if (shifted) return;
+            shifted = true;
+            first.rect.top += 50;
+            first.rect.bottom += 50;
+        },
+    };
+
+    const targets = JSON.parse(api.collectVisibleTargets());
+    api.applyTranslation(targets[0].id, '第一段译文');
+
+    assert.equal(scrollingElement.scrollTop, 50);
+});
+
+test('collectTargetsAfter walks the following paragraphs in document order', () => {
+    const { body, api } = createTranslationEnvironment();
+    addParagraph(body, '第一段原文');
+    addParagraph(body, '第二段原文');
+    addParagraph(body, '第三段原文');
+
+    const targets = JSON.parse(api.collectVisibleTargets());
+    assert.equal(targets.length, 3);
+
+    const afterFirst = JSON.parse(api.collectTargetsAfter(targets[0].id, 2));
+    assert.deepEqual(afterFirst.map(target => target.text), ['第二段原文', '第三段原文']);
+
+    const limited = JSON.parse(api.collectTargetsAfter(targets[0].id, 1));
+    assert.deepEqual(limited.map(target => target.text), ['第二段原文']);
+
+    // 锚点不在文档中（换章等）时返回空，由调用方决定回退策略。
+    assert.deepEqual(JSON.parse(api.collectTargetsAfter('missing-id', 5)), []);
 });

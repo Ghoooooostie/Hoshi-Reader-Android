@@ -12,6 +12,14 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   longer updates the position indicator and the page-turn position is not saved.
   This also made AI full-page translation stop after the first page, since it is
   re-triggered by progress changes.
+- Fix the reading position jumping a few sentences while persistent AI translation
+  is on: inserting a translation used to reflow the page without restoring the
+  reading anchor. Both paginated and continuous modes are affected.
+- Fix Read Aloud skipping sentences when persistent AI translation is on, which
+  also left those paragraphs permanently untranslated: both the speech queue and
+  the translation queue now advance in document order instead of re-reading
+  whatever happens to be on screen, so no paragraph is skipped when a translation
+  reflows the page.
 
 ### Added
 

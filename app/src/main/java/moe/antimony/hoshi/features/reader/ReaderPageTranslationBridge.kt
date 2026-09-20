@@ -13,6 +13,11 @@ internal object ReaderPageTranslationCommand {
     fun collectVisibleTargets(): String =
         "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.collectVisibleTargets()"
 
+    /** 按文档顺序取 targetId 之后的段落，供朗读按内容推进（不依赖"当前可见集合"）。 */
+    fun collectTargetsAfter(targetId: String?, limit: Int): String =
+        "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.collectTargetsAfter(" +
+            "${if (targetId == null) "null" else readerJavaScriptStringLiteral(targetId)}, $limit)"
+
     fun targetAtPoint(
         x: Float,
         y: Float,

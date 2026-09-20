@@ -114,6 +114,9 @@ import moe.antimony.hoshi.ui.resolve
 import kotlin.coroutines.resume
 import kotlin.math.roundToInt
 
+/** 译文队列按文档顺序推进时，每次至少往后覆盖的段落数（不足一屏时仍按此数前视）。 */
+private const val PAGE_TRANSLATION_DOCUMENT_LOOKAHEAD = 4
+
 private fun readAloudQueueItems(
     targets: List<ReaderPageTranslationTarget>,
     readAloudByPage: Boolean,
@@ -282,6 +285,12 @@ fun ReaderWebView(
     val readAloudState by readAloudViewModel.state.collectAsStateWithLifecycle()
     val readAloudSettings by readAloudViewModel.settings.collectAsStateWithLifecycle()
     var showReadAloudSettings by remember { mutableStateOf(false) }
+    // 朗读已排队到的最后一个段落。推进时以此为锚点按文档顺序往后取，
+    // 不再依赖"当前可见集合"（译文插入会让可见集合漂移，导致漏句）。
+    var lastReadAloudParagraphId by remember { mutableStateOf<String?>(null) }
+    // 译文已入队到的最后一个段落。译文队列同样按文档顺序推进，
+    // 否则被排版漂移顶出可见区的段落永远轮不到翻译。
+    var lastEnqueuedTranslationTargetId by remember { mutableStateOf<String?>(null) }
     val popupAssets = remember(context) { LookupPopupAssets.load(context) }
     val readerPopupBridgeHolder = remember { ReaderLookupPopupBridgeCallbackHolder() }
     val popupDarkMode = effectiveSettings.usesDarkInterface(systemDarkTheme)
@@ -693,6 +702,22 @@ fun ReaderWebView(
             onLoaded(ReaderPageTranslationBridgePayload.targetsFromJavascriptResult(result))
         }
     }
+    fun collectReaderPageTranslationTargetsAfter(
+        afterTargetId: String?,
+        limit: Int,
+        onLoaded: (List<ReaderPageTranslationTarget>) -> Unit,
+    ) {
+        val currentWebView = webView
+        if (currentWebView == null) {
+            onLoaded(emptyList())
+            return
+        }
+        currentWebView.evaluateJavascript(
+            ReaderPageTranslationCommand.collectTargetsAfter(afterTargetId, limit),
+        ) { result ->
+            onLoaded(ReaderPageTranslationBridgePayload.targetsFromJavascriptResult(result))
+        }
+    }
     fun pumpReaderPageTranslationQueue(chapterKey: String = currentPageTranslationChapterKey) {
         if (readerPageTranslationJob != null) return
         readerPageTranslationJob = scope.launch {
@@ -726,14 +751,33 @@ fun ReaderWebView(
         if (!effectiveSettings.readerAiFullPageTranslationEnabled) return
         if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel) return
         if (stateHolder.isWebViewRestoring) return
-        collectVisibleReaderPageTranslationTargets { targets ->
-            targets.forEach { target ->
+        collectVisibleReaderPageTranslationTargets { visible ->
+            visible.forEach { target ->
                 pageTranslationCoordinator.cachedTranslation(currentPageTranslationChapterKey, target.id)?.let { cached ->
                     applyReaderPageTranslation(target.id, cached)
                 }
             }
-            pageTranslationCoordinator.enqueue(currentPageTranslationChapterKey, targets)
-            pumpReaderPageTranslationQueue()
+            // 译文队列同样按文档顺序推进：从上次入队的位置继续往后覆盖，
+            // 否则只翻译"当前可见"的段落，被排版漂移顶出可见区的段落会永远轮不到。
+            val anchor = lastEnqueuedTranslationTargetId
+            if (anchor == null) {
+                pageTranslationCoordinator.enqueue(currentPageTranslationChapterKey, visible)
+                pumpReaderPageTranslationQueue()
+                lastEnqueuedTranslationTargetId = visible.lastOrNull()?.id
+                return@collectVisibleReaderPageTranslationTargets
+            }
+            collectReaderPageTranslationTargetsAfter(
+                anchor,
+                visible.size.coerceAtLeast(PAGE_TRANSLATION_DOCUMENT_LOOKAHEAD),
+            ) { ahead ->
+                // 回看时（锚点已超前）仍要覆盖当前可见段落，避免出现翻译空洞。
+                val batch = visible + ahead.filterNot { candidate ->
+                    visible.any { it.id == candidate.id }
+                }
+                pageTranslationCoordinator.enqueue(currentPageTranslationChapterKey, batch)
+                pumpReaderPageTranslationQueue()
+                lastEnqueuedTranslationTargetId = ahead.lastOrNull()?.id ?: anchor
+            }
         }
     }
     fun requestSingleReaderPageTranslation(
@@ -2012,6 +2056,8 @@ fun ReaderWebView(
         readerPageTranslationJob?.cancel()
         readerPageTranslationJob = null
         pageTranslationCoordinator.clearActiveWork()
+        lastEnqueuedTranslationTargetId = null
+        lastReadAloudParagraphId = null
     }
     LaunchedEffect(
         effectiveSettings.readerAiFullPageTranslationEnabled,
@@ -2133,6 +2179,7 @@ fun ReaderWebView(
                     collectVisibleReaderPageTranslationTargets { targets ->
                         val items = readAloudQueueItems(targets, readAloudSettings.readAloudByPage)
                         if (items.isEmpty()) return@collectVisibleReaderPageTranslationTargets
+                        lastReadAloudParagraphId = targets.lastOrNull()?.id
                         val startIndex = computeReadAloudStartIndex(items, paragraphId, paragraphText, selection)
                         readAloudViewModel.start(items, book.title, startIndex = startIndex)
                     }
@@ -2356,6 +2403,7 @@ fun ReaderWebView(
             collectVisibleReaderPageTranslationTargets { targets ->
                 val items = readAloudQueueItems(targets, readAloudSettings.readAloudByPage)
                 if (items.isEmpty()) return@collectVisibleReaderPageTranslationTargets
+                lastReadAloudParagraphId = targets.lastOrNull()?.id
                 // 记录朗读起点，否则关闭后重开会回到第一章。
                 saveCurrentDisplayedPosition()
                 readAloudViewModel.start(items, book.title)
@@ -2387,12 +2435,33 @@ fun ReaderWebView(
                 }
                 scope.launch {
                     delay(if (readAloudSettings.readAloudByPage) 600L else 250L)
-                    collectVisibleReaderPageTranslationTargets { targets ->
-                        val items = readAloudQueueItems(targets, readAloudSettings.readAloudByPage)
-                        if (items.isEmpty()) {
-                            readAloudViewModel.stop()
-                        } else {
-                            readAloudViewModel.continueWith(items)
+                    // 一批的规模仍按"当前一屏/一页"估算以保持节奏，但起点固定在
+                    // "上次读到的段落之后"，避免可见集合漂移造成漏句。
+                    collectVisibleReaderPageTranslationTargets { visible ->
+                        val anchor = lastReadAloudParagraphId
+                        if (anchor == null) {
+                            val fallbackItems = readAloudQueueItems(visible, readAloudSettings.readAloudByPage)
+                            if (fallbackItems.isEmpty()) {
+                                readAloudViewModel.stop()
+                            } else {
+                                lastReadAloudParagraphId = visible.lastOrNull()?.id
+                                readAloudViewModel.continueWith(fallbackItems)
+                            }
+                            return@collectVisibleReaderPageTranslationTargets
+                        }
+                        collectReaderPageTranslationTargetsAfter(
+                            anchor,
+                            visible.size.coerceAtLeast(1),
+                        ) { targets ->
+                            // 锚点已不在文档中（换章等）时退回可见集合，避免朗读中断。
+                            val batch = targets.ifEmpty { visible }
+                            val items = readAloudQueueItems(batch, readAloudSettings.readAloudByPage)
+                            if (items.isEmpty()) {
+                                readAloudViewModel.stop()
+                            } else {
+                                lastReadAloudParagraphId = batch.lastOrNull()?.id ?: anchor
+                                readAloudViewModel.continueWith(items)
+                            }
                         }
                     }
                 }

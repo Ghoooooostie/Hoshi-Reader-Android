@@ -116,6 +116,88 @@
     }
   }
 
+  function isPagedReader() {
+    var reader = global.hoshiReader;
+    return !!(reader &&
+      typeof reader.getScrollContext === 'function' &&
+      typeof reader.getPagePosition === 'function' &&
+      typeof reader.setPagePosition === 'function');
+  }
+
+  function usesVerticalScrollAxis() {
+    var reader = global.hoshiReader;
+    var verticalWriting = !!(reader && typeof reader.isVertical === 'function' && reader.isVertical());
+    // 分页：竖排走 scrollTop、横排走 scrollLeft（横向分栏）；连续滚动正好相反。
+    return isPagedReader() ? verticalWriting : !verticalWriting;
+  }
+
+  function readScrollOffset() {
+    var reader = global.hoshiReader;
+    if (isPagedReader()) {
+      return reader.getPagePosition(reader.getScrollContext());
+    }
+    var root = document.scrollingElement || document.documentElement;
+    if (usesVerticalScrollAxis()) {
+      var top = root.scrollTop;
+      if (top === 0 && global.scrollY !== 0) top = global.scrollY;
+      return top;
+    }
+    var left = global.scrollX;
+    if (left === 0 && root.scrollLeft !== 0) left = root.scrollLeft;
+    return left;
+  }
+
+  function writeScrollOffset(offset) {
+    var reader = global.hoshiReader;
+    if (isPagedReader()) {
+      reader.setPagePosition(reader.getScrollContext(), offset);
+      return;
+    }
+    var root = document.scrollingElement || document.documentElement;
+    if (usesVerticalScrollAxis()) {
+      global.scrollTo({ left: global.scrollX, top: offset, behavior: 'instant' });
+      root.scrollTop = offset;
+    } else {
+      global.scrollTo({ left: offset, top: global.scrollY, behavior: 'instant' });
+      root.scrollLeft = offset;
+    }
+  }
+
+  function captureReadingAnchor() {
+    if (!global.hoshiReader) return null;
+    var vertical = usesVerticalScrollAxis();
+    var viewport = vertical ? global.innerHeight : global.innerWidth;
+    var elements = collectCandidateElements();
+    for (var i = 0; i < elements.length; i++) {
+      var rect = elements[i].getBoundingClientRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) continue;
+      var start = vertical ? rect.top : rect.left;
+      var end = vertical ? rect.bottom : rect.right;
+      if (end > 0 && start < viewport) {
+        return { element: elements[i], offset: start };
+      }
+    }
+    return null;
+  }
+
+  // 译文插入/移除会改变内容高度与分栏，若不还原锚点，正在读的段落会被顶走（表现为"跳几句"）。
+  function withPreservedReadingPosition(mutate) {
+    if (!global.hoshiReader) {
+      mutate();
+      return;
+    }
+    var anchor = captureReadingAnchor();
+    mutate();
+    if (!anchor) return;
+    var rect = anchor.element.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return;
+    var vertical = usesVerticalScrollAxis();
+    var current = vertical ? rect.top : rect.left;
+    var delta = current - anchor.offset;
+    if (!isFinite(delta) || Math.abs(delta) < 1) return;
+    writeScrollOffset(readScrollOffset() + delta);
+  }
+
   global.hoshiReaderPageTranslation = {
     collectVisibleTargets: function() {
       var targets = [];
@@ -128,6 +210,34 @@
           text: text
         });
       });
+      return JSON.stringify(targets);
+    },
+    // 按文档顺序取 targetId 之后的段落。朗读据此推进队列，
+    // 避免依赖"当前可见集合"（译文插入会让可见集合漂移，导致漏句）。
+    collectTargetsAfter: function(targetId, limit) {
+      var elements = collectCandidateElements();
+      var startIndex = 0;
+      if (targetId) {
+        var found = -1;
+        for (var i = 0; i < elements.length; i++) {
+          if (ensureTargetId(elements[i], i) === targetId) {
+            found = i;
+            break;
+          }
+        }
+        if (found < 0) return JSON.stringify([]);
+        startIndex = found + 1;
+      }
+      var max = limit > 0 ? limit : elements.length;
+      var targets = [];
+      for (var j = startIndex; j < elements.length && targets.length < max; j++) {
+        var text = extractTargetText(elements[j]);
+        if (!text) continue;
+        targets.push({
+          id: ensureTargetId(elements[j], j),
+          text: text
+        });
+      }
       return JSON.stringify(targets);
     },
     targetAtPoint: function(x, y, includeOriginal) {
@@ -166,24 +276,28 @@
       var element = findTargetById(targetId);
       if (!element) return false;
       var block = findTranslationNode(element, targetId);
-      if (!block) {
-        block = document.createElement('div');
-        block.className = TRANSLATION_CLASS;
-        block.setAttribute('data-hoshi-translation-for', targetId);
-        element.insertAdjacentElement('afterend', block);
-      }
-      block.textContent = translation || '';
-      applyBlockVisibility(block);
-      refreshReaderLayout();
+      withPreservedReadingPosition(function() {
+        if (!block) {
+          block = document.createElement('div');
+          block.className = TRANSLATION_CLASS;
+          block.setAttribute('data-hoshi-translation-for', targetId);
+          element.insertAdjacentElement('afterend', block);
+        }
+        block.textContent = translation || '';
+        applyBlockVisibility(block);
+        refreshReaderLayout();
+      });
       return true;
     },
     setDisplayMode: function(mode) {
       displayMode = (mode === ON_LONG_PRESS_MODE) ? ON_LONG_PRESS_MODE : 'persistent';
-      Array.prototype.forEach.call(
-        document.querySelectorAll('.' + TRANSLATION_CLASS),
-        function(block) { applyBlockVisibility(block); }
-      );
-      refreshReaderLayout();
+      withPreservedReadingPosition(function() {
+        Array.prototype.forEach.call(
+          document.querySelectorAll('.' + TRANSLATION_CLASS),
+          function(block) { applyBlockVisibility(block); }
+        );
+        refreshReaderLayout();
+      });
       return true;
     },
     revealTranslation: function(targetId) {
@@ -199,17 +313,21 @@
         }
       );
       var wasHidden = block.classList.contains(HIDDEN_CLASS);
-      block.classList.add(REVEALED_CLASS);
-      block.classList.remove(HIDDEN_CLASS);
-      if (wasHidden) refreshReaderLayout();
+      withPreservedReadingPosition(function() {
+        block.classList.add(REVEALED_CLASS);
+        block.classList.remove(HIDDEN_CLASS);
+        if (wasHidden) refreshReaderLayout();
+      });
       scrollBlockIntoViewIfNeeded(block);
       return true;
     },
     clearTranslations: function() {
-      Array.from(document.querySelectorAll('.' + TRANSLATION_CLASS)).forEach(function(node) {
-        node.remove();
+      withPreservedReadingPosition(function() {
+        Array.from(document.querySelectorAll('.' + TRANSLATION_CLASS)).forEach(function(node) {
+          node.remove();
+        });
+        refreshReaderLayout();
       });
-      refreshReaderLayout();
       return true;
     },
     highlightReadAloudTarget: function(targetId, reveal) {
