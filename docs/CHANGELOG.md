@@ -6,6 +6,13 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix the in-chapter reading progress freezing in paginated mode: turning pages no
+  longer updates the position indicator and the page-turn position is not saved.
+  This also made AI full-page translation stop after the first page, since it is
+  re-triggered by progress changes.
+
 ### Added
 
 - Add Read Aloud in the reader menu. It opens a settings popup where you pick the
