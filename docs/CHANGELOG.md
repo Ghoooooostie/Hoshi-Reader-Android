@@ -8,6 +8,10 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ### Added
 
+- Add Read Aloud in the reader menu. It speaks the Japanese text of the visible
+  page sentence by sentence through the system text-to-speech voice, and shows a
+  playback panel with previous sentence, pause or resume, next sentence, stop and
+  a speech rate slider.
 - Add an Advanced AI settings page that can show AI word-in-sentence analysis
   above lookup popup dictionaries, show AI sentence Chinese analysis in Process
   Text lookup, and let Anki templates render `{sentence-cn}` and
@@ -15,6 +19,12 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 - Add a Reader Translation (AI) panel with profile-scoped long-press mode,
   in-reader sentence translation and sentence analysis cards, and visible-page
   paragraph translation that fills in directly under the source text.
+  Full-page translation adds a display mode: always visible keeps translations
+  under each paragraph, while on long press keeps them hidden until the original
+  paragraph is long-pressed. Translations are prepared in the background while
+  full-page translation is on, so a long press reveals an existing translation
+  instead of starting a request. Long-pressing a translation re-translates that
+  paragraph.
 - Add an optional “Hide thumbnails when collapsed” switch in Manage Shelves.
   It defaults off; when enabled, collapsed shelves show only their title row.
 

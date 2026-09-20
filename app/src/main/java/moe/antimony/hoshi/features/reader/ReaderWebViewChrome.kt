@@ -389,6 +389,7 @@ internal fun BoxScope.ReaderBottomChrome(
     onReadingSettings: () -> Unit,
     onStatistics: (() -> Unit)?,
     onSasayaki: (() -> Unit)?,
+    onReadAloud: () -> Unit,
     metrics: ReaderBottomChromeMetrics,
     modifier: Modifier = Modifier,
 ) {
@@ -420,6 +421,7 @@ internal fun BoxScope.ReaderBottomChrome(
             onReadingSettings = onReadingSettings,
             onStatistics = onStatistics,
             onSasayaki = onSasayaki,
+            onReadAloud = onReadAloud,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = metrics.horizontalPaddingDp.dp, bottom = metrics.menuBottomOffsetDp.dp),
@@ -650,6 +652,7 @@ private fun ReaderMenuCard(
     onReadingSettings: () -> Unit,
     onStatistics: (() -> Unit)?,
     onSasayaki: (() -> Unit)?,
+    onReadAloud: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -772,6 +775,20 @@ private fun ReaderMenuCard(
                         metrics = metrics,
                         onClick = onSasayaki ?: return@forEachIndexed,
                     )
+
+                    ReaderMenuDestination.ReadAloud -> ReaderMenuItem(
+                        text = stringResource(R.string.read_aloud_menu),
+                        icon = {
+                            Icon(
+                                imageVector = readerBottomMenuIcon(ReaderMenuDestination.ReadAloud),
+                                contentDescription = null,
+                                tint = Color(colors.menuContent),
+                            )
+                        },
+                        colors = colors,
+                        metrics = metrics,
+                        onClick = onReadAloud,
+                    )
                 }
             }
         }
@@ -786,6 +803,7 @@ internal fun readerBottomMenuIcon(destination: ReaderMenuDestination): ImageVect
         ReaderMenuDestination.TranslationAi -> Icons.Rounded.Translate
         ReaderMenuDestination.Statistics -> Icons.AutoMirrored.Rounded.ShowChart
         ReaderMenuDestination.Sasayaki -> Icons.Rounded.GraphicEq
+        ReaderMenuDestination.ReadAloud -> Icons.Rounded.PlayArrow
     }
 
 @Composable

@@ -97,6 +97,9 @@ import moe.antimony.hoshi.features.sasayaki.BookSasayakiPlaybackRepository
 import moe.antimony.hoshi.features.sasayaki.SasayakiAudioRepository
 import moe.antimony.hoshi.features.sasayaki.SasayakiAudiobookInfo
 import moe.antimony.hoshi.features.sasayaki.SasayakiCueRange
+import moe.antimony.hoshi.features.readaloud.ReadAloudPanel
+import moe.antimony.hoshi.features.readaloud.ReadAloudSentences
+import moe.antimony.hoshi.features.readaloud.ReadAloudViewModel
 import moe.antimony.hoshi.features.sasayaki.SasayakiCueRevealSource
 import moe.antimony.hoshi.features.sasayaki.SasayakiPlayer
 import moe.antimony.hoshi.features.sasayaki.SasayakiSettings
@@ -257,6 +260,9 @@ fun ReaderWebView(
     var fullscreenImage by remember { mutableStateOf<ReaderFullscreenImage?>(null) }
     val ankiViewModel: AnkiViewModel = hiltViewModel()
     val ankiUiState by ankiViewModel.uiState.collectAsStateWithLifecycle()
+    val readAloudViewModel: ReadAloudViewModel = hiltViewModel()
+    val readAloudState by readAloudViewModel.state.collectAsStateWithLifecycle()
+    val readAloudSettings by readAloudViewModel.settings.collectAsStateWithLifecycle()
     val popupAssets = remember(context) { LookupPopupAssets.load(context) }
     val readerPopupBridgeHolder = remember { ReaderLookupPopupBridgeCallbackHolder() }
     val popupDarkMode = effectiveSettings.usesDarkInterface(systemDarkTheme)
@@ -714,6 +720,7 @@ fun ReaderWebView(
     fun requestSingleReaderPageTranslation(
         target: ReaderPageTranslationTarget,
         chapterKey: String = currentPageTranslationChapterKey,
+        onApplied: (() -> Unit)? = null,
     ) {
         val requestKey = "$chapterKey:${target.id}"
         readerPageTranslationRefreshJobs.remove(requestKey)?.cancel()
@@ -729,12 +736,25 @@ fun ReaderWebView(
                 pageTranslationCoordinator.cacheTranslation(chapterKey, target.id, translation)
                 if (currentPageTranslationChapterKey == chapterKey) {
                     applyReaderPageTranslation(target.id, translation)
+                    onApplied?.invoke()
                 }
             }
         }
         readerPageTranslationRefreshJobs[requestKey] = refreshJob
         refreshJob.invokeOnCompletion {
             readerPageTranslationRefreshJobs.remove(requestKey, refreshJob)
+        }
+    }
+    fun revealReaderPageTranslation(target: ReaderPageTranslationTarget) {
+        val chapterKey = currentPageTranslationChapterKey
+        val cached = pageTranslationCoordinator.cachedTranslation(chapterKey, target.id)
+        if (cached != null) {
+            applyReaderPageTranslation(target.id, cached)
+            webView?.evaluateJavascript(ReaderPageTranslationCommand.revealTranslation(target.id), null)
+            return
+        }
+        requestSingleReaderPageTranslation(target, chapterKey) {
+            webView?.evaluateJavascript(ReaderPageTranslationCommand.revealTranslation(target.id), null)
         }
     }
     fun requestReaderPopupSentenceAi(
@@ -1243,6 +1263,13 @@ fun ReaderWebView(
             rootSelectionHighlight = null
             setLookupPopups(emptyList())
             requestSingleReaderPageTranslation(target)
+        }
+    val handlePageTranslationRevealRequested: (ReaderPageTranslationTarget) -> Unit =
+        { target ->
+            cancelSasayakiAutoPage()
+            rootSelectionHighlight = null
+            setLookupPopups(emptyList())
+            revealReaderPageTranslation(target)
         }
     fun handleReaderTapOutside() {
         cancelSasayakiAutoPage()
@@ -1977,6 +2004,18 @@ fun ReaderWebView(
         }
     }
     LaunchedEffect(
+        effectiveSettings.readerAiFullPageTranslationDisplayMode,
+        currentPageTranslationChapterKey,
+        stateHolder.isWebViewRestoring,
+        webView,
+    ) {
+        if (stateHolder.isWebViewRestoring) return@LaunchedEffect
+        webView?.evaluateJavascript(
+            ReaderPageTranslationCommand.setDisplayMode(effectiveSettings.readerAiFullPageTranslationDisplayMode),
+            null,
+        )
+    }
+    LaunchedEffect(
         effectiveSettings.readerAiFullPageTranslationEnabled,
         effectiveSettings.viewMode,
         stateHolder.isWebViewRestoring,
@@ -2115,6 +2154,7 @@ fun ReaderWebView(
                         onTextSelected = handleTextSelected,
                         onSentenceLongPressed = handleSentenceLongPressed,
                         onPageTranslationLongPressed = handlePageTranslationLongPressed,
+                        onPageTranslationRevealRequested = handlePageTranslationRevealRequested,
                         onClearLookupPopup = ::closeLookupPopupsAndSelection,
                         onReaderTapOutside = ::handleReaderTapOutside,
                         onReaderInteraction = ::handleReaderInteraction,
@@ -2205,6 +2245,27 @@ fun ReaderWebView(
             onSasayakiSkipForward = { performSasayakiBottomSkipAction(sasayakiBottomSkipButtonActions.right) },
             modifier = Modifier.align(Alignment.BottomCenter),
         )
+        DisposableEffect(Unit) {
+            onDispose { readAloudViewModel.stop() }
+        }
+        if (readAloudState.isActive) ReadAloudPanel(
+            state = readAloudState,
+            speechRate = readAloudSettings.speechRate,
+            onSkipPrevious = readAloudViewModel::skipPrevious,
+            onTogglePlayback = {
+                if (readAloudState.isPlaying) readAloudViewModel.pause() else readAloudViewModel.resume()
+            },
+            onSkipNext = readAloudViewModel::skipNext,
+            onStop = readAloudViewModel::stop,
+            onSpeechRateChange = readAloudViewModel::setSpeechRate,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(
+                    bottom = (bottomChromeMetrics.buttonSizeDp +
+                        bottomChromeMetrics.bottomPaddingDp +
+                        bottomChromeMetrics.bottomSafeAreaDp + 16).dp,
+                ),
+        )
         if (chromeVisibility.showBottomChrome) ReaderBottomChrome(
             state = chromeState,
             settings = effectiveSettings,
@@ -2231,6 +2292,13 @@ fun ReaderWebView(
                 }
             } else {
                 null
+            },
+            onReadAloud = {
+                collectVisibleReaderPageTranslationTargets { targets ->
+                    val sentences = targets.flatMap { ReadAloudSentences.split(it.text) }
+                    if (sentences.isEmpty()) return@collectVisibleReaderPageTranslationTargets
+                    readAloudViewModel.start(sentences)
+                }
             },
             metrics = bottomChromeMetrics,
             modifier = Modifier.align(Alignment.BottomCenter),

@@ -29,6 +29,8 @@ import moe.antimony.hoshi.features.dictionary.DictionarySettingsRepository
 import moe.antimony.hoshi.features.dictionary.dictionarySettingsRepository
 import moe.antimony.hoshi.features.display.AppDisplaySettingsRepository
 import moe.antimony.hoshi.features.display.appDisplaySettingsRepository
+import moe.antimony.hoshi.features.readaloud.ReadAloudSettingsRepository
+import moe.antimony.hoshi.features.readaloud.readAloudSettingsRepository
 import moe.antimony.hoshi.features.reader.ReaderSettingsRepository
 import moe.antimony.hoshi.features.reader.readerDisplaySettingsMigrationSource
 import moe.antimony.hoshi.features.reader.readerSettingsRepository
@@ -136,6 +138,11 @@ internal object HoshiAppModule {
     @Singleton
     fun provideAudioSettingsRepository(@ApplicationContext context: Context): AudioSettingsRepository =
         context.audioSettingsRepository()
+
+    @Provides
+    @Singleton
+    fun provideReadAloudSettingsRepository(@ApplicationContext context: Context): ReadAloudSettingsRepository =
+        context.readAloudSettingsRepository()
 
     @Provides
     @Singleton

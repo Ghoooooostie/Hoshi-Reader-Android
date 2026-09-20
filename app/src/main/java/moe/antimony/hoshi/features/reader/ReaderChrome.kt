@@ -133,6 +133,7 @@ enum class ReaderMenuDestination {
     TranslationAi,
     Statistics,
     Sasayaki,
+    ReadAloud,
 }
 
 data class ReaderSasayakiBottomPlaybackControls(
@@ -348,6 +349,7 @@ fun readerBottomMenuVisualOrder(
     if (showSasayaki) add(ReaderMenuDestination.Sasayaki)
     if (showStatistics) add(ReaderMenuDestination.Statistics)
     add(ReaderMenuDestination.GoTo)
+    add(ReaderMenuDestination.ReadAloud)
     if (showTranslationAi) add(ReaderMenuDestination.TranslationAi)
     add(ReaderMenuDestination.ReadingSettings)
     add(ReaderMenuDestination.Display)

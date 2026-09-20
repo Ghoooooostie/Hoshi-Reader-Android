@@ -317,6 +317,10 @@
     <string name="reader_translation_ai_page_supporting">翻到下一页后，再开始翻译下一页。</string>
     <string name="reader_translation_ai_unsupported_vn">当前模式暂不支持全文翻译。</string>
     <string name="reader_translation_ai_unavailable_hint">请先在高级 AI 里完成配置。</string>
+    <string name="reader_translation_ai_display_mode">译文显示方式</string>
+    <string name="reader_translation_ai_display_persistent">常驻显示</string>
+    <string name="reader_translation_ai_display_long_press">长按显示</string>
+    <string name="reader_translation_ai_display_mode_supporting">常驻显示：译文一直显示在原文下方。长按显示：译文默认收起，长按原文段落才展开。</string>
     <string name="reader_translation_ai_long_press_section">长按配置</string>
     <string name="reader_translation_ai_default_mode">默认长按模式</string>
     <string name="reader_translation_ai_mode_translation">整句翻译</string>
@@ -878,4 +882,12 @@
     <string name="display_settings_eink_appearance">墨水屏明暗</string>
     <string name="display_settings_eink_explanation">墨水屏优化期间使用黑白配色。关闭后恢复已保存的配色和强调色。</string>
     <string name="reader_settings_profile_title">阅读设置 · %1$s</string>
+    <string name="read_aloud_menu">朗读</string>
+    <string name="read_aloud_play">播放</string>
+    <string name="read_aloud_pause">暂停</string>
+    <string name="read_aloud_stop">停止</string>
+    <string name="read_aloud_previous_sentence">上一句</string>
+    <string name="read_aloud_next_sentence">下一句</string>
+    <string name="read_aloud_speech_rate">语速</string>
+    <string name="read_aloud_error_japanese_voice_missing">日语语音数据不可用。请在系统文字转语音设置中安装日语语音数据。</string>
 </resources>
