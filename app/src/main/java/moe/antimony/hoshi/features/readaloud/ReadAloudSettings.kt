@@ -40,6 +40,10 @@ data class ReadAloudSettings(
     val readAloudByPage: Boolean = false,
     /** 长按句子时同时从此句开始朗读（需先在朗读设置中开启）。 */
     val startReadingFromLongPress: Boolean = false,
+    /** 朗读播放中点击查词时自动暂停（参考有声书的查词自动暂停）。 */
+    val pauseForLookup: Boolean = true,
+    /** 朗读播放中整页翻译覆盖层显示时自动暂停。 */
+    val pauseForPageTranslation: Boolean = true,
 ) {
     companion object {
         const val DefaultSpeechRate = 1.0f
@@ -86,6 +90,8 @@ private fun Preferences.toReadAloudSettings(): ReadAloudSettings = ReadAloudSett
     mediaButtonPerNext = this[Keys.mediaButtonPerNext] ?: false,
     readAloudByPage = this[Keys.readAloudByPage] ?: false,
     startReadingFromLongPress = this[Keys.startReadingFromLongPress] ?: false,
+    pauseForLookup = this[Keys.pauseForLookup] ?: true,
+    pauseForPageTranslation = this[Keys.pauseForPageTranslation] ?: true,
 )
 
 private fun MutablePreferences.writeReadAloudSettings(settings: ReadAloudSettings) {
@@ -99,6 +105,8 @@ private fun MutablePreferences.writeReadAloudSettings(settings: ReadAloudSetting
     this[Keys.mediaButtonPerNext] = settings.mediaButtonPerNext
     this[Keys.readAloudByPage] = settings.readAloudByPage
     this[Keys.startReadingFromLongPress] = settings.startReadingFromLongPress
+    this[Keys.pauseForLookup] = settings.pauseForLookup
+    this[Keys.pauseForPageTranslation] = settings.pauseForPageTranslation
 }
 
 private object Keys {
@@ -112,4 +120,6 @@ private object Keys {
     val mediaButtonPerNext = booleanPreferencesKey("mediaButtonPerNext")
     val readAloudByPage = booleanPreferencesKey("readAloudByPage")
     val startReadingFromLongPress = booleanPreferencesKey("startReadingFromLongPress")
+    val pauseForLookup = booleanPreferencesKey("pauseForLookup")
+    val pauseForPageTranslation = booleanPreferencesKey("pauseForPageTranslation")
 }

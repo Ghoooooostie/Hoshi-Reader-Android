@@ -663,6 +663,11 @@ fun ReaderWebView(
             player.togglePlayback()
         }
     }
+    fun resumeReadAloudAfterLookupIfNeeded() {
+        if (!readAloudState.isPlaying) {
+            readAloudViewModel.resume()
+        }
+    }
     fun setLookupPopups(nextPopups: List<LookupPopupItem>) {
         val activeIds = nextPopups.mapTo(mutableSetOf()) { it.id }
         readerPopupHistories = readerPopupHistories.filterKeys(activeIds::contains)
@@ -671,7 +676,11 @@ fun ReaderWebView(
         rootSelectionHighlight = rootSelectionHighlight?.takeIf { highlight ->
             highlight.popupId == null || highlight.popupId in activeIds
         }
-        stateHolder.setLookupPopups(nextPopups, ::resumeSasayakiAfterLookupIfNeeded)
+        stateHolder.setLookupPopups(
+            nextPopups,
+            resumeSasayakiAfterLookup = ::resumeSasayakiAfterLookupIfNeeded,
+            resumeReadAloudAfterLookup = ::resumeReadAloudAfterLookupIfNeeded,
+        )
     }
     fun clearReaderPageTranslations() {
         readerPageTranslationJob?.cancel()
@@ -680,6 +689,7 @@ fun ReaderWebView(
         readerPageTranslationRefreshJobs.clear()
         pageTranslationCoordinator.clear()
         webView?.evaluateJavascript(ReaderPageTranslationCommand.clearTranslations(), null)
+        resumeReadAloudAfterPageTranslationIfNeeded()
     }
     fun applyReaderPageTranslation(
         targetId: String,
@@ -735,9 +745,26 @@ fun ReaderWebView(
                     }
                 }
                 result.onSuccess { translation ->
-                    pageTranslationCoordinator.markSuccess(chapterKey, next.id, translation)
+                    // AI 偶尔把段落原样返回成日文（未翻译）。开启兜底时检测日文假名占比，
+                    // 过高则用强约束提示词把原文段落重新翻译成中文，覆盖缓存与显示。
+                    val finalTranslation = if (
+                        effectiveSettings.readerAiTranslationFallbackEnabled &&
+                        moe.antimony.hoshi.features.advancedai.isMostlyJapanese(
+                            translation,
+                            moe.antimony.hoshi.features.advancedai.FALLBACK_JAPANESE_RATIO_THRESHOLD,
+                        )
+                    ) {
+                        runCatching {
+                            withContext(Dispatchers.IO) {
+                                advancedAiClient.retranslateParagraphToChinese(ready.settings, next.text)
+                            }
+                        }.getOrDefault(translation)
+                    } else {
+                        translation
+                    }
+                    pageTranslationCoordinator.markSuccess(chapterKey, next.id, finalTranslation)
                     if (currentPageTranslationChapterKey == chapterKey) {
-                        applyReaderPageTranslation(next.id, translation)
+                        applyReaderPageTranslation(next.id, finalTranslation)
                     }
                 }.onFailure {
                     pageTranslationCoordinator.markFailure(chapterKey, next.id)
@@ -1028,6 +1055,32 @@ fun ReaderWebView(
             player?.pausePlayback()
         }
     }
+    fun pauseReadAloudForLookupIfNeeded() {
+        if (stateHolder.shouldPauseReadAloudForLookup(
+                autoPause = readAloudSettings.pauseForLookup,
+                isPlaying = readAloudState.isPlaying,
+            )
+        ) {
+            readAloudViewModel.pause()
+        }
+    }
+    fun pauseReadAloudForPageTranslationIfNeeded() {
+        if (stateHolder.shouldPauseReadAloudForPageTranslation(
+                autoPause = readAloudSettings.pauseForPageTranslation,
+                isPlaying = readAloudState.isPlaying,
+            )
+        ) {
+            readAloudViewModel.pause()
+        }
+    }
+    fun resumeReadAloudAfterPageTranslationIfNeeded() {
+        if (stateHolder.readAloudWasPausedByPageTranslation) {
+            stateHolder.clearReadAloudPausedByPageTranslation()
+            if (!readAloudState.isPlaying) {
+                readAloudViewModel.resume()
+            }
+        }
+    }
     fun handleReaderInteraction() {
         cancelSasayakiAutoPage()
         stateHolder.enterFocusModeForReaderInteraction()
@@ -1232,11 +1285,14 @@ fun ReaderWebView(
         cancelSasayakiAutoPage()
         stateHolder.enterFocusModeForReaderInteraction()
         rootSelectionHighlight = null
-        setLookupPopups(emptyList())
         val lookup = lookupRootPopup(selection)
+        // 打开新查询弹窗时不要先清空弹窗：清空会触发播放器异步恢复，而恢复的
+        // isPlaying 不会立即置位，会与随后的暂停检查竞态，导致朗读在弹窗打开时仍在播放。
+        // 直接用新弹窗替换旧弹窗即可；仅在取消选择（无新弹窗）时才清空并恢复播放。
         if (lookup != null) {
             val (popup, highlightCount) = lookup
             pauseSasayakiForLookupIfNeeded()
+            pauseReadAloudForLookupIfNeeded()
             val selectionCount = onTextSelected(selection) ?: highlightCount
             rootSelectionHighlight = ReaderRootSelectionHighlight(
                 popupId = popup.id,
@@ -1267,6 +1323,7 @@ fun ReaderWebView(
                 )
             }
         } else {
+            setLookupPopups(emptyList())
             onTextSelected(selection)?.let { count ->
                 selectionRects(count) { rects ->
                     rootSelectionHighlight = ReaderRootSelectionHighlight(
@@ -1282,8 +1339,12 @@ fun ReaderWebView(
             cancelSasayakiAutoPage()
             stateHolder.enterFocusModeForReaderInteraction()
             rootSelectionHighlight = null
-            setLookupPopups(emptyList())
+            // 打开 AI 弹窗时不要先清空弹窗：清空会触发播放器异步恢复，而恢复的 isPlaying
+            // 不会立即置位，会与随后的暂停检查竞态，导致朗读/咲咲在弹窗打开时仍在播放。
+            // 直接用新弹窗替换旧弹窗即可；仅在取消选择/关闭弹窗时才清空并恢复播放。
             val popup = readerAiRootPopup(selection)
+            pauseSasayakiForLookupIfNeeded()
+            pauseReadAloudForLookupIfNeeded()
             readerAiPopupModes = readerAiPopupModes + (popup.id to effectiveSettings.readerAiLongPressMode)
             rootSelectionHighlight = ReaderRootSelectionHighlight(
                 popupId = popup.id,
@@ -1324,14 +1385,21 @@ fun ReaderWebView(
             cancelSasayakiAutoPage()
             stateHolder.enterFocusModeForReaderInteraction()
             rootSelectionHighlight = null
+            // 整页翻译覆盖层不在 lookupPopups 中，无法复用关闭弹窗的暂停/恢复逻辑。
+            // 先丢弃查词暂停标记（避免清空旧弹窗时误恢复朗读），再用整页翻译暂停标记暂停朗读；
+            // 覆盖层由 clearReaderPageTranslations 统一清除，在那里恢复朗读。
+            stateHolder.clearReadAloudPauseState()
             setLookupPopups(emptyList())
+            pauseReadAloudForPageTranslationIfNeeded()
             requestSingleReaderPageTranslation(target)
         }
     val handlePageTranslationRevealRequested: (ReaderPageTranslationTarget) -> Unit =
         { target ->
             cancelSasayakiAutoPage()
             rootSelectionHighlight = null
+            stateHolder.clearReadAloudPauseState()
             setLookupPopups(emptyList())
+            pauseReadAloudForPageTranslationIfNeeded()
             revealReaderPageTranslation(target)
         }
     fun handleReaderTapOutside() {

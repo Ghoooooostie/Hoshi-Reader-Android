@@ -657,7 +657,7 @@ class ReaderChromeTest {
         val metrics = readerBottomChromeMetrics(bottomSafeAreaDp = 40)
 
         assertEquals(
-            ReaderSasayakiBottomPlaybackControls(
+            ReaderBottomPlaybackControls(
                 visible = true,
                 rowHeightDp = metrics.bottomSafeAreaDp,
                 buttonWidthDp = 52,
@@ -694,7 +694,7 @@ class ReaderChromeTest {
     @Test
     fun sasayakiBottomPlaybackControlsScaleHitboxAndIconWithSafeAreaHeight() {
         assertEquals(
-            ReaderSasayakiBottomPlaybackControls(
+            ReaderBottomPlaybackControls(
                 visible = true,
                 rowHeightDp = 18,
                 buttonWidthDp = 40,
@@ -708,7 +708,7 @@ class ReaderChromeTest {
             ),
         )
         assertEquals(
-            ReaderSasayakiBottomPlaybackControls(
+            ReaderBottomPlaybackControls(
                 visible = true,
                 rowHeightDp = 72,
                 buttonWidthDp = 72,

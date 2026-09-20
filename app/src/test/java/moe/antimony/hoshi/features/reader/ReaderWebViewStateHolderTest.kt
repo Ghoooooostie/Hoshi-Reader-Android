@@ -890,6 +890,31 @@ class ReaderWebViewStateHolderTest {
     }
 
     @Test
+    fun emptyLookupStackConsumesReadAloudResumeRequest() {
+        val holder = stateHolder()
+        holder.markReadAloudPausedByLookup()
+        var resumed = 0
+
+        holder.setLookupPopups(emptyList(), resumeReadAloudAfterLookup = { resumed += 1 })
+        holder.setLookupPopups(emptyList(), resumeReadAloudAfterLookup = { resumed += 1 })
+
+        assertEquals(1, resumed)
+        assertFalse(holder.readAloudWasPausedByLookup)
+    }
+
+    @Test
+    fun readAloudLookupAutoPauseOnlyMarksWhenEnabledAndPlaying() {
+        val holder = stateHolder()
+
+        assertFalse(holder.shouldPauseReadAloudForLookup(autoPause = true, isPlaying = false))
+        assertFalse(holder.readAloudWasPausedByLookup)
+        assertTrue(holder.shouldPauseReadAloudForLookup(autoPause = true, isPlaying = true))
+        assertTrue(holder.readAloudWasPausedByLookup)
+        assertFalse(holder.shouldPauseReadAloudForLookup(autoPause = false, isPlaying = true))
+        assertFalse(holder.readAloudWasPausedByLookup)
+    }
+
+    @Test
     fun menuActionsOpenOnlyTheRequestedSheet() {
         val holder = stateHolder()
 

@@ -1,5 +1,11 @@
 # MEMORY
 
+## WebView JS 诊断（durable）
+- **Android WebView 里 Text 节点没有 `getBoundingClientRect()`**（只有 Element/Range 有）。`createWalker()` 产出的是 Text 节点，取几何必须 `document.createRange(); range.selectNodeContents(node); range.getBoundingClientRect()/getClientRects()`。曾导致 `calculateProgress()` 抛 TypeError → `evaluateJavascript` 回调收到 null → 章内进度/书签/常驻翻译全停（e92a195 修复）。
+- **`evaluateJavascript` 返回 null 的含义**：JS 抛异常 → Java null；结果 `NaN` → JSON 序列化也是 "null"。诊断要 try/catch + `typeof`/`String(v)` 包一层，不能凭 null 断言"回调没执行"。判根因前把"回调触发 / 守卫通过 / 原始返回值"三层都打日志。
+- **改 reader JS 后的验证**：先 `node app/src/test/js/reader-paginated.test.mjs`（无需编译，但注意测试 DOM shim 给 Text 也提供了 getBoundingClientRect，可能掩盖此类回归）；再确认新实现真进了 APK（PowerShell 开 APK zip grep 资产内容）；装机后必须 `force-stop` 冷启动。
+- 真机自动化验证：`adb shell input swipe 900 1100 150 1100 180` 模拟翻页 + `adb logcat -d | grep HoshiBM`；`adb exec-out screencap -p` 截图确认当前界面。
+
 ## Windows 构建环境（durable）
 - Android SDK 在 `D:\Program_Files\Android\Sdk`，`JAVA_HOME=D:\Program Files\Android\Android Studio\jbr`，
   cargo 装在 `D:\AndroidCache\.cargo\bin\cargo.exe`。
@@ -40,6 +46,11 @@
 ## WebView JS 兼容性（durable）
 - E-ink 设备 WebView ≈ Chrome 80-84：`app/src/main/assets/hoshi-web/**` 及 Kotlin 模板生成的 JS 不得使用
   `??=` / `||=` / `&&=`、`replaceAll`、`Array.at`、`structuredClone` 等 Chrome>84 语法/API。
+- **Reader 长按选词必须走 WebView 原生文字选择**（`D:\My_Project\Hoshi-Reader-Android_demo` 是好用的参照）：
+  不要用 `setOnLongClickListener` 拦截后自己实现"selectText + 拖动扩展"（曾尝试 `extendSelectionTo` 自定义拖动，
+  与 SwipePageTouchListener 冲突：长按手势的 ACTION_UP 会被判成 tap 再次 selectText 覆盖选区，且原生手柄体验远好于自绘）。
+  正确做法：长按=选词时 listener 返回 false 让原生选择接管；原生选择 ActionMode 激活时
+  `shouldIgnoreReaderGestureEvent` 已经会忽略翻页/单击手势；"标注"菜单由 `ReaderHighlightActionModeCallback` 注入。
 
 ## Android 界面异常诊断手法（durable）
 - 判断"白屏/黑屏 vs 有内容"：`adb exec-out screencap -p > x.png` 后看文件大小（纯白屏 ~31KB，正常书库页 300KB~1.7MB）。
@@ -66,3 +77,22 @@
   `Row(Arrangement.spacedBy(2.dp))`。朗读面板 `ReadAloudFloatingControls` 要与有声书一致就照抄这套，别自创
   `Surface(onClick=...)`。朗读交互已接好：底部菜单"朗读"→ `ReadAloudSettingsSheet` 弹窗（带开始按钮）→ 播放中
   `ReadAloudFloatingControls` 浮在底部中间，暂停时显示"上一句/下一句"两个 `IconButton`。
+
+## LunaTranslator 功能改动（durable）
+- **未翻译兜底重翻（2026-09-21）**：AI/在线翻译结果疑似仍是日文（假名占比 ≥ 阈值）时，自动改用备用翻译重翻一次。
+  实现位置：`translator/basetranslator.py`（`_kana_ratio`/`_result_untranslated`/`_try_refallback` + `translate_and_collect`
+  集成，`maybezhconvwrapper` 透传 `replace` 标记）；`LunaTranslator.py` 的 `GetTranslationCallback` 增 `replace` 形参 +
+  `_set_trans_segment`（用 `_trans_segments` dict 分段聚合合并译文，避免兜底替换时重复累加 `currenttranslate`）；
+  `gui/setting/translate.py` 的 `renameapi` 右键菜单加"未翻译时改用其它翻译重翻"开关 + "设置重翻引擎…"对话框。
+  配置键（存 `globalconfig["fanyi"][engine]`）：`untranslated_refallback`(bool)、`untranslated_refallback_engine`(str)、
+  `untranslated_refallback_threshold`(float, 默认 0.5)。
+  **前提**：备用引擎（如 `caiyun`）必须先启用（use=true），否则 `gobject.base.translators` 里没有其实例，兜底不生效。
+  判定仅对"目标语言非日语"生效；日文源靠假名占比，不误伤中文→英文等场景。
+
+## Hoshi AI 翻译未翻译兜底重翻（2026-09-21, durable）
+- **需求纠正**：用户最初说"参考 LunaTranslator 的彩云"，实际要改的是 **Hoshi Reader（Android）** 的 AI 全文翻译——AI 偶尔把日文段落原样返回（未翻译）。
+- **实现**：开启开关后，整页翻译队列里每段 AI 结果检测"日文假名占比"（平假名 3040-309F / 片假名 30A0-30FF）≥ 0.5 即视为未翻译，自动用**强制简体中文提示词**把"原文段落"重新请求一次 AI 重翻，覆盖缓存与显示。
+- 改动文件：`features/advancedai/AdvancedAiClient.kt`（接口默认方法 `retranslateParagraphToChinese` + 检测 `isMostlyJapanese`/`japaneseKanaRatio`/阈值 0.5；默认降级为普通翻译，真实现 `OpenAiCompatibleAdvancedAiClient` 覆盖）、`features/reader/ReaderWebView.kt`（`pumpReaderPageTranslationQueue` 接入兜底）、`features/reader/ReaderTranslationAiSheet.kt`（整页 section 加开关 `reader_translation_ai_fallback_enable`）、`features/reader/ReaderSettings.kt`（`readerAiTranslationFallbackEnabled` 字段，主 data class + legacy SP + DataStore + `ProfileReaderAppearanceSettings` 聚合共 9 处）、`res/values*/strings.xml`（2 字符串）。
+- 配置键：`ReaderSettings.readerAiTranslationFallbackEnabled`（默认 false）。开关在**阅读器 → 翻译(AI) 面板 → 全文翻译设置组**内（依赖"当前页翻译"已开启）。
+- **当前兜底引擎 = AI 自身二次强约束重翻（零配置即可用）**，并非真正接彩云/在线翻译 API（Hoshi 此前无任何在线翻译集成，彩云需 token）。若用户要接专业在线翻译（彩云/百度等）作兜底，需新增在线翻译客户端 + token 配置 UI。
+- 编译：`:app:compileDebugKotlin` BUILD SUCCESSFUL。长按句子翻译（Translation 模式）暂未加兜底，仅整页。

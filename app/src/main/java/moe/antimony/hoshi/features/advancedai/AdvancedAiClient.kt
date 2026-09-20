@@ -52,6 +52,14 @@ internal interface AdvancedAiClient {
     suspend fun translateSentence(settings: AdvancedAiSettings, sentence: String): String
     suspend fun translatePageParagraph(settings: AdvancedAiSettings, paragraph: String): String =
         translateSentence(settings, paragraph)
+
+    /**
+     * 当 [translatePageParagraph] 的结果疑似仍是日文（未被翻译）时，用更强的约束把原文段落重新翻译成中文。
+     * 默认降级为普通段落翻译，具体实现会覆盖为带强制中文提示词的请求。
+     */
+    suspend fun retranslateParagraphToChinese(settings: AdvancedAiSettings, paragraph: String): String =
+        translatePageParagraph(settings, paragraph)
+
     suspend fun analyzeSentence(settings: AdvancedAiSettings, sentence: String): String
     suspend fun testConnection(settings: AdvancedAiSettings): Result<Unit>
 }
@@ -97,6 +105,20 @@ internal class OpenAiCompatibleAdvancedAiClient(
             val response = transport.post(
                 url = chatCompletionsUrl(settings.baseUrl),
                 body = buildPageParagraphTranslationRequestBody(settings, paragraph),
+                apiKey = settings.apiKey,
+                timeoutMillis = timeoutMillis,
+            )
+            parseCompletionText(response)
+        }
+
+    override suspend fun retranslateParagraphToChinese(
+        settings: AdvancedAiSettings,
+        paragraph: String,
+    ): String =
+        runLoggedRequest {
+            val response = transport.post(
+                url = chatCompletionsUrl(settings.baseUrl),
+                body = buildFallbackTranslationRequestBody(settings, paragraph),
                 apiKey = settings.apiKey,
                 timeoutMillis = timeoutMillis,
             )
@@ -366,3 +388,37 @@ private data class ChatStreamChoice(
 private data class ChatResponseMessage(
     val content: String? = null,
 )
+
+/** 兜底重翻用的强制中文提示词（覆盖用户自定义 prompt，确保原文被译成中文而非原样返回）。 */
+private const val FALLBACK_TRANSLATION_PROMPT = "你是一名专业的日文到简体中文翻译。下面提供的文本疑似未被正确翻译、仍然是日文原文。" +
+    "请将其完整、准确地翻译为简体中文。只输出最终译文，不要保留任何日文，不要解释，不要使用 Markdown 格式。"
+
+/** 构造兜底重翻请求体：强制目标为简体中文，并附上原文段落。 */
+private fun buildFallbackTranslationRequestBody(
+    settings: AdvancedAiSettings,
+    paragraph: String,
+): String = buildChatCompletionsRequest(
+    model = settings.model,
+    prompt = FALLBACK_TRANSLATION_PROMPT,
+    userContent = buildTranslationUserContent(
+        sourceLabel = "未翻译日文原文段落",
+        sourceText = paragraph,
+    ),
+)
+
+/** 日文（平假名 3040-309F / 片假名 30A0-30FF）在文本中的字符占比，用于判断翻译结果是否仍是日文。 */
+internal fun japaneseKanaRatio(text: String): Float {
+    if (text.isEmpty()) return 0f
+    var kana = 0
+    for (c in text) {
+        if (c in '\u3040'..'\u309F' || c in '\u30A0'..'\u30FF') kana++
+    }
+    return kana.toFloat() / text.length
+}
+
+/** 结果里日文假名占比是否超过阈值（疑似未被翻译，需要兜底重翻）。 */
+internal fun isMostlyJapanese(text: String, threshold: Float): Boolean =
+    japaneseKanaRatio(text) >= threshold
+
+/** 判定“结果仍是日文”的假名占比阈值。中文译文假名占比为 0，整段日文通常过半。 */
+internal const val FALLBACK_JAPANESE_RATIO_THRESHOLD = 0.5f

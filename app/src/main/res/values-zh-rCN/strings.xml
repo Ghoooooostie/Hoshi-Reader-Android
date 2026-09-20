@@ -305,6 +305,12 @@
     <string name="reader_behavior_lock_current_orientation">锁定当前屏幕方向</string>
     <string name="reader_behavior_open_last_read_book_on_launch">启动时打开最近阅读</string>
     <string name="reader_behavior_auto_check_updates">自动检查更新</string>
+    <string name="reader_behavior_gestures">手势</string>
+    <string name="reader_behavior_double_tap_action">双击</string>
+    <string name="reader_behavior_long_press_action">长按</string>
+    <string name="reader_gesture_action_none">关闭</string>
+    <string name="reader_gesture_action_sentence">朗读并翻译句子</string>
+    <string name="reader_gesture_action_word_selection">滑动选词查词</string>
     <string name="reader_statistics_pause">暂停统计</string>
     <string name="reader_statistics_start">开始统计</string>
     <string name="reader_jump_back">返回上一个跳转位置</string>
@@ -317,6 +323,8 @@
     <string name="reader_translation_ai_page_supporting">翻到下一页后，再开始翻译下一页。</string>
     <string name="reader_translation_ai_unsupported_vn">当前模式暂不支持全文翻译。</string>
     <string name="reader_translation_ai_unavailable_hint">请先在高级 AI 里完成配置。</string>
+    <string name="reader_translation_ai_fallback_enable">译文仍是日文时自动重翻</string>
+    <string name="reader_translation_ai_fallback_supporting">若 AI 把段落翻成了日文（未翻译），自动用更强的约束重新翻译该段原文。</string>
     <string name="reader_translation_ai_display_mode">译文显示方式</string>
     <string name="reader_translation_ai_display_persistent">常驻显示</string>
     <string name="reader_translation_ai_display_long_press">长按显示</string>
@@ -915,8 +923,12 @@
     <string name="read_aloud_media_button_desc">上一段 | 下一段</string>
     <string name="read_aloud_by_page">按页朗读</string>
     <string name="read_aloud_by_page_desc">及时翻页，翻页时会停顿一下</string>
-    <string name="read_aloud_start_from_long_press">从长按句子开始朗读</string>
-    <string name="read_aloud_start_from_long_press_desc">长按句子时会同时从此句起按顺序朗读</string>
+    <string name="read_aloud_start_from_sentence_gesture">从句子手势开始朗读</string>
+    <string name="read_aloud_start_from_sentence_gesture_desc">触发句子手势时会同时从此句起按顺序朗读</string>
+    <string name="read_aloud_auto_pause_on_lookup">查词时自动暂停</string>
+    <string name="read_aloud_auto_pause_on_lookup_desc">朗读播放中打开查词弹窗时暂停，关闭弹窗后继续</string>
+    <string name="read_aloud_auto_pause_on_page_translation">整页翻译时自动暂停</string>
+    <string name="read_aloud_auto_pause_on_page_translation_desc">朗读播放中显示整页翻译时暂停，翻译清除后继续</string>
     <string name="read_aloud_system_tts_settings">系统 TTS 设置</string>
     <string name="read_aloud_system_tts_settings_desc">打开系统 TTS 设置界面</string>
 </resources>

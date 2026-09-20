@@ -1,25 +1,46 @@
 package moe.antimony.hoshi.features.reader
 
+import android.os.SystemClock
 import android.view.MotionEvent
 import android.view.View
 import kotlin.math.abs
 
 abstract class SwipePageTouchListener(
     swipeDistance: Float = DEFAULT_SWIPE_DISTANCE,
+    private val doubleTapEnabled: Boolean = false,
+    private val consumeTrailingLongPressGesture: () -> Boolean = { false },
 ) : View.OnTouchListener {
     private val tracker = ReaderSwipeGestureTracker(minDistance = swipeDistance)
+    private val doubleTapDetector = ReaderDoubleTapDetector()
+    private var pendingTap: Runnable? = null
+    private var hostView: View? = null
 
     override fun onTouch(view: View, event: MotionEvent): Boolean {
+        hostView = view
         if (shouldIgnoreReaderGesture(event)) {
             tracker.suppressCurrentGesture()
+            cancelPendingTap()
             return false
         }
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> tracker.onDown(event.x, event.y, event.eventTime)
             MotionEvent.ACTION_POINTER_DOWN -> tracker.onAdditionalPointerDown()
-            MotionEvent.ACTION_MOVE -> dispatch(tracker.onMove(event.x, event.y, event.eventTime))
-            MotionEvent.ACTION_UP -> dispatch(tracker.onUp(event.x, event.y, event.eventTime))
-            MotionEvent.ACTION_CANCEL -> tracker.onCancel()
+            MotionEvent.ACTION_MOVE -> dispatch(view, tracker.onMove(event.x, event.y, event.eventTime))
+            MotionEvent.ACTION_UP -> {
+                if (consumeTrailingLongPressGesture()) {
+                    cancelPendingTap()
+                    tracker.suppressCurrentGesture()
+                    return false
+                }
+                dispatch(view, tracker.onUp(event.x, event.y, event.eventTime))
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                if (consumeTrailingLongPressGesture()) {
+                    cancelPendingTap()
+                }
+                tracker.onCancel()
+                cancelPendingTap()
+            }
         }
         return false
     }
@@ -27,15 +48,40 @@ abstract class SwipePageTouchListener(
     open fun onLeftSwipe() = Unit
     open fun onRightSwipe() = Unit
     open fun onTap(x: Float, y: Float) = Unit
+    open fun onDoubleTap(x: Float, y: Float) = Unit
     open fun shouldIgnoreReaderGesture(event: MotionEvent): Boolean = false
 
-    private fun dispatch(result: ReaderSwipeGestureTracker.Result) {
+    private fun dispatch(view: View, result: ReaderSwipeGestureTracker.Result) {
         when (result) {
             ReaderSwipeGestureTracker.Result.LeftSwipe -> onLeftSwipe()
             ReaderSwipeGestureTracker.Result.RightSwipe -> onRightSwipe()
-            is ReaderSwipeGestureTracker.Result.Tap -> onTap(result.x, result.y)
+            is ReaderSwipeGestureTracker.Result.Tap -> onTapResult(view, result.x, result.y)
             ReaderSwipeGestureTracker.Result.None -> Unit
         }
+    }
+
+    private fun onTapResult(view: View, x: Float, y: Float) {
+        if (!doubleTapEnabled) {
+            onTap(x, y)
+            return
+        }
+        if (doubleTapDetector.registerTap(x, y, SystemClock.uptimeMillis())) {
+            cancelPendingTap()
+            onDoubleTap(x, y)
+            return
+        }
+        cancelPendingTap()
+        val runnable = Runnable {
+            pendingTap = null
+            onTap(x, y)
+        }
+        pendingTap = runnable
+        view.postDelayed(runnable, DEFAULT_DOUBLE_TAP_TIMEOUT_MS)
+    }
+
+    private fun cancelPendingTap() {
+        pendingTap?.let { hostView?.removeCallbacks(it) }
+        pendingTap = null
     }
 
     private companion object {

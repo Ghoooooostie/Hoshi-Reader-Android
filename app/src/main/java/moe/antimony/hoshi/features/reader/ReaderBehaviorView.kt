@@ -3,8 +3,13 @@ package moe.antimony.hoshi.features.reader
 import moe.antimony.hoshi.ui.theme.hoshiSurfaces
 import moe.antimony.hoshi.ui.theme.hoshiContainerBorder
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,7 +24,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -129,8 +137,87 @@ fun ReaderBehaviorScreen(
                     )
                 }
             }
+            item {
+                BehaviorSettingsCard {
+                    Text(
+                        text = stringResource(R.string.reader_behavior_gestures),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 4.dp),
+                    )
+                    GestureActionRow(
+                        label = stringResource(R.string.reader_behavior_double_tap_action),
+                        options = ReaderGestureAction.doubleTapOptions(),
+                        selected = settings.readerDoubleTapAction,
+                        onSelected = {
+                            onSettingsChange { current -> current.copy(readerDoubleTapAction = it) }
+                        },
+                    )
+                    BehaviorDivider()
+                    GestureActionRow(
+                        label = stringResource(R.string.reader_behavior_long_press_action),
+                        options = ReaderGestureAction.longPressOptions(),
+                        selected = settings.readerLongPressAction,
+                        onSelected = {
+                            onSettingsChange { current -> current.copy(readerLongPressAction = it) }
+                        },
+                    )
+                }
+            }
         }
     }
+}
+
+private fun ReaderGestureAction.gestureLabelRes(): Int = when (this) {
+    ReaderGestureAction.None -> R.string.reader_gesture_action_none
+    ReaderGestureAction.SentenceAction -> R.string.reader_gesture_action_sentence
+    ReaderGestureAction.WordSelection -> R.string.reader_gesture_action_word_selection
+}
+
+@Composable
+private fun GestureActionRow(
+    label: String,
+    options: List<ReaderGestureAction>,
+    selected: ReaderGestureAction,
+    onSelected: (ReaderGestureAction) -> Unit,
+) {
+    ListItem(
+        colors = ListItemDefaults.colors(containerColor = hoshiSurfaces.group),
+        headlineContent = {
+            Text(text = label, style = MaterialTheme.typography.bodyLarge)
+        },
+        trailingContent = {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                options.forEach { action ->
+                    val isSelected = action == selected
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                            .clickable { onSelected(action) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(action.gestureLabelRes()),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
+                }
+            }
+        },
+    )
 }
 
 internal fun readerBehaviorSasayakiRows(): List<Int> =

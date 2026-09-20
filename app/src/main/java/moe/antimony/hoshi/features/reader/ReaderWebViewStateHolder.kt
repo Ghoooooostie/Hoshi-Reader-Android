@@ -73,6 +73,10 @@ internal class ReaderWebViewStateHolder(
     var sasayakiWasPausedByLookup by mutableStateOf(false)
         private set
 
+    var readAloudWasPausedByLookup by mutableStateOf(false)
+    var readAloudWasPausedByPageTranslation by mutableStateOf(false)
+        private set
+
     fun syncSettings(settings: ReaderSettings) {
         val shouldReloadContent = effectiveSettings.readerContentReloadKey() != settings.readerContentReloadKey()
         effectiveSettings = settings
@@ -196,11 +200,18 @@ internal class ReaderWebViewStateHolder(
     fun setLookupPopups(
         popups: List<LookupPopupItem>,
         resumeSasayakiAfterLookup: () -> Unit = {},
+        resumeReadAloudAfterLookup: () -> Unit = {},
     ) {
         lookupPopups = popups
-        if (popups.isEmpty() && sasayakiWasPausedByLookup) {
-            sasayakiWasPausedByLookup = false
-            resumeSasayakiAfterLookup()
+        if (popups.isEmpty()) {
+            if (sasayakiWasPausedByLookup) {
+                sasayakiWasPausedByLookup = false
+                resumeSasayakiAfterLookup()
+            }
+            if (readAloudWasPausedByLookup) {
+                readAloudWasPausedByLookup = false
+                resumeReadAloudAfterLookup()
+            }
         }
     }
 
@@ -223,6 +234,58 @@ internal class ReaderWebViewStateHolder(
         }
         if (!autoPause) {
             clearSasayakiPauseState()
+        }
+        return false
+    }
+
+    fun markReadAloudPausedByLookup() {
+        readAloudWasPausedByLookup = true
+    }
+
+    fun clearReadAloudPauseState() {
+        readAloudWasPausedByLookup = false
+    }
+
+    fun markReadAloudPausedByPageTranslation() {
+        readAloudWasPausedByPageTranslation = true
+    }
+
+    fun clearReadAloudPausedByPageTranslation() {
+        readAloudWasPausedByPageTranslation = false
+    }
+
+    /**
+     * 整页翻译覆盖层显示时自动暂停朗读。覆盖层由 clearReaderPageTranslations 统一清除，
+     * 因此用独立标记，避免与查词弹窗的暂停/恢复逻辑相互干扰。
+     */
+    fun shouldPauseReadAloudForPageTranslation(
+        autoPause: Boolean,
+        isPlaying: Boolean,
+    ): Boolean {
+        if (autoPause && isPlaying) {
+            markReadAloudPausedByPageTranslation()
+            return true
+        }
+        if (!autoPause) {
+            clearReadAloudPausedByPageTranslation()
+        }
+        return false
+    }
+
+    /**
+     * 朗读播放中点击查词自动暂停，参考有声书的查词自动暂停逻辑。
+     * 由朗读设置中的"查词时自动暂停"开关控制，只有开启且正在播放才暂停。
+     */
+    fun shouldPauseReadAloudForLookup(
+        autoPause: Boolean,
+        isPlaying: Boolean,
+    ): Boolean {
+        if (autoPause && isPlaying) {
+            markReadAloudPausedByLookup()
+            return true
+        }
+        if (!autoPause) {
+            clearReadAloudPauseState()
         }
         return false
     }

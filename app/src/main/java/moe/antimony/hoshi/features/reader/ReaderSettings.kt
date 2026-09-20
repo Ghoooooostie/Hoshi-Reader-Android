@@ -99,6 +99,9 @@ data class ReaderSettings(
     val readerAiFullPageTranslationDisplayMode: ReaderAiFullPageTranslationDisplayMode =
         ReaderAiFullPageTranslationDisplayMode.Persistent,
     val readerAiLongPressMode: ReaderAiLongPressMode = ReaderAiLongPressMode.Translation,
+    val readerAiTranslationFallbackEnabled: Boolean = false,
+    val readerDoubleTapAction: ReaderGestureAction = ReaderGestureAction.None,
+    val readerLongPressAction: ReaderGestureAction = ReaderGestureAction.SentenceAction,
     val visualNovelRevealSpeed: Int = 45,
     val visualNovelScreenMode: VisualNovelScreenMode = VisualNovelScreenMode.Block,
     val visualNovelSentencesPerScreen: Int = 1,
@@ -348,6 +351,33 @@ enum class ReaderAiLongPressMode {
     }
 }
 
+/**
+ * 阅读器手势触发的行为。
+ *
+ * - [None]: 该手势不执行句子操作。
+ * - [SentenceAction]: 选中落点句子，弹出 AI 翻译/解析，并按朗读设置决定是否从该句起朗读。
+ * - [WordSelection]: 选中落点词语查词，长按后可以滑动扩展选区。
+ */
+enum class ReaderGestureAction {
+    None,
+    SentenceAction,
+    WordSelection;
+
+    companion object {
+        fun fromStorage(
+            value: String?,
+            fallback: ReaderGestureAction = None,
+        ): ReaderGestureAction =
+            entries.firstOrNull { it.name == value } ?: fallback
+
+        /** 长按可选的行为：句子操作，或滑动选词查词。 */
+        fun longPressOptions(): List<ReaderGestureAction> = listOf(SentenceAction, WordSelection)
+
+        /** 双击可选的行为：不响应，或句子操作。 */
+        fun doubleTapOptions(): List<ReaderGestureAction> = listOf(None, SentenceAction)
+    }
+}
+
 enum class ReaderAiFullPageTranslationDisplayMode(val jsValue: String) {
     Persistent("persistent"),
     OnLongPress("onLongPress");
@@ -474,6 +504,14 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
         readerAiLongPressMode = ReaderAiLongPressMode.fromStorage(
             preferences.getString("readerAiLongPressMode", null),
         ),
+        readerAiTranslationFallbackEnabled = preferences.getBoolean("readerAiTranslationFallbackEnabled", false),
+        readerDoubleTapAction = ReaderGestureAction.fromStorage(
+            preferences.getString("readerDoubleTapAction", null),
+        ),
+        readerLongPressAction = ReaderGestureAction.fromStorage(
+            preferences.getString("readerLongPressAction", null),
+            ReaderGestureAction.SentenceAction,
+        ),
         visualNovelRevealSpeed = preferences.getInt("visualNovelRevealSpeed", 45).coerceVisualNovelRevealSpeed(),
         visualNovelScreenMode = VisualNovelScreenMode.fromStorage(preferences.getString("visualNovelScreenMode", null)),
         visualNovelSentencesPerScreen = preferences.getInt("visualNovelSentencesPerScreen", 1).coerceIn(1, 12),
@@ -567,6 +605,9 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
             .putBoolean("readerAiFullPageTranslationEnabled", settings.readerAiFullPageTranslationEnabled)
             .putString("readerAiFullPageTranslationDisplayMode", settings.readerAiFullPageTranslationDisplayMode.name)
             .putString("readerAiLongPressMode", settings.readerAiLongPressMode.name)
+            .putBoolean("readerAiTranslationFallbackEnabled", settings.readerAiTranslationFallbackEnabled)
+            .putString("readerDoubleTapAction", settings.readerDoubleTapAction.name)
+            .putString("readerLongPressAction", settings.readerLongPressAction.name)
             .putInt("visualNovelRevealSpeed", settings.visualNovelRevealSpeed.coerceVisualNovelRevealSpeed())
             .putString("visualNovelScreenMode", settings.visualNovelScreenMode.rawValue)
             .putInt("visualNovelSentencesPerScreen", settings.visualNovelSentencesPerScreen.coerceIn(1, 12))
@@ -762,6 +803,12 @@ class ReaderSettingsRepository(
                 this[KEY_READER_AI_FULL_PAGE_TRANSLATION_DISPLAY_MODE],
             ),
             readerAiLongPressMode = ReaderAiLongPressMode.fromStorage(this[KEY_READER_AI_LONG_PRESS_MODE]),
+            readerAiTranslationFallbackEnabled = this[KEY_READER_AI_TRANSLATION_FALLBACK_ENABLED] ?: false,
+            readerDoubleTapAction = ReaderGestureAction.fromStorage(this[KEY_READER_DOUBLE_TAP_ACTION]),
+            readerLongPressAction = ReaderGestureAction.fromStorage(
+                this[KEY_READER_LONG_PRESS_ACTION],
+                ReaderGestureAction.SentenceAction,
+            ),
             visualNovelRevealSpeed = (this[KEY_VISUAL_NOVEL_REVEAL_SPEED] ?: 45).coerceVisualNovelRevealSpeed(),
             visualNovelScreenMode = VisualNovelScreenMode.fromStorage(this[KEY_VISUAL_NOVEL_SCREEN_MODE]),
             visualNovelSentencesPerScreen = (this[KEY_VISUAL_NOVEL_SENTENCES_PER_SCREEN] ?: 1).coerceIn(1, 12),
@@ -844,6 +891,9 @@ class ReaderSettingsRepository(
         this[KEY_READER_AI_FULL_PAGE_TRANSLATION_ENABLED] = settings.readerAiFullPageTranslationEnabled
         this[KEY_READER_AI_FULL_PAGE_TRANSLATION_DISPLAY_MODE] = settings.readerAiFullPageTranslationDisplayMode.name
         this[KEY_READER_AI_LONG_PRESS_MODE] = settings.readerAiLongPressMode.name
+        this[KEY_READER_AI_TRANSLATION_FALLBACK_ENABLED] = settings.readerAiTranslationFallbackEnabled
+        this[KEY_READER_DOUBLE_TAP_ACTION] = settings.readerDoubleTapAction.name
+        this[KEY_READER_LONG_PRESS_ACTION] = settings.readerLongPressAction.name
         this[KEY_VISUAL_NOVEL_REVEAL_SPEED] = settings.visualNovelRevealSpeed.coerceVisualNovelRevealSpeed()
         this[KEY_VISUAL_NOVEL_SCREEN_MODE] = settings.visualNovelScreenMode.rawValue
         this[KEY_VISUAL_NOVEL_SENTENCES_PER_SCREEN] = settings.visualNovelSentencesPerScreen.coerceIn(1, 12)
@@ -906,6 +956,8 @@ class ReaderSettingsRepository(
         this[KEY_STATISTICS_RESET_MINUTES] = settings.statisticsResetMinutes
         this[KEY_STATISTICS_SYNC_ENABLED] = settings.statisticsSyncEnabled
         this[KEY_STATISTICS_SYNC_MODE] = settings.statisticsSyncMode.rawValue
+        this[KEY_READER_DOUBLE_TAP_ACTION] = settings.readerDoubleTapAction.name
+        this[KEY_READER_LONG_PRESS_ACTION] = settings.readerLongPressAction.name
         this[KEY_VOLUME_KEYS_TURN_PAGES] = settings.volumeKeysTurnPages
         this[KEY_VOLUME_KEYS_NAVIGATE_POPUP_TERMS] = settings.volumeKeysNavigatePopupTerms
         this[KEY_VOLUME_KEYS_SEEK_SASAYAKI] = settings.volumeKeysSeekSasayaki
@@ -972,6 +1024,10 @@ class ReaderSettingsRepository(
         private val KEY_READER_AI_FULL_PAGE_TRANSLATION_DISPLAY_MODE =
             stringPreferencesKey("readerAiFullPageTranslationDisplayMode")
         private val KEY_READER_AI_LONG_PRESS_MODE = stringPreferencesKey("readerAiLongPressMode")
+        private val KEY_READER_AI_TRANSLATION_FALLBACK_ENABLED =
+            booleanPreferencesKey("readerAiTranslationFallbackEnabled")
+        private val KEY_READER_DOUBLE_TAP_ACTION = stringPreferencesKey("readerDoubleTapAction")
+        private val KEY_READER_LONG_PRESS_ACTION = stringPreferencesKey("readerLongPressAction")
         private val KEY_VISUAL_NOVEL_REVEAL_SPEED = intPreferencesKey("visualNovelRevealSpeed")
         private val KEY_VISUAL_NOVEL_SCREEN_MODE = stringPreferencesKey("visualNovelScreenMode")
         private val KEY_VISUAL_NOVEL_SENTENCES_PER_SCREEN = intPreferencesKey("visualNovelSentencesPerScreen")
@@ -1160,6 +1216,7 @@ private data class ProfileReaderAppearanceSettings(
     val readerAiFullPageTranslationDisplayMode: ReaderAiFullPageTranslationDisplayMode =
         ReaderAiFullPageTranslationDisplayMode.Persistent,
     val readerAiLongPressMode: ReaderAiLongPressMode = ReaderAiLongPressMode.Translation,
+    val readerAiTranslationFallbackEnabled: Boolean = false,
     val visualNovelRevealSpeed: Int = 45,
     val visualNovelScreenMode: VisualNovelScreenMode = VisualNovelScreenMode.Block,
     val visualNovelSentencesPerScreen: Int = 1,
@@ -1225,6 +1282,7 @@ private fun ReaderSettings.toProfileAppearanceSettings(): ProfileReaderAppearanc
         readerAiFullPageTranslationEnabled = readerAiFullPageTranslationEnabled,
         readerAiFullPageTranslationDisplayMode = readerAiFullPageTranslationDisplayMode,
         readerAiLongPressMode = readerAiLongPressMode,
+        readerAiTranslationFallbackEnabled = readerAiTranslationFallbackEnabled,
         visualNovelRevealSpeed = visualNovelRevealSpeed.coerceVisualNovelRevealSpeed(),
         visualNovelScreenMode = visualNovelScreenMode,
         visualNovelSentencesPerScreen = visualNovelSentencesPerScreen.coerceIn(1, 12),
@@ -1292,6 +1350,7 @@ private fun ReaderSettings.withProfileAppearance(appearance: ProfileReaderAppear
         readerAiFullPageTranslationEnabled = appearance.readerAiFullPageTranslationEnabled,
         readerAiFullPageTranslationDisplayMode = appearance.readerAiFullPageTranslationDisplayMode,
         readerAiLongPressMode = appearance.readerAiLongPressMode,
+        readerAiTranslationFallbackEnabled = appearance.readerAiTranslationFallbackEnabled,
         visualNovelRevealSpeed = appearance.visualNovelRevealSpeed.coerceVisualNovelRevealSpeed(),
         visualNovelScreenMode = appearance.visualNovelScreenMode,
         visualNovelSentencesPerScreen = appearance.visualNovelSentencesPerScreen.coerceIn(1, 12),

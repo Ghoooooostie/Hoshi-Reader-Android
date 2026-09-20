@@ -95,6 +95,16 @@ internal fun ReaderTranslationAiSheet(
                         text = stringResource(R.string.reader_translation_ai_display_mode_supporting),
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = metrics.appearanceRowVerticalPaddingDp.dp),
                     )
+                    TranslationAiDivider(palette)
+                    TranslationAiSwitchRow(
+                        label = stringResource(R.string.reader_translation_ai_fallback_enable),
+                        supporting = stringResource(R.string.reader_translation_ai_fallback_supporting),
+                        checked = settings.readerAiTranslationFallbackEnabled,
+                        enabled = settings.readerAiFullPageTranslationEnabled && fullPageTranslationSupported,
+                        onCheckedChange = {
+                            onSettingsChange(settings.copy(readerAiTranslationFallbackEnabled = it))
+                        },
+                    )
                     availabilityHint?.takeIf { it.isNotBlank() }?.let { hint ->
                         TranslationAiDivider(palette)
                         TranslationAiSupportingText(

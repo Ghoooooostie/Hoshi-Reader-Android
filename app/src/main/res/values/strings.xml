@@ -307,6 +307,12 @@
     <string name="reader_behavior_lock_current_orientation">Lock Current Orientation</string>
     <string name="reader_behavior_open_last_read_book_on_launch">Open Last Read Book on Launch</string>
     <string name="reader_behavior_auto_check_updates">Automatically Check for Updates</string>
+    <string name="reader_behavior_gestures">Gestures</string>
+    <string name="reader_behavior_double_tap_action">Double-tap</string>
+    <string name="reader_behavior_long_press_action">Long-press</string>
+    <string name="reader_gesture_action_none">Off</string>
+    <string name="reader_gesture_action_sentence">Read &amp; translate sentence</string>
+    <string name="reader_gesture_action_word_selection">Slide to select words</string>
     <string name="reader_statistics_pause">Pause statistics</string>
     <string name="reader_statistics_start">Start statistics</string>
     <string name="reader_jump_back">Return to previous jump position</string>
@@ -319,6 +325,8 @@
     <string name="reader_translation_ai_page_supporting">Translate the next page only after turning to it.</string>
     <string name="reader_translation_ai_unsupported_vn">Full-page translation is not available in Visual Novel mode yet.</string>
     <string name="reader_translation_ai_unavailable_hint">Configure Advanced AI first to use translation here.</string>
+    <string name="reader_translation_ai_fallback_enable">Retry with a stronger Chinese prompt when output stays Japanese</string>
+    <string name="reader_translation_ai_fallback_supporting">If the AI returns Japanese instead of Chinese, automatically retranslate the original paragraph with a stricter prompt.</string>
     <string name="reader_translation_ai_display_mode">Show translation</string>
     <string name="reader_translation_ai_display_persistent">Always visible</string>
     <string name="reader_translation_ai_display_long_press">On long press</string>
@@ -917,8 +925,12 @@
     <string name="read_aloud_media_button_desc">Previous paragraph | next paragraph</string>
     <string name="read_aloud_by_page">Read by page</string>
     <string name="read_aloud_by_page_desc">Turns pages promptly; pauses briefly at each page turn</string>
-    <string name="read_aloud_start_from_long_press">Read from long-pressed sentence</string>
-    <string name="read_aloud_start_from_long_press_desc">Long-pressing a sentence also starts reading aloud from that sentence, in order</string>
+    <string name="read_aloud_start_from_sentence_gesture">Read from the sentence gesture</string>
+    <string name="read_aloud_start_from_sentence_gesture_desc">Triggering the sentence gesture also starts reading aloud from that sentence, in order</string>
+    <string name="read_aloud_auto_pause_on_lookup">Auto-Pause on Lookup</string>
+    <string name="read_aloud_auto_pause_on_lookup_desc">Pause playback while a lookup popup is open during read-aloud</string>
+    <string name="read_aloud_auto_pause_on_page_translation">Auto-Pause on Page Translation</string>
+    <string name="read_aloud_auto_pause_on_page_translation_desc">Pause playback while a page translation overlay is shown during read-aloud</string>
     <string name="read_aloud_system_tts_settings">System TTS settings</string>
     <string name="read_aloud_system_tts_settings_desc">Open the system text-to-speech settings</string>
 </resources>

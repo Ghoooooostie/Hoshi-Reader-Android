@@ -280,14 +280,21 @@ internal fun ChapterWebView(
                 }
                 this.readAloudStartFromLongPress = { currentReadAloudStartFromLongPress.value }
                 this.fullPageTranslationEnabled = currentReaderSettings.value.readerAiFullPageTranslationEnabled
+                this.longPressAction = { currentReaderSettings.value.readerLongPressAction }
                 hideForReaderRestore()
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 setOnLongClickListener {
-                    val handled = handleSentenceLongPress()
-                    if (handled) {
-                        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    when (longPressAction()) {
+                        ReaderGestureAction.SentenceAction -> {
+                            trailingLongPressGestureActive = true
+                            runSentenceAction()
+                            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            true
+                        }
+                        // 选词（与关闭）不拦截：交给 WebView 原生长按选择，
+                        // 由系统选择手柄完成拖动扩展与系统工具栏操作。
+                        else -> false
                     }
-                    handled
                 }
                 addJavascriptInterface(
                     ReaderSelectionBridge(this) { selection, selectionRects ->
@@ -373,6 +380,9 @@ internal fun ChapterWebView(
                                 if (changed) webView.hideForReaderRestore()
                                 changed
                             },
+                            doubleTapEnabled = readerSettings.readerDoubleTapAction != ReaderGestureAction.None,
+                            onDoubleTap = { x, y -> webView.runSentenceAction(x, y) },
+                            consumeTrailingLongPressGesture = { webView.consumeTrailingLongPressGesture() },
                         ),
                     )
                     webView.setOnScrollChangeListener { _, _, _, _, _ ->
@@ -429,9 +439,15 @@ internal fun ChapterWebView(
                     webView.setOnTouchListener(
                         object : SwipePageTouchListener(
                             swipeDistance = readerSettings.pageSwipeThresholdPx.toFloat(),
+                            doubleTapEnabled = readerSettings.readerDoubleTapAction != ReaderGestureAction.None,
+                            consumeTrailingLongPressGesture = { webView.consumeTrailingLongPressGesture() },
                         ) {
                             override fun shouldIgnoreReaderGesture(event: MotionEvent): Boolean =
                                 shouldIgnoreReaderGestureEvent(event)
+
+                            override fun onDoubleTap(x: Float, y: Float) {
+                                webView.runSentenceAction(x, y)
+                            }
 
                             override fun onTap(x: Float, y: Float) {
                                 selectAt(x, y) {
@@ -486,6 +502,7 @@ internal fun ChapterWebView(
                     )
                 }
             }
+            webView.selectionScanLength = selectionScanLength
             webView.evaluateJavascript(readerAppearanceScript, null)
             if (!readerWebViewReadyToLoad(webViewViewportSize)) return@AndroidView
             if (webView.tag != restoreToken) {
@@ -624,6 +641,15 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
     private var highlightColorPopup: PopupWindow? = null
     private var lastTouchX = 0f
     private var lastTouchY = 0f
+    var longPressAction: () -> ReaderGestureAction = { ReaderGestureAction.SentenceAction }
+    var selectionScanLength: Int = 0
+    /** 长按手势被消费后，屏蔽同一次手势的 ACTION_UP 触发的单击/翻页，避免覆盖长按建立的选区。 */
+    var trailingLongPressGestureActive = false
+    fun consumeTrailingLongPressGesture(): Boolean {
+        val active = trailingLongPressGestureActive
+        trailingLongPressGestureActive = false
+        return active
+    }
 
     fun isNativeSelectionActionModeActive(): Boolean = nativeSelectionActionModeActive
     fun setNativeSelectionActionMode(mode: ActionMode?) {
@@ -752,10 +778,13 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         highlightColorPopup = null
     }
 
-    fun handleSentenceLongPress(): Boolean {
+    fun runSentenceAction(
+        androidX: Float = lastTouchX,
+        androidY: Float = lastTouchY,
+    ): Boolean {
         val density = resources.displayMetrics.density
-        val x = androidPixelsToCssPixels(lastTouchX, density)
-        val y = androidPixelsToCssPixels(lastTouchY, density)
+        val x = androidPixelsToCssPixels(androidX, density)
+        val y = androidPixelsToCssPixels(androidY, density)
         if (readAloudStartFromLongPress()) {
             onReadAloudStartFromPoint(x, y)
         }
@@ -1176,17 +1205,25 @@ private class ContinuousScrollTouchListener(
     private val onScrollGesture: () -> Unit,
     private val onNextChapter: () -> Boolean,
     private val onPreviousChapter: () -> Boolean,
+    private val doubleTapEnabled: Boolean = false,
+    private val onDoubleTap: (Float, Float) -> Unit = { _, _ -> },
+    private val consumeTrailingLongPressGesture: () -> Boolean = { false },
 ) : View.OnTouchListener {
     private var downX = 0f
     private var downY = 0f
     private var downTime = 0L
     private var currentGestureIgnored = false
     private val focusTracker = ReaderContinuousScrollFocusTracker()
+    private val doubleTapDetector = ReaderDoubleTapDetector()
+    private var pendingTap: Runnable? = null
+    private var hostView: View? = null
 
     override fun onTouch(view: View, event: MotionEvent): Boolean {
         val webView = view as? WebView ?: return false
+        hostView = view
         if (shouldIgnoreReaderGesture(event)) {
             currentGestureIgnored = true
+            cancelPendingTap()
             return false
         }
         when (event.actionMasked) {
@@ -1198,7 +1235,11 @@ private class ContinuousScrollTouchListener(
                 focusTracker.onDown()
             }
             MotionEvent.ACTION_CANCEL -> {
+                if (consumeTrailingLongPressGesture()) {
+                    cancelPendingTap()
+                }
                 currentGestureIgnored = false
+                cancelPendingTap()
                 focusTracker.onCancel()
             }
             MotionEvent.ACTION_MOVE -> {
@@ -1207,6 +1248,11 @@ private class ContinuousScrollTouchListener(
                 }
             }
             MotionEvent.ACTION_UP -> {
+                if (consumeTrailingLongPressGesture()) {
+                    cancelPendingTap()
+                    focusTracker.onCancel()
+                    return false
+                }
                 if (currentGestureIgnored) {
                     currentGestureIgnored = false
                     focusTracker.onCancel()
@@ -1220,7 +1266,7 @@ private class ContinuousScrollTouchListener(
                     abs(dx) < CONTINUOUS_READER_TAP_SLOP &&
                     abs(dy) < CONTINUOUS_READER_TAP_SLOP
                 ) {
-                    onTap(event.x, event.y)
+                    onTapUp(view, event.x, event.y)
                     return false
                 }
                 handleBoundarySwipe(webView, dx, dy)
@@ -1228,6 +1274,30 @@ private class ContinuousScrollTouchListener(
             }
         }
         return false
+    }
+
+    private fun onTapUp(view: View, x: Float, y: Float) {
+        if (!doubleTapEnabled) {
+            onTap(x, y)
+            return
+        }
+        if (doubleTapDetector.registerTap(x, y, SystemClock.uptimeMillis())) {
+            cancelPendingTap()
+            onDoubleTap(x, y)
+            return
+        }
+        cancelPendingTap()
+        val runnable = Runnable {
+            pendingTap = null
+            onTap(x, y)
+        }
+        pendingTap = runnable
+        view.postDelayed(runnable, DEFAULT_DOUBLE_TAP_TIMEOUT_MS)
+    }
+
+    private fun cancelPendingTap() {
+        pendingTap?.let { hostView?.removeCallbacks(it) }
+        pendingTap = null
     }
 
     private fun handleBoundarySwipe(webView: WebView, dx: Float, dy: Float) {
