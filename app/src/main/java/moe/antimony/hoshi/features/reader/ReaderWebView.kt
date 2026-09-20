@@ -114,6 +114,22 @@ import moe.antimony.hoshi.ui.resolve
 import kotlin.coroutines.resume
 import kotlin.math.roundToInt
 
+private fun readAloudQueueItems(
+    targets: List<ReaderPageTranslationTarget>,
+    readAloudByPage: Boolean,
+): List<ReadAloudQueueItem> {
+    if (targets.isEmpty()) return emptyList()
+    if (readAloudByPage) {
+        // 按页朗读：整页文本作为一个朗读单元，翻页时停顿一下。
+        return listOf(ReadAloudQueueItem(text = targets.joinToString("\n") { it.text }))
+    }
+    return targets.flatMap { target ->
+        ReadAloudSentences.split(target.text).map { sentence ->
+            ReadAloudQueueItem(text = sentence, paragraphId = target.id)
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReaderWebView(
@@ -2090,6 +2106,57 @@ fun ReaderWebView(
                         resolveUiText = { it.resolve(context) },
                     )
                 }
+                fun computeReadAloudStartIndex(
+                    items: List<ReadAloudQueueItem>,
+                    paragraphId: String,
+                    paragraphText: String,
+                    selection: ReaderSelectionData?,
+                ): Int {
+                    val paragraphIndices = items.mapIndexedNotNull { index, item ->
+                        if (item.paragraphId == paragraphId) index else null
+                    }
+                    if (paragraphIndices.isEmpty()) return 0
+                    if (readAloudSettings.readAloudByPage) return paragraphIndices.first()
+                    val sentenceIndex = ReadAloudSentences.indexOfSentence(
+                        paragraph = paragraphText,
+                        sentenceText = selection?.sentence,
+                        offset = selection?.normalizedOffset,
+                    )
+                    return paragraphIndices.getOrElse(sentenceIndex) { paragraphIndices.last() }
+                }
+
+                fun startReadAloudFromPoint(
+                    paragraphId: String,
+                    paragraphText: String,
+                    selection: ReaderSelectionData?,
+                ) {
+                    collectVisibleReaderPageTranslationTargets { targets ->
+                        val items = readAloudQueueItems(targets, readAloudSettings.readAloudByPage)
+                        if (items.isEmpty()) return@collectVisibleReaderPageTranslationTargets
+                        val startIndex = computeReadAloudStartIndex(items, paragraphId, paragraphText, selection)
+                        readAloudViewModel.start(items, book.title, startIndex = startIndex)
+                    }
+                }
+
+                // 长按句子启动朗读：从长按落点的那一句开始，按队列顺序往后读（翻页由 queueExhausted 续接）。
+                fun startReadAloudFromLongPressPoint(x: Float, y: Float) {
+                    val currentWebView = webView ?: return
+                    currentWebView.evaluateJavascript(
+                        ReaderPageTranslationCommand.targetAtPoint(x, y, includeOriginal = true),
+                    ) { hitResult ->
+                        val hit = ReaderPageTranslationBridgePayload.hitFromJavascriptResult(hitResult)
+                            ?: return@evaluateJavascript
+                        val paragraphId = hit.target.id
+                        val paragraphText = hit.target.text
+                        currentWebView.evaluateJavascript(
+                            ReaderSelectionCommand.SelectSentence(x = x, y = y).source,
+                        ) { selectionResult ->
+                            val selection = ReaderSelectionBridgePayload.fromJson(selectionResult)
+                            startReadAloudFromPoint(paragraphId, paragraphText, selection)
+                        }
+                    }
+                }
+
                 if (highlights != null) {
                     val loadChapter = currentLoadChapter()
                     val currentSasayakiColors = readerSasayakiColors(
@@ -2158,6 +2225,8 @@ fun ReaderWebView(
                         onSentenceLongPressed = handleSentenceLongPressed,
                         onPageTranslationLongPressed = handlePageTranslationLongPressed,
                         onPageTranslationRevealRequested = handlePageTranslationRevealRequested,
+                        onReadAloudStartFromPoint = { x, y -> startReadAloudFromLongPressPoint(x, y) },
+                        readAloudStartFromLongPress = readAloudSettings.startReadingFromLongPress,
                         onClearLookupPopup = ::closeLookupPopupsAndSelection,
                         onReaderTapOutside = ::handleReaderTapOutside,
                         onReaderInteraction = ::handleReaderInteraction,
@@ -2283,26 +2352,18 @@ fun ReaderWebView(
                 readAloudContext.startForegroundService(ReadAloudService.startIntent(readAloudContext))
             }
         }
-        fun readAloudQueueItems(targets: List<ReaderPageTranslationTarget>): List<ReadAloudQueueItem> {
-            if (targets.isEmpty()) return emptyList()
-            if (readAloudSettings.readAloudByPage) {
-                // 按页朗读：整页文本作为一个朗读单元，翻页时停顿一下。
-                return listOf(ReadAloudQueueItem(text = targets.joinToString("\n") { it.text }))
-            }
-            return targets.flatMap { target ->
-                ReadAloudSentences.split(target.text).map { sentence ->
-                    ReadAloudQueueItem(text = sentence, paragraphId = target.id)
-                }
-            }
-        }
         fun startReadAloudFromCurrentPage() {
             collectVisibleReaderPageTranslationTargets { targets ->
-                val items = readAloudQueueItems(targets)
+                val items = readAloudQueueItems(targets, readAloudSettings.readAloudByPage)
                 if (items.isEmpty()) return@collectVisibleReaderPageTranslationTargets
+                // 记录朗读起点，否则关闭后重开会回到第一章。
+                saveCurrentDisplayedPosition()
                 readAloudViewModel.start(items, book.title)
             }
         }
+
         // 队列播完：翻到下一页/滚动一屏后继续朗读；到章节末尾则停止（对应 legadoT 的跟读翻页）。
+        // 翻页成功后显式把新位置写回书签，否则朗读全程不保存进度，关闭后再打开会回到起点（第一章）。
         fun advanceToNextReadAloudPage() {
             val currentWebView = webView
             if (currentWebView == null) {
@@ -2316,10 +2377,18 @@ fun ReaderWebView(
                     readAloudViewModel.stop()
                     return@evaluateJavascript
                 }
+                // 翻页后记录新位置，保证朗读进度持久化（与手动翻页保存走同一套机制）。
+                currentWebView.evaluateJavascript(
+                    ReaderPaginationScripts.progressInvocation(),
+                ) { progressResult ->
+                    ReaderPaginationScripts.doubleResult(progressResult)?.let { progress ->
+                        saveDisplayedProgress(progress)
+                    }
+                }
                 scope.launch {
                     delay(if (readAloudSettings.readAloudByPage) 600L else 250L)
                     collectVisibleReaderPageTranslationTargets { targets ->
-                        val items = readAloudQueueItems(targets)
+                        val items = readAloudQueueItems(targets, readAloudSettings.readAloudByPage)
                         if (items.isEmpty()) {
                             readAloudViewModel.stop()
                         } else {
