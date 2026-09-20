@@ -4,6 +4,10 @@
   var TARGET_SELECTOR = 'p, li, blockquote, figcaption, h1, h2, h3, h4, h5, h6, dt, dd';
   var TARGET_ATTRIBUTE = 'data-hoshi-reader-translation-id';
   var TRANSLATION_CLASS = 'hoshi-reader-translation';
+  var HIDDEN_CLASS = 'hoshi-reader-translation-hidden';
+  var REVEALED_CLASS = 'hoshi-reader-translation-revealed';
+  var ON_LONG_PRESS_MODE = 'onLongPress';
+  var displayMode = 'persistent';
 
   function isTargetElement(element) {
     if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
@@ -78,6 +82,28 @@
     return next;
   }
 
+  function assignTargetIds() {
+    collectCandidateElements().forEach(function(element, index) {
+      ensureTargetId(element, index);
+    });
+  }
+
+  function applyBlockVisibility(block) {
+    if (!block) return;
+    if (displayMode === ON_LONG_PRESS_MODE && !block.classList.contains(REVEALED_CLASS)) {
+      block.classList.add(HIDDEN_CLASS);
+    } else {
+      block.classList.remove(HIDDEN_CLASS);
+    }
+  }
+
+  function scrollBlockIntoViewIfNeeded(block) {
+    var rect = block.getBoundingClientRect();
+    if (!rect || rect.height <= 0) return;
+    if (rect.top >= 0 && rect.bottom <= global.innerHeight) return;
+    if (typeof block.scrollIntoView === 'function') block.scrollIntoView();
+  }
+
   function refreshReaderLayout() {
     if (!global.hoshiReader) return;
     global.hoshiReader.paginationMetrics = null;
@@ -103,19 +129,36 @@
       });
       return JSON.stringify(targets);
     },
-    targetAtPoint: function(x, y) {
+    targetAtPoint: function(x, y, includeOriginal) {
       var touched = document.elementFromPoint(x, y);
-      var translationBlock = touched && touched.closest ? touched.closest('.' + TRANSLATION_CLASS) : null;
-      if (!translationBlock) return null;
-      var targetId = translationBlock.getAttribute('data-hoshi-translation-for') || '';
-      if (!targetId) return null;
-      var target = findTargetById(targetId);
-      if (!target) return null;
-      var text = extractTargetText(target);
-      if (!text) return null;
+      if (!touched || !touched.closest) return null;
+      var translationBlock = touched.closest('.' + TRANSLATION_CLASS);
+      if (translationBlock) {
+        var targetId = translationBlock.getAttribute('data-hoshi-translation-for') || '';
+        if (!targetId) return null;
+        var target = findTargetById(targetId);
+        if (!target) return null;
+        var text = extractTargetText(target);
+        if (!text) return null;
+        return JSON.stringify({
+          id: targetId,
+          text: text,
+          onTranslation: true
+        });
+      }
+      if (!includeOriginal) return null;
+      var original = touched.closest('[' + TARGET_ATTRIBUTE + ']');
+      if (!original) {
+        assignTargetIds();
+        original = touched.closest('[' + TARGET_ATTRIBUTE + ']');
+      }
+      if (!original) return null;
+      var originalText = extractTargetText(original);
+      if (!originalText) return null;
       return JSON.stringify({
-        id: targetId,
-        text: text
+        id: original.getAttribute(TARGET_ATTRIBUTE) || '',
+        text: originalText,
+        onTranslation: false
       });
     },
     applyTranslation: function(targetId, translation) {
@@ -129,7 +172,36 @@
         element.insertAdjacentElement('afterend', block);
       }
       block.textContent = translation || '';
+      applyBlockVisibility(block);
       refreshReaderLayout();
+      return true;
+    },
+    setDisplayMode: function(mode) {
+      displayMode = (mode === ON_LONG_PRESS_MODE) ? ON_LONG_PRESS_MODE : 'persistent';
+      Array.prototype.forEach.call(
+        document.querySelectorAll('.' + TRANSLATION_CLASS),
+        function(block) { applyBlockVisibility(block); }
+      );
+      refreshReaderLayout();
+      return true;
+    },
+    revealTranslation: function(targetId) {
+      var element = findTargetById(targetId);
+      if (!element) return false;
+      var block = findTranslationNode(element, targetId);
+      if (!block) return false;
+      Array.prototype.forEach.call(
+        document.querySelectorAll('.' + REVEALED_CLASS),
+        function(revealed) {
+          revealed.classList.remove(REVEALED_CLASS);
+          applyBlockVisibility(revealed);
+        }
+      );
+      var wasHidden = block.classList.contains(HIDDEN_CLASS);
+      block.classList.add(REVEALED_CLASS);
+      block.classList.remove(HIDDEN_CLASS);
+      if (wasHidden) refreshReaderLayout();
+      scrollBlockIntoViewIfNeeded(block);
       return true;
     },
     clearTranslations: function() {

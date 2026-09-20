@@ -88,6 +88,7 @@ internal fun ChapterWebView(
     onTextSelected: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit,
     onSentenceLongPressed: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit,
     onPageTranslationLongPressed: (ReaderPageTranslationTarget) -> Unit,
+    onPageTranslationRevealRequested: (ReaderPageTranslationTarget) -> Unit,
     onClearLookupPopup: () -> Unit,
     onReaderTapOutside: () -> Unit,
     onReaderInteraction: () -> Unit,
@@ -104,6 +105,7 @@ internal fun ChapterWebView(
     val currentOnTextSelected = rememberUpdatedState(onTextSelected)
     val currentOnSentenceLongPressed = rememberUpdatedState(onSentenceLongPressed)
     val currentOnPageTranslationLongPressed = rememberUpdatedState(onPageTranslationLongPressed)
+    val currentOnPageTranslationRevealRequested = rememberUpdatedState(onPageTranslationRevealRequested)
     val currentOnSaveBookmark = rememberUpdatedState(onSaveBookmark)
     val currentOnDisplayProgress = rememberUpdatedState(onDisplayProgress)
     val currentOnContinuousScrollDisplayProgress = rememberUpdatedState(onContinuousScrollDisplayProgress)
@@ -122,6 +124,7 @@ internal fun ChapterWebView(
     val currentOnRestoreStarted = rememberUpdatedState(onRestoreStarted)
     val currentOnRestoreCompleted = rememberUpdatedState(onRestoreCompleted)
     val currentOnBeforeRestoreVisible = rememberUpdatedState(onBeforeRestoreVisible)
+    val currentReaderSettings = rememberUpdatedState(readerSettings)
     val context = LocalContext.current
     val readerWebAssets = remember(context) { ReaderWebAssets.load(context) }
     val viewportDensity = context.resources.displayMetrics.density.coerceAtLeast(1f)
@@ -265,6 +268,10 @@ internal fun ChapterWebView(
                 this.onPageTranslationLongPressed = { target ->
                     currentOnPageTranslationLongPressed.value(target)
                 }
+                this.onPageTranslationRevealRequested = { target ->
+                    currentOnPageTranslationRevealRequested.value(target)
+                }
+                this.fullPageTranslationEnabled = currentReaderSettings.value.readerAiFullPageTranslationEnabled
                 hideForReaderRestore()
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 setOnLongClickListener {
@@ -599,6 +606,8 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
     var onSentenceLongPressed: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit =
         { _, _ -> }
     var onPageTranslationLongPressed: (ReaderPageTranslationTarget) -> Unit = {}
+    var onPageTranslationRevealRequested: (ReaderPageTranslationTarget) -> Unit = {}
+    var fullPageTranslationEnabled: Boolean = false
     private var nativeSelectionActionModeActive = false
     private var nativeSelectionActionMode: ActionMode? = null
     private var nativeSelectionContentRect: Rect? = null
@@ -738,19 +747,32 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         val x = androidPixelsToCssPixels(lastTouchX, density)
         val y = androidPixelsToCssPixels(lastTouchY, density)
         evaluateJavascript(
-            ReaderPageTranslationCommand.targetAtPoint(x, y),
-        ) { translationTargetResult ->
-            val translationTarget = ReaderPageTranslationBridgePayload.targetFromJavascriptResult(translationTargetResult)
-            if (translationTarget != null) {
-                onPageTranslationLongPressed(translationTarget)
+            ReaderPageTranslationCommand.targetAtPoint(x, y, fullPageTranslationEnabled),
+        ) { translationHitResult ->
+            val hit = ReaderPageTranslationBridgePayload.hitFromJavascriptResult(translationHitResult)
+            if (hit != null) {
+                when {
+                    hit.onTranslation -> onPageTranslationLongPressed(hit.target)
+                    fullPageTranslationEnabled -> onPageTranslationRevealRequested(hit.target)
+                    else -> startSentenceSelection(x, y)
+                }
                 return@evaluateJavascript
             }
-            evaluateJavascript(
-                ReaderSelectionCommand.SelectSentence(x = x, y = y).source,
-            ) { result ->
+            startSentenceSelection(x, y)
+        }
+        return true
+    }
+
+    private fun startSentenceSelection(
+        x: Float,
+        y: Float,
+    ) {
+        evaluateJavascript(
+            ReaderSelectionCommand.SelectSentence(x = x, y = y).source,
+        ) { result ->
             val selectionResult = ReaderSelectionResult.fromWebViewResult(result)
             if (selectionResult.selectedNothing || selectionResult.isImageTap || selectionResult.isLinkTap) {
-                    return@evaluateJavascript
+                return@evaluateJavascript
             }
             val selection = ReaderSelectionBridgePayload.fromJson(result) ?: return@evaluateJavascript
             onSentenceLongPressed(selection) { highlightCount, onRectsLoaded ->
@@ -758,9 +780,7 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
                     onRectsLoaded(ReaderSelectionBridgePayload.rectsFromJavascriptResult(rectsResult))
                 }
             }
-            }
         }
-        return true
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -788,6 +808,7 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         onHighlightCreated = { _, _, _ -> }
         onSentenceLongPressed = { _, _ -> }
         onPageTranslationLongPressed = {}
+        onPageTranslationRevealRequested = {}
     }
 }
 

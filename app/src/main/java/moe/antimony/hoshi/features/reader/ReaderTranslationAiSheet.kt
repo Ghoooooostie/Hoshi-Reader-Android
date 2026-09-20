@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -72,6 +73,28 @@ internal fun ReaderTranslationAiSheet(
                             onSettingsChange(settings.copy(readerAiFullPageTranslationEnabled = it))
                         },
                     )
+                    TranslationAiDivider(palette)
+                    TranslationAiSegmentedRow(
+                        label = stringResource(R.string.reader_translation_ai_display_mode),
+                        options = listOf(
+                            stringResource(R.string.reader_translation_ai_display_persistent),
+                            stringResource(R.string.reader_translation_ai_display_long_press),
+                        ),
+                        selectedIndex = ReaderAiFullPageTranslationDisplayMode.entries
+                            .indexOf(settings.readerAiFullPageTranslationDisplayMode)
+                            .coerceAtLeast(0),
+                        enabled = settings.readerAiFullPageTranslationEnabled && fullPageTranslationSupported,
+                        onSelected = { index ->
+                            ReaderAiFullPageTranslationDisplayMode.entries.getOrNull(index)?.let { mode ->
+                                onSettingsChange(settings.copy(readerAiFullPageTranslationDisplayMode = mode))
+                            }
+                        },
+                        palette = palette,
+                    )
+                    TranslationAiSupportingText(
+                        text = stringResource(R.string.reader_translation_ai_display_mode_supporting),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = metrics.appearanceRowVerticalPaddingDp.dp),
+                    )
                     availabilityHint?.takeIf { it.isNotBlank() }?.let { hint ->
                         TranslationAiDivider(palette)
                         TranslationAiSupportingText(
@@ -86,9 +109,17 @@ internal fun ReaderTranslationAiSheet(
                 ) {
                     TranslationAiSegmentedRow(
                         label = stringResource(R.string.reader_translation_ai_default_mode),
-                        selected = settings.readerAiLongPressMode,
-                        onSelected = {
-                            onSettingsChange(settings.copy(readerAiLongPressMode = it))
+                        options = listOf(
+                            stringResource(R.string.reader_translation_ai_mode_translation),
+                            stringResource(R.string.reader_translation_ai_mode_analysis),
+                        ),
+                        selectedIndex = ReaderAiLongPressMode.entries
+                            .indexOf(settings.readerAiLongPressMode)
+                            .coerceAtLeast(0),
+                        onSelected = { index ->
+                            ReaderAiLongPressMode.entries.getOrNull(index)?.let { mode ->
+                                onSettingsChange(settings.copy(readerAiLongPressMode = mode))
+                            }
                         },
                         palette = palette,
                     )
@@ -175,18 +206,17 @@ private fun TranslationAiSwitchRow(
 @Composable
 private fun TranslationAiSegmentedRow(
     label: String,
-    selected: ReaderAiLongPressMode,
-    onSelected: (ReaderAiLongPressMode) -> Unit,
+    options: List<String>,
+    selectedIndex: Int,
+    onSelected: (Int) -> Unit,
     palette: TranslationAiPalette,
+    enabled: Boolean = true,
 ) {
     val metrics = readerSheetDensityMetrics()
-    val options = listOf(
-        stringResource(R.string.reader_translation_ai_mode_translation),
-        stringResource(R.string.reader_translation_ai_mode_analysis),
-    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .alpha(if (enabled) 1f else 0.38f)
             .padding(horizontal = 14.dp, vertical = metrics.appearanceWideRowVerticalPaddingDp.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -209,20 +239,16 @@ private fun TranslationAiSegmentedRow(
             tonalElevation = 0.dp,
         ) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                TranslationAiSegmentButton(
-                    text = options[0],
-                    selected = selected == ReaderAiLongPressMode.Translation,
-                    palette = palette,
-                    modifier = Modifier.weight(1f),
-                    onClick = { onSelected(ReaderAiLongPressMode.Translation) },
-                )
-                TranslationAiSegmentButton(
-                    text = options[1],
-                    selected = selected == ReaderAiLongPressMode.Analysis,
-                    palette = palette,
-                    modifier = Modifier.weight(1f),
-                    onClick = { onSelected(ReaderAiLongPressMode.Analysis) },
-                )
+                options.forEachIndexed { index, option ->
+                    TranslationAiSegmentButton(
+                        text = option,
+                        selected = index == selectedIndex,
+                        palette = palette,
+                        enabled = enabled,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSelected(index) },
+                    )
+                }
             }
         }
     }
@@ -234,6 +260,7 @@ private fun TranslationAiSegmentButton(
     selected: Boolean,
     palette: TranslationAiPalette,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -241,6 +268,7 @@ private fun TranslationAiSegmentButton(
         color = if (selected) palette.segmentSelected else Color.Transparent,
         contentColor = if (selected) palette.segmentSelectedContent else palette.segmentUnselectedContent,
         tonalElevation = 0.dp,
+        enabled = enabled,
         onClick = onClick,
     ) {
         Text(

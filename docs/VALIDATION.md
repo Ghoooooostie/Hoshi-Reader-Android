@@ -201,6 +201,13 @@ text must open a cleared, focused Dictionary search instead of an empty popup.
 
 Manual reader validation should cover:
 
+- Reader Translation (AI) full-page translation: turn on full-page translation and confirm
+  translations are prepared in the background with the display mode set to either value, so a
+  long press on the original paragraph reveals an already-translated result instead of starting
+  a request. Long-pressing a translation block must re-translate that paragraph instead of
+  revealing it, and turning full-page translation off must restore long-press sentence
+  translation/analysis popups. Verify always-visible and on-long-press display modes across
+  paginated and continuous modes, chapter changes, and re-opening the panel.
 - cover image pages and multi-image illustration pages.
 - paginated, continuous, and VN modes in vertical and horizontal writing.
 - VN block and sentence screens, reveal speed 0/45/120, blank-area click
