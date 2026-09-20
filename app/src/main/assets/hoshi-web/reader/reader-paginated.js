@@ -498,16 +498,42 @@ __HOSHI_READER_SASAYAKI_SCRIPT__
   },
   calculateProgress: function() {
     var context = this.getScrollContext();
+    var vertical = context.vertical;
     var walker = this.createWalker();
+    var nodes = [];
+    var lens = [];
     var totalChars = 0;
-    var exploredChars = 0;
     var node;
     while (node = walker.nextNode()) {
       var nodeLen = this.countChars(node.textContent);
+      nodes.push(node);
+      lens.push(nodeLen);
       totalChars += nodeLen;
-      if (nodeLen > 0) exploredChars += this.countCharsBeforeViewport(node, context);
     }
-    return totalChars > 0 ? exploredChars / totalChars : 0;
+    if (totalChars <= 0) return 0;
+    var isFullyBeforeViewport = function(candidate) {
+      var rect = candidate.getBoundingClientRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) return false;
+      return vertical ? rect.left >= window.innerWidth : rect.bottom <= 0;
+    };
+    var low = 0;
+    var high = nodes.length - 1;
+    var boundary = nodes.length;
+    while (low <= high) {
+      var mid = (low + high) >> 1;
+      if (isFullyBeforeViewport(nodes[mid])) {
+        low = mid + 1;
+      } else {
+        boundary = mid;
+        high = mid - 1;
+      }
+    }
+    var exploredChars = 0;
+    for (var i = 0; i < boundary; i++) exploredChars += lens[i];
+    if (boundary < nodes.length) {
+      exploredChars += this.countCharsBeforeViewport(nodes[boundary], context);
+    }
+    return exploredChars / totalChars;
   },
   restoreProgress: async function(progress) {
     await document.fonts.ready;

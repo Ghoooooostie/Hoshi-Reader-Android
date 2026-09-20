@@ -177,6 +177,14 @@ indexes, monotonic cursors, binary search over sorted offsets, and cheap bounds
 checks before expensive range geometry. Keep exact geometry checks only where
 the cheap check cannot prove the result.
 
+Reader progress (`hoshiReader.calculateProgress`) runs on continuous-scroll and
+on page-turn / Sasayaki cue progress. Text nodes are in document order, so
+"entirely before the viewport" is monotonic: binary-search the node list with one
+cheap `getBoundingClientRect()` per probe, then run the expensive character-level
+`countCharsBeforeViewport` only on the single boundary node. Do not call
+`countCharsBeforeViewport` on every text node; that forces `N * log(C)` layouts
+and stutters on long chapters during scroll.
+
 ## Tests For Performance Fixes
 
 Performance fixes need regression coverage that protects the scalable property,

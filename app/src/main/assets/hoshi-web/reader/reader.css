@@ -97,6 +97,17 @@ html:not([data-hoshi-reader-eink-mode="true"]) .hoshi-sasayaki-cue.hoshi-sasayak
     color: var(--hoshi-sasayaki-text-color) !important;
     background-color: var(--hoshi-sasayaki-background-color) !important;
 }
+.hoshi-read-aloud-active {
+    background-color: var(--hoshi-read-aloud-background-color, rgba(255, 213, 79, 0.30));
+}
+html[data-hoshi-reader-eink-mode="true"] .hoshi-read-aloud-active {
+    color: inherit !important;
+    background-color: transparent !important;
+    text-decoration: underline;
+    text-decoration-color: var(--hoshi-eink-line-color);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 2px;
+}
 .hoshi-reader-translation {
     display: block;
     color: var(--hoshi-text-color);

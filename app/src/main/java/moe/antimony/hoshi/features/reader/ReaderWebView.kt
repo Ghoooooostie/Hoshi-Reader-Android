@@ -97,8 +97,10 @@ import moe.antimony.hoshi.features.sasayaki.BookSasayakiPlaybackRepository
 import moe.antimony.hoshi.features.sasayaki.SasayakiAudioRepository
 import moe.antimony.hoshi.features.sasayaki.SasayakiAudiobookInfo
 import moe.antimony.hoshi.features.sasayaki.SasayakiCueRange
-import moe.antimony.hoshi.features.readaloud.ReadAloudPanel
+import moe.antimony.hoshi.features.readaloud.ReadAloudQueueItem
 import moe.antimony.hoshi.features.readaloud.ReadAloudSentences
+import moe.antimony.hoshi.features.readaloud.ReadAloudService
+import moe.antimony.hoshi.features.readaloud.ReadAloudSettingsSheet
 import moe.antimony.hoshi.features.readaloud.ReadAloudViewModel
 import moe.antimony.hoshi.features.sasayaki.SasayakiCueRevealSource
 import moe.antimony.hoshi.features.sasayaki.SasayakiPlayer
@@ -263,6 +265,7 @@ fun ReaderWebView(
     val readAloudViewModel: ReadAloudViewModel = hiltViewModel()
     val readAloudState by readAloudViewModel.state.collectAsStateWithLifecycle()
     val readAloudSettings by readAloudViewModel.settings.collectAsStateWithLifecycle()
+    var showReadAloudSettings by remember { mutableStateOf(false) }
     val popupAssets = remember(context) { LookupPopupAssets.load(context) }
     val readerPopupBridgeHolder = remember { ReaderLookupPopupBridgeCallbackHolder() }
     val popupDarkMode = effectiveSettings.usesDarkInterface(systemDarkTheme)
@@ -2230,6 +2233,29 @@ fun ReaderWebView(
             onToggleFocusMode = ::handleReaderTapOutside,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
+        val useSasayakiBar = sasayakiBottomPlaybackControls.visible
+        val readAloudBottomPlaybackControls = readerReadAloudBottomPlaybackControls(
+            isActive = readAloudState.isActive,
+            metrics = bottomChromeMetrics,
+        )
+        val activePlaybackControls =
+            if (useSasayakiBar) sasayakiBottomPlaybackControls else readAloudBottomPlaybackControls
+        val onSkipBackward: () -> Unit = if (useSasayakiBar) {
+            { performSasayakiBottomSkipAction(sasayakiBottomSkipButtonActions.left) }
+        } else {
+            { readAloudViewModel.skipPrevious() }
+        }
+        val onTogglePlayback: () -> Unit = if (useSasayakiBar) {
+            { sasayakiPlayer?.togglePlayback() }
+        } else {
+            { if (readAloudState.isPlaying) readAloudViewModel.pause() else readAloudViewModel.resume() }
+        }
+        val onSkipForward: () -> Unit = if (useSasayakiBar) {
+            { performSasayakiBottomSkipAction(sasayakiBottomSkipButtonActions.right) }
+        } else {
+            { readAloudViewModel.skipNext() }
+        }
+        val playing = if (useSasayakiBar) sasayakiPlayer?.isPlaying == true else readAloudState.isPlaying
         ReaderBottomSafeProgress(
             state = chromeState,
             settings = effectiveSettings,
@@ -2237,35 +2263,99 @@ fun ReaderWebView(
             colors = readerChromeColors(effectiveSettings, systemDarkTheme),
             metrics = bottomChromeMetrics,
             focusMode = focusMode,
-            sasayakiPlaybackControls = sasayakiBottomPlaybackControls,
-            sasayakiPlaying = sasayakiPlayer?.isPlaying == true,
+            playbackControls = activePlaybackControls,
+            playing = playing,
             onTapSafeArea = ::handleReaderTapOutside,
-            onSasayakiSkipBackward = { performSasayakiBottomSkipAction(sasayakiBottomSkipButtonActions.left) },
-            onSasayakiTogglePlayback = { sasayakiPlayer?.togglePlayback() },
-            onSasayakiSkipForward = { performSasayakiBottomSkipAction(sasayakiBottomSkipButtonActions.right) },
+            onSkipBackward = onSkipBackward,
+            onTogglePlayback = onTogglePlayback,
+            onSkipForward = onSkipForward,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
         DisposableEffect(Unit) {
             onDispose { readAloudViewModel.stop() }
         }
-        if (readAloudState.isActive) ReadAloudPanel(
-            state = readAloudState,
-            speechRate = readAloudSettings.speechRate,
-            onSkipPrevious = readAloudViewModel::skipPrevious,
-            onTogglePlayback = {
-                if (readAloudState.isPlaying) readAloudViewModel.pause() else readAloudViewModel.resume()
-            },
-            onSkipNext = readAloudViewModel::skipNext,
-            onStop = readAloudViewModel::stop,
-            onSpeechRateChange = readAloudViewModel::setSpeechRate,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(
-                    bottom = (bottomChromeMetrics.buttonSizeDp +
-                        bottomChromeMetrics.bottomPaddingDp +
-                        bottomChromeMetrics.bottomSafeAreaDp + 16).dp,
-                ),
-        )
+        val readAloudContext = LocalContext.current
+        // Only starting belongs to the UI. The service stops itself as soon as the controller
+        // state goes inactive, so a stopService() call here would only race the pending
+        // startForegroundService() and risk ForegroundServiceDidNotStartInTimeException.
+        LaunchedEffect(readAloudState.isActive) {
+            if (readAloudState.isActive) {
+                readAloudContext.startForegroundService(ReadAloudService.startIntent(readAloudContext))
+            }
+        }
+        fun readAloudQueueItems(targets: List<ReaderPageTranslationTarget>): List<ReadAloudQueueItem> {
+            if (targets.isEmpty()) return emptyList()
+            if (readAloudSettings.readAloudByPage) {
+                // 按页朗读：整页文本作为一个朗读单元，翻页时停顿一下。
+                return listOf(ReadAloudQueueItem(text = targets.joinToString("\n") { it.text }))
+            }
+            return targets.flatMap { target ->
+                ReadAloudSentences.split(target.text).map { sentence ->
+                    ReadAloudQueueItem(text = sentence, paragraphId = target.id)
+                }
+            }
+        }
+        fun startReadAloudFromCurrentPage() {
+            collectVisibleReaderPageTranslationTargets { targets ->
+                val items = readAloudQueueItems(targets)
+                if (items.isEmpty()) return@collectVisibleReaderPageTranslationTargets
+                readAloudViewModel.start(items, book.title)
+            }
+        }
+        // 队列播完：翻到下一页/滚动一屏后继续朗读；到章节末尾则停止（对应 legadoT 的跟读翻页）。
+        fun advanceToNextReadAloudPage() {
+            val currentWebView = webView
+            if (currentWebView == null) {
+                readAloudViewModel.stop()
+                return
+            }
+            currentWebView.evaluateJavascript(
+                ReaderPaginationScripts.paginateInvocation(ReaderNavigationDirection.Forward),
+            ) { result ->
+                if (!ReaderPaginationScripts.didScroll(result)) {
+                    readAloudViewModel.stop()
+                    return@evaluateJavascript
+                }
+                scope.launch {
+                    delay(if (readAloudSettings.readAloudByPage) 600L else 250L)
+                    collectVisibleReaderPageTranslationTargets { targets ->
+                        val items = readAloudQueueItems(targets)
+                        if (items.isEmpty()) {
+                            readAloudViewModel.stop()
+                        } else {
+                            readAloudViewModel.continueWith(items)
+                        }
+                    }
+                }
+            }
+        }
+        // 朗读位置同步：高亮当前正在朗读的段落并滚动跟随。
+        LaunchedEffect(readAloudState.currentParagraphId) {
+            val targetId = readAloudState.currentParagraphId
+            if (targetId == null) {
+                webView?.evaluateJavascript(
+                    ReaderPageTranslationCommand.clearReadAloudHighlight(),
+                    null,
+                )
+            } else {
+                webView?.evaluateJavascript(
+                    ReaderPageTranslationCommand.highlightReadAloudTarget(targetId, reveal = true),
+                    null,
+                )
+            }
+        }
+        LaunchedEffect(readAloudViewModel) {
+            readAloudViewModel.queueExhausted.collect { advanceToNextReadAloudPage() }
+        }
+        if (showReadAloudSettings) {
+            ReadAloudSettingsSheet(
+                onDismiss = { showReadAloudSettings = false },
+                onStart = {
+                    startReadAloudFromCurrentPage()
+                    showReadAloudSettings = false
+                },
+            )
+        }
         if (chromeVisibility.showBottomChrome) ReaderBottomChrome(
             state = chromeState,
             settings = effectiveSettings,
@@ -2293,13 +2383,7 @@ fun ReaderWebView(
             } else {
                 null
             },
-            onReadAloud = {
-                collectVisibleReaderPageTranslationTargets { targets ->
-                    val sentences = targets.flatMap { ReadAloudSentences.split(it.text) }
-                    if (sentences.isEmpty()) return@collectVisibleReaderPageTranslationTargets
-                    readAloudViewModel.start(sentences)
-                }
-            },
+            onReadAloud = { showReadAloudSettings = true },
             metrics = bottomChromeMetrics,
             modifier = Modifier.align(Alignment.BottomCenter),
         )

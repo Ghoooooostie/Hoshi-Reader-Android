@@ -8,10 +8,19 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ### Added
 
-- Add Read Aloud in the reader menu. It speaks the Japanese text of the visible
-  page sentence by sentence through the system text-to-speech voice, and shows a
-  playback panel with previous sentence, pause or resume, next sentence, stop and
-  a speech rate slider.
+- Add Read Aloud in the reader menu. It opens a settings popup where you pick the
+  engine (system text-to-speech or a downloaded local model), a specific system TTS
+  voice and the speech rate, then start speaking the Japanese text of the visible
+  page sentence by sentence. While reading, a floating play/pause button stays on
+  screen; tapping pause reveals previous and next sentence buttons underneath it.
+  Read Aloud runs as a foreground media service: it shows a lock-screen / notification
+  media control, requests audio focus (and pauses for calls or when headphones are
+  unplugged), and lets you pick a specific installed system TTS engine. The
+  paragraph currently being spoken is highlighted in the reader and the page
+  follows along, turning pages (with a brief pause per page in Read-by-page mode)
+  until the chapter ends. New Read Aloud settings add: ignore audio focus, pause
+  during phone calls, keep the service awake (wake lock), media-button previous/next
+  mapped to paragraphs, read by page, and a shortcut to the system TTS settings.
 - Add an Advanced AI settings page that can show AI word-in-sentence analysis
   above lookup popup dictionaries, show AI sentence Chinese analysis in Process
   Text lookup, and let Anki templates render `{sentence-cn}` and
@@ -130,6 +139,10 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   card and weekly goal; weekly totals and trends remain available through the
   reading-time chart. Keep dashboard cards in memory while scrolling to avoid
   rebuilding the heatmap and charts during fast vertical swipes.
+- Make Reader progress calculation during continuous scrolling much cheaper.
+  It now binary-searches text nodes instead of measuring every node on each
+  scroll, removing the repeated forced layout that caused stutter on long
+  chapters. Page-turn and Sasayaki cue progress use the same faster path.
 
 ### Fixed
 

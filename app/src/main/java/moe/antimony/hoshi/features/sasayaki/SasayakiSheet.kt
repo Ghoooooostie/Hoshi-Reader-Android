@@ -31,10 +31,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Album
-import androidx.compose.material.icons.rounded.FastForward
-import androidx.compose.material.icons.rounded.FastRewind
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import moe.antimony.hoshi.ui.HoshiButton as Button
 import moe.antimony.hoshi.ui.HoshiDropdownMenu as DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -420,7 +420,7 @@ private fun SasayakiPlaybackProgress(
                     enabled = player.hasAudio,
                     onClick = player::previousCue,
                 ) {
-                    Icon(Icons.Rounded.FastRewind, contentDescription = stringResource(R.string.sasayaki_previous_cue))
+                    Icon(Icons.Rounded.SkipPrevious, contentDescription = stringResource(R.string.sasayaki_previous_cue))
                 }
                 IconButton(
                     enabled = player.hasAudio,
@@ -439,7 +439,7 @@ private fun SasayakiPlaybackProgress(
                     enabled = player.hasAudio,
                     onClick = player::nextCue,
                 ) {
-                    Icon(Icons.Rounded.FastForward, contentDescription = stringResource(R.string.sasayaki_next_cue))
+                    Icon(Icons.Rounded.SkipNext, contentDescription = stringResource(R.string.sasayaki_next_cue))
                 }
             }
             Text(

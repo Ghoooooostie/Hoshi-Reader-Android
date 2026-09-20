@@ -23,16 +23,33 @@ interface ReadAloudEngine {
     fun release()
 }
 
+/**
+ * One queued utterance. [paragraphId] is the reader DOM element id the text came from, so the
+ * reader can highlight and follow the currently spoken paragraph; it is null for page-level
+ * utterances (按页朗读) that span multiple paragraphs.
+ */
+data class ReadAloudQueueItem(
+    val text: String,
+    val paragraphId: String? = null,
+)
+
 data class ReadAloudState(
     val isActive: Boolean = false,
     val isPlaying: Boolean = false,
-    val sentences: List<String> = emptyList(),
+    val items: List<ReadAloudQueueItem> = emptyList(),
     val currentIndex: Int = -1,
     val error: UiText? = null,
+    val title: String? = null,
+    val subtitle: String? = null,
+    val sleepTimerMinutes: Int = 0,
 ) {
     val currentSentence: String?
-        get() = sentences.getOrNull(currentIndex)
+        get() = items.getOrNull(currentIndex)?.text
+
+    /** Id of the reader paragraph currently being spoken, used for highlight/follow sync. */
+    val currentParagraphId: String?
+        get() = items.getOrNull(currentIndex)?.paragraphId
 
     val sentenceCount: Int
-        get() = sentences.size
+        get() = items.size
 }

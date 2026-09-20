@@ -136,7 +136,7 @@ enum class ReaderMenuDestination {
     ReadAloud,
 }
 
-data class ReaderSasayakiBottomPlaybackControls(
+data class ReaderBottomPlaybackControls(
     val visible: Boolean,
     val rowHeightDp: Int,
     val buttonWidthDp: Int,
@@ -359,9 +359,21 @@ fun readerSasayakiBottomPlaybackControls(
     settings: moe.antimony.hoshi.features.sasayaki.SasayakiSettings,
     hasAudio: Boolean,
     metrics: ReaderBottomChromeMetrics,
-): ReaderSasayakiBottomPlaybackControls =
-    ReaderSasayakiBottomPlaybackControls(
+): ReaderBottomPlaybackControls =
+    ReaderBottomPlaybackControls(
         visible = settings.enabled && settings.showReaderBottomPlaybackControls && hasAudio,
+        rowHeightDp = metrics.bottomSafeAreaDp,
+        buttonWidthDp = readerSasayakiBottomPlaybackButtonWidthDp(metrics.bottomSafeAreaDp),
+        iconSizeDp = readerSasayakiBottomPlaybackIconSizeDp(metrics.bottomSafeAreaDp),
+        horizontalPaddingDp = 18,
+    )
+
+fun readerReadAloudBottomPlaybackControls(
+    isActive: Boolean,
+    metrics: ReaderBottomChromeMetrics,
+): ReaderBottomPlaybackControls =
+    ReaderBottomPlaybackControls(
+        visible = isActive,
         rowHeightDp = metrics.bottomSafeAreaDp,
         buttonWidthDp = readerSasayakiBottomPlaybackButtonWidthDp(metrics.bottomSafeAreaDp),
         iconSizeDp = readerSasayakiBottomPlaybackIconSizeDp(metrics.bottomSafeAreaDp),

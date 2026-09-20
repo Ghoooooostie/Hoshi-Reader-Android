@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -25,6 +26,18 @@ enum class ReadAloudEngineId(val rawValue: String) {
 data class ReadAloudSettings(
     val engineId: ReadAloudEngineId = ReadAloudEngineId.System,
     val speechRate: Float = DefaultSpeechRate,
+    val selectedModelId: String? = null,
+    val selectedSystemEngineName: String? = null,
+    /** 忽略音频焦点：与其他应用同时播放音频。 */
+    val ignoreAudioFocus: Boolean = false,
+    /** 来电期间暂停朗读（配合忽略音频焦点使用的电话状态监听）。 */
+    val pauseWhilePhoneCalls: Boolean = false,
+    /** 朗读期间持有唤醒锁，防止后台朗读被系统休眠中断。 */
+    val wakeLock: Boolean = false,
+    /** 媒体按钮上一首/下一首映射到上一段/下一段，而不是上一句/下一句。 */
+    val mediaButtonPerNext: Boolean = false,
+    /** 按页朗读：整页作为一个朗读单元，翻页时停顿一下。 */
+    val readAloudByPage: Boolean = false,
 ) {
     companion object {
         const val DefaultSpeechRate = 1.0f
@@ -63,14 +76,35 @@ class ReadAloudSettingsRepository(
 private fun Preferences.toReadAloudSettings(): ReadAloudSettings = ReadAloudSettings(
     engineId = ReadAloudEngineId.fromRawValue(this[Keys.engine]),
     speechRate = this[Keys.speechRate] ?: ReadAloudSettings.DefaultSpeechRate,
+    selectedModelId = this[Keys.selectedModelId]?.takeIf { it.isNotEmpty() },
+    selectedSystemEngineName = this[Keys.selectedSystemEngineName]?.takeIf { it.isNotEmpty() },
+    ignoreAudioFocus = this[Keys.ignoreAudioFocus] ?: false,
+    pauseWhilePhoneCalls = this[Keys.pauseWhilePhoneCalls] ?: false,
+    wakeLock = this[Keys.wakeLock] ?: false,
+    mediaButtonPerNext = this[Keys.mediaButtonPerNext] ?: false,
+    readAloudByPage = this[Keys.readAloudByPage] ?: false,
 )
 
 private fun MutablePreferences.writeReadAloudSettings(settings: ReadAloudSettings) {
     this[Keys.engine] = settings.engineId.rawValue
     this[Keys.speechRate] = settings.speechRate
+    this[Keys.selectedModelId] = settings.selectedModelId ?: ""
+    this[Keys.selectedSystemEngineName] = settings.selectedSystemEngineName ?: ""
+    this[Keys.ignoreAudioFocus] = settings.ignoreAudioFocus
+    this[Keys.pauseWhilePhoneCalls] = settings.pauseWhilePhoneCalls
+    this[Keys.wakeLock] = settings.wakeLock
+    this[Keys.mediaButtonPerNext] = settings.mediaButtonPerNext
+    this[Keys.readAloudByPage] = settings.readAloudByPage
 }
 
 private object Keys {
     val engine = stringPreferencesKey("engine")
     val speechRate = floatPreferencesKey("speechRate")
+    val selectedModelId = stringPreferencesKey("selectedModelId")
+    val selectedSystemEngineName = stringPreferencesKey("selectedSystemEngineName")
+    val ignoreAudioFocus = booleanPreferencesKey("ignoreAudioFocus")
+    val pauseWhilePhoneCalls = booleanPreferencesKey("pauseWhilePhoneCalls")
+    val wakeLock = booleanPreferencesKey("wakeLock")
+    val mediaButtonPerNext = booleanPreferencesKey("mediaButtonPerNext")
+    val readAloudByPage = booleanPreferencesKey("readAloudByPage")
 }

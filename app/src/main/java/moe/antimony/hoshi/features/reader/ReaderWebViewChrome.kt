@@ -32,6 +32,8 @@ import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.TravelExplore
 import androidx.compose.material.icons.rounded.Translate
@@ -533,12 +535,12 @@ internal fun ReaderBottomSafeProgress(
     colors: ReaderChromeColors,
     metrics: ReaderBottomChromeMetrics,
     focusMode: Boolean,
-    sasayakiPlaybackControls: ReaderSasayakiBottomPlaybackControls,
-    sasayakiPlaying: Boolean,
+    playbackControls: ReaderBottomPlaybackControls,
+    playing: Boolean,
     onTapSafeArea: () -> Unit,
-    onSasayakiSkipBackward: () -> Unit,
-    onSasayakiTogglePlayback: () -> Unit,
-    onSasayakiSkipForward: () -> Unit,
+    onSkipBackward: () -> Unit,
+    onTogglePlayback: () -> Unit,
+    onSkipForward: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val progress = readerBottomSafeProgressText(
@@ -547,6 +549,16 @@ internal fun ReaderBottomSafeProgress(
         focusMode = focusMode,
         progressDisplay = progressDisplay,
     )
+    val activeControls: ActiveBottomPlaybackControls? = when {
+        playbackControls.visible -> ActiveBottomPlaybackControls(
+            rowHeightDp = playbackControls.rowHeightDp,
+            buttonWidthDp = playbackControls.buttonWidthDp,
+            iconSizeDp = playbackControls.iconSizeDp,
+            horizontalPaddingDp = playbackControls.horizontalPaddingDp,
+            buttonCount = 3,
+        )
+        else -> null
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -557,38 +569,44 @@ internal fun ReaderBottomSafeProgress(
                 .fillMaxSize()
                 .clickable(onClick = onTapSafeArea),
         )
-        if (sasayakiPlaybackControls.visible) {
+        if (playbackControls.visible) {
             Row(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(start = sasayakiPlaybackControls.horizontalPaddingDp.dp)
-                    .height(sasayakiPlaybackControls.rowHeightDp.dp),
+                    .padding(start = playbackControls.horizontalPaddingDp.dp)
+                    .height(playbackControls.rowHeightDp.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 ReaderBottomSafePlaybackButton(
-                    controls = sasayakiPlaybackControls,
+                    buttonWidthDp = playbackControls.buttonWidthDp,
+                    rowHeightDp = playbackControls.rowHeightDp,
+                    iconSizeDp = playbackControls.iconSizeDp,
                     colors = colors,
                     icon = Icons.Rounded.FastRewind,
                     contentDescription = stringResource(R.string.sasayaki_rewind),
-                    onClick = onSasayakiSkipBackward,
+                    onClick = onSkipBackward,
                 )
                 ReaderBottomSafePlaybackButton(
-                    controls = sasayakiPlaybackControls,
+                    buttonWidthDp = playbackControls.buttonWidthDp,
+                    rowHeightDp = playbackControls.rowHeightDp,
+                    iconSizeDp = playbackControls.iconSizeDp,
                     colors = colors,
-                    icon = if (sasayakiPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = if (sasayakiPlaying) {
+                    icon = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription = if (playing) {
                         stringResource(R.string.sasayaki_pause)
                     } else {
                         stringResource(R.string.sasayaki_play)
                     },
-                    onClick = onSasayakiTogglePlayback,
+                    onClick = onTogglePlayback,
                 )
                 ReaderBottomSafePlaybackButton(
-                    controls = sasayakiPlaybackControls,
+                    buttonWidthDp = playbackControls.buttonWidthDp,
+                    rowHeightDp = playbackControls.rowHeightDp,
+                    iconSizeDp = playbackControls.iconSizeDp,
                     colors = colors,
                     icon = Icons.Rounded.FastForward,
                     contentDescription = stringResource(R.string.sasayaki_fast_forward),
-                    onClick = onSasayakiSkipForward,
+                    onClick = onSkipForward,
                 )
             }
         }
@@ -598,17 +616,17 @@ internal fun ReaderBottomSafeProgress(
                 color = Color(colors.infoText),
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1,
-                textAlign = if (sasayakiPlaybackControls.visible) TextAlign.End else TextAlign.Center,
-                modifier = if (sasayakiPlaybackControls.visible) {
+                textAlign = if (activeControls != null) TextAlign.End else TextAlign.Center,
+                modifier = if (activeControls != null) {
                     Modifier
                         .align(Alignment.CenterEnd)
                         .fillMaxWidth()
                         .padding(
                             start = (
-                                sasayakiPlaybackControls.buttonWidthDp * 3 +
-                                    sasayakiPlaybackControls.horizontalPaddingDp
+                                activeControls.buttonWidthDp * activeControls.buttonCount +
+                                    activeControls.horizontalPaddingDp
                                 ).dp,
-                            end = sasayakiPlaybackControls.horizontalPaddingDp.dp,
+                            end = activeControls.horizontalPaddingDp.dp,
                         )
                 } else {
                     Modifier.align(Alignment.Center)
@@ -618,9 +636,19 @@ internal fun ReaderBottomSafeProgress(
     }
 }
 
+private data class ActiveBottomPlaybackControls(
+    val rowHeightDp: Int,
+    val buttonWidthDp: Int,
+    val iconSizeDp: Int,
+    val horizontalPaddingDp: Int,
+    val buttonCount: Int,
+)
+
 @Composable
 private fun ReaderBottomSafePlaybackButton(
-    controls: ReaderSasayakiBottomPlaybackControls,
+    buttonWidthDp: Int,
+    rowHeightDp: Int,
+    iconSizeDp: Int,
     colors: ReaderChromeColors,
     icon: ImageVector,
     contentDescription: String,
@@ -628,8 +656,8 @@ private fun ReaderBottomSafePlaybackButton(
 ) {
     Box(
         modifier = Modifier
-            .width(controls.buttonWidthDp.dp)
-            .height(controls.rowHeightDp.dp)
+            .width(buttonWidthDp.dp)
+            .height(rowHeightDp.dp)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -637,7 +665,7 @@ private fun ReaderBottomSafePlaybackButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = Color(colors.infoText),
-            modifier = Modifier.size(controls.iconSizeDp.dp),
+            modifier = Modifier.size(iconSizeDp.dp),
         )
     }
 }

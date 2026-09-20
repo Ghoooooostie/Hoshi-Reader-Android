@@ -7,6 +7,7 @@
   var HIDDEN_CLASS = 'hoshi-reader-translation-hidden';
   var REVEALED_CLASS = 'hoshi-reader-translation-revealed';
   var ON_LONG_PRESS_MODE = 'onLongPress';
+  var READ_ALOUD_CLASS = 'hoshi-read-aloud-active';
   var displayMode = 'persistent';
 
   function isTargetElement(element) {
@@ -209,6 +210,31 @@
         node.remove();
       });
       refreshReaderLayout();
+      return true;
+    },
+    highlightReadAloudTarget: function(targetId, reveal) {
+      this.clearReadAloudHighlight();
+      var element = findTargetById(targetId);
+      if (!element) return null;
+      element.classList.add(READ_ALOUD_CLASS);
+      if (reveal) {
+        if (global.hoshiReader && typeof global.hoshiReader.scrollToRange === 'function') {
+          var range = document.createRange();
+          range.selectNodeContents(element);
+          if (global.hoshiReader.scrollToRange(range)) {
+            return global.hoshiReader.calculateProgress();
+          }
+        } else if (typeof element.scrollIntoView === 'function') {
+          element.scrollIntoView();
+        }
+      }
+      return true;
+    },
+    clearReadAloudHighlight: function() {
+      Array.prototype.forEach.call(
+        document.querySelectorAll('.' + READ_ALOUD_CLASS),
+        function(node) { node.classList.remove(READ_ALOUD_CLASS); }
+      );
       return true;
     }
   };

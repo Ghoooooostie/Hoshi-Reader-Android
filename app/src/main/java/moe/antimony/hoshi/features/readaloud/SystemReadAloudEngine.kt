@@ -14,6 +14,7 @@ import kotlin.coroutines.resume
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
@@ -24,6 +25,7 @@ import kotlinx.coroutines.withContext
 @Singleton
 class SystemReadAloudEngine @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    private val settingsRepository: ReadAloudSettingsRepository,
 ) : ReadAloudEngine {
     override val id: ReadAloudEngineId = ReadAloudEngineId.System
 
@@ -31,6 +33,7 @@ class SystemReadAloudEngine @Inject constructor(
     private var japaneseReady = false
     private var speechRate = ReadAloudSettings.DefaultSpeechRate
     private var utteranceCounter = 0
+    private var systemEngineName: String? = null
     private val pending = ConcurrentHashMap<String, CancellableContinuation<Boolean>>()
 
     private val progressListener = object : UtteranceProgressListener() {
@@ -45,11 +48,30 @@ class SystemReadAloudEngine @Inject constructor(
     }
 
     override suspend fun prepare(): Boolean = withContext(Dispatchers.Main.immediate) {
-        val engine = ensureEngine() ?: return@withContext false
-        val status = engine.setLanguage(Locale.JAPANESE)
-        japaneseReady = status != TextToSpeech.LANG_MISSING_DATA && status != TextToSpeech.LANG_NOT_SUPPORTED
-        engine.setSpeechRate(speechRate)
-        japaneseReady
+        val preferredName =
+            settingsRepository.settings.first().selectedSystemEngineName?.takeIf { it.isNotEmpty() }
+        // When no engine is explicitly chosen, also try every installed system TTS engine so the
+        // read-aloud fallback "just works" with whatever Japanese engine the device has (e.g. one
+        // installed from an APK). Some engines report LANG_NOT_SUPPORTED yet still speak Japanese.
+        val candidates: List<String?> = if (preferredName != null) {
+            listOf(preferredName)
+        } else {
+            buildList<String?> {
+                add(null) // device default engine
+                addAll(availableEngineNames())
+            }
+        }
+        for (name in candidates) {
+            val engine = ensureEngine(name) ?: continue
+            val status = engine.setLanguage(Locale.JAPANESE)
+            if (status == TextToSpeech.LANG_MISSING_DATA) continue
+            engine.setSpeechRate(speechRate)
+            japaneseReady = true
+            systemEngineName = name
+            return@withContext true
+        }
+        japaneseReady = false
+        false
     }
 
     override suspend fun speak(text: String): Boolean {
@@ -87,17 +109,46 @@ class SystemReadAloudEngine @Inject constructor(
     }
 
     override fun release() {
+        releaseInternal()
+        japaneseReady = false
+        systemEngineName = null
+    }
+
+    private fun releaseInternal() {
         pending.clear()
         runCatching { textToSpeech?.shutdown() }
         textToSpeech = null
-        japaneseReady = false
     }
 
-    private suspend fun ensureEngine(): TextToSpeech? {
-        textToSpeech?.let { return it }
+    private suspend fun availableEngineNames(): List<String> = withContext(Dispatchers.IO) {
         val initialized = CompletableDeferred<Boolean>()
-        val engine = TextToSpeech(context) { status ->
+        val probe = TextToSpeech(context) { status ->
             initialized.complete(status == TextToSpeech.SUCCESS)
+        }
+        val ready = runCatching { initialized.await() }.getOrDefault(false)
+        val names = if (ready) {
+            probe.engines?.mapNotNull { it.name }?.distinct() ?: emptyList()
+        } else {
+            emptyList()
+        }
+        runCatching { probe.shutdown() }
+        names
+    }
+
+    private suspend fun ensureEngine(): TextToSpeech? = ensureEngine(systemEngineName)
+
+    private suspend fun ensureEngine(name: String?): TextToSpeech? {
+        if (textToSpeech != null && systemEngineName == name) return textToSpeech
+        releaseInternal()
+        val initialized = CompletableDeferred<Boolean>()
+        val engine = if (name != null) {
+            TextToSpeech(context, { status ->
+                initialized.complete(status == TextToSpeech.SUCCESS)
+            }, name)
+        } else {
+            TextToSpeech(context) { status ->
+                initialized.complete(status == TextToSpeech.SUCCESS)
+            }
         }
         if (!initialized.await()) {
             runCatching { engine.shutdown() }
@@ -105,6 +156,7 @@ class SystemReadAloudEngine @Inject constructor(
         }
         engine.setOnUtteranceProgressListener(progressListener)
         textToSpeech = engine
+        systemEngineName = name
         return engine
     }
 

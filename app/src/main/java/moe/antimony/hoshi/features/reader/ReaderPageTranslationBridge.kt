@@ -38,6 +38,14 @@ internal object ReaderPageTranslationCommand {
 
     fun clearTranslations(): String =
         "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.clearTranslations()"
+
+    /** Highlights the reader paragraph currently being spoken and optionally scrolls to it. */
+    fun highlightReadAloudTarget(targetId: String, reveal: Boolean): String =
+        "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.highlightReadAloudTarget(" +
+            "${readerJavaScriptStringLiteral(targetId)}, $reveal)"
+
+    fun clearReadAloudHighlight(): String =
+        "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.clearReadAloudHighlight()"
 }
 
 internal object ReaderPageTranslationBridgePayload {
