@@ -259,6 +259,14 @@ fun ReadAloudSettingsSheet(
                         viewModel.updateSettings { it.copy(readAloudByPage = enabled) }
                     },
                 )
+                ReadAloudToggleRow(
+                    title = stringResource(R.string.read_aloud_start_from_long_press),
+                    subtitle = stringResource(R.string.read_aloud_start_from_long_press_desc),
+                    checked = settings.startReadingFromLongPress,
+                    onCheckedChange = { enabled ->
+                        viewModel.updateSettings { it.copy(startReadingFromLongPress = enabled) }
+                    },
+                )
                 ListItem(
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     headlineContent = { Text(stringResource(R.string.read_aloud_system_tts_settings)) },

@@ -21,6 +21,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   until the chapter ends. New Read Aloud settings add: ignore audio focus, pause
   during phone calls, keep the service awake (wake lock), media-button previous/next
   mapped to paragraphs, read by page, and a shortcut to the system TTS settings.
+- Add a Read Aloud option to start speaking from the sentence you long-press. When enabled in
+  the Read Aloud settings, long-pressing a sentence both shows its translation and begins reading
+  from that sentence, then continues through the chapter in order.
 - Add an Advanced AI settings page that can show AI word-in-sentence analysis
   above lookup popup dictionaries, show AI sentence Chinese analysis in Process
   Text lookup, and let Anki templates render `{sentence-cn}` and

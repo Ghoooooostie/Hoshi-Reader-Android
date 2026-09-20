@@ -48,8 +48,13 @@ class ReadAloudViewModel @Inject constructor(
         downloadProgress.map { installedTtsModels(context.filesDir) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, installedTtsModels(context.filesDir))
 
-    fun start(items: List<ReadAloudQueueItem>, title: String? = null, subtitle: String? = null) {
-        controller.start(items, title, subtitle)
+    fun start(
+        items: List<ReadAloudQueueItem>,
+        title: String? = null,
+        subtitle: String? = null,
+        startIndex: Int = 0,
+    ) {
+        controller.start(items, title, subtitle, startIndex)
     }
 
     fun continueWith(items: List<ReadAloudQueueItem>) {

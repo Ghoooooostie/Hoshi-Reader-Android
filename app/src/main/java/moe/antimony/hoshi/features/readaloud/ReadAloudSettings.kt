@@ -38,6 +38,8 @@ data class ReadAloudSettings(
     val mediaButtonPerNext: Boolean = false,
     /** 按页朗读：整页作为一个朗读单元，翻页时停顿一下。 */
     val readAloudByPage: Boolean = false,
+    /** 长按句子时同时从此句开始朗读（需先在朗读设置中开启）。 */
+    val startReadingFromLongPress: Boolean = false,
 ) {
     companion object {
         const val DefaultSpeechRate = 1.0f
@@ -83,6 +85,7 @@ private fun Preferences.toReadAloudSettings(): ReadAloudSettings = ReadAloudSett
     wakeLock = this[Keys.wakeLock] ?: false,
     mediaButtonPerNext = this[Keys.mediaButtonPerNext] ?: false,
     readAloudByPage = this[Keys.readAloudByPage] ?: false,
+    startReadingFromLongPress = this[Keys.startReadingFromLongPress] ?: false,
 )
 
 private fun MutablePreferences.writeReadAloudSettings(settings: ReadAloudSettings) {
@@ -95,6 +98,7 @@ private fun MutablePreferences.writeReadAloudSettings(settings: ReadAloudSetting
     this[Keys.wakeLock] = settings.wakeLock
     this[Keys.mediaButtonPerNext] = settings.mediaButtonPerNext
     this[Keys.readAloudByPage] = settings.readAloudByPage
+    this[Keys.startReadingFromLongPress] = settings.startReadingFromLongPress
 }
 
 private object Keys {
@@ -107,4 +111,5 @@ private object Keys {
     val wakeLock = booleanPreferencesKey("wakeLock")
     val mediaButtonPerNext = booleanPreferencesKey("mediaButtonPerNext")
     val readAloudByPage = booleanPreferencesKey("readAloudByPage")
+    val startReadingFromLongPress = booleanPreferencesKey("startReadingFromLongPress")
 }

@@ -917,6 +917,8 @@
     <string name="read_aloud_media_button_desc">Previous paragraph | next paragraph</string>
     <string name="read_aloud_by_page">Read by page</string>
     <string name="read_aloud_by_page_desc">Turns pages promptly; pauses briefly at each page turn</string>
+    <string name="read_aloud_start_from_long_press">Read from long-pressed sentence</string>
+    <string name="read_aloud_start_from_long_press_desc">Long-pressing a sentence also starts reading aloud from that sentence, in order</string>
     <string name="read_aloud_system_tts_settings">System TTS settings</string>
     <string name="read_aloud_system_tts_settings_desc">Open the system text-to-speech settings</string>
 </resources>

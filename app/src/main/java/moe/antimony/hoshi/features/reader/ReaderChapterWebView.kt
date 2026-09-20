@@ -89,6 +89,8 @@ internal fun ChapterWebView(
     onSentenceLongPressed: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit,
     onPageTranslationLongPressed: (ReaderPageTranslationTarget) -> Unit,
     onPageTranslationRevealRequested: (ReaderPageTranslationTarget) -> Unit,
+    onReadAloudStartFromPoint: (Float, Float) -> Unit,
+    readAloudStartFromLongPress: Boolean,
     onClearLookupPopup: () -> Unit,
     onReaderTapOutside: () -> Unit,
     onReaderInteraction: () -> Unit,
@@ -106,6 +108,8 @@ internal fun ChapterWebView(
     val currentOnSentenceLongPressed = rememberUpdatedState(onSentenceLongPressed)
     val currentOnPageTranslationLongPressed = rememberUpdatedState(onPageTranslationLongPressed)
     val currentOnPageTranslationRevealRequested = rememberUpdatedState(onPageTranslationRevealRequested)
+    val currentOnReadAloudStartFromPoint = rememberUpdatedState(onReadAloudStartFromPoint)
+    val currentReadAloudStartFromLongPress = rememberUpdatedState(readAloudStartFromLongPress)
     val currentOnSaveBookmark = rememberUpdatedState(onSaveBookmark)
     val currentOnDisplayProgress = rememberUpdatedState(onDisplayProgress)
     val currentOnContinuousScrollDisplayProgress = rememberUpdatedState(onContinuousScrollDisplayProgress)
@@ -271,6 +275,10 @@ internal fun ChapterWebView(
                 this.onPageTranslationRevealRequested = { target ->
                     currentOnPageTranslationRevealRequested.value(target)
                 }
+                this.onReadAloudStartFromPoint = { x, y ->
+                    currentOnReadAloudStartFromPoint.value(x, y)
+                }
+                this.readAloudStartFromLongPress = { currentReadAloudStartFromLongPress.value }
                 this.fullPageTranslationEnabled = currentReaderSettings.value.readerAiFullPageTranslationEnabled
                 hideForReaderRestore()
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
@@ -607,6 +615,8 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         { _, _ -> }
     var onPageTranslationLongPressed: (ReaderPageTranslationTarget) -> Unit = {}
     var onPageTranslationRevealRequested: (ReaderPageTranslationTarget) -> Unit = {}
+    var onReadAloudStartFromPoint: (Float, Float) -> Unit = { _, _ -> }
+    var readAloudStartFromLongPress: () -> Boolean = { false }
     var fullPageTranslationEnabled: Boolean = false
     private var nativeSelectionActionModeActive = false
     private var nativeSelectionActionMode: ActionMode? = null
@@ -746,6 +756,9 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         val density = resources.displayMetrics.density
         val x = androidPixelsToCssPixels(lastTouchX, density)
         val y = androidPixelsToCssPixels(lastTouchY, density)
+        if (readAloudStartFromLongPress()) {
+            onReadAloudStartFromPoint(x, y)
+        }
         evaluateJavascript(
             ReaderPageTranslationCommand.targetAtPoint(x, y, fullPageTranslationEnabled),
         ) { translationHitResult ->
@@ -809,6 +822,8 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         onSentenceLongPressed = { _, _ -> }
         onPageTranslationLongPressed = {}
         onPageTranslationRevealRequested = {}
+        onReadAloudStartFromPoint = { _, _ -> }
+        readAloudStartFromLongPress = { false }
     }
 }
 

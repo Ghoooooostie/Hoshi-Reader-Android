@@ -140,7 +140,12 @@ class ReadAloudController @Inject constructor(
         return null
     }
 
-    fun start(items: List<ReadAloudQueueItem>, title: String? = null, subtitle: String? = null) {
+    fun start(
+        items: List<ReadAloudQueueItem>,
+        title: String? = null,
+        subtitle: String? = null,
+        startIndex: Int = 0,
+    ) {
         if (items.isEmpty()) return
         playbackJob?.cancel()
         mutableState.value = ReadAloudState(
@@ -149,7 +154,7 @@ class ReadAloudController @Inject constructor(
             title = title,
             subtitle = subtitle,
         )
-        playFrom(0)
+        playFrom(startIndex.coerceIn(0, items.lastIndex))
     }
 
     /**

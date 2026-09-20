@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.os.SystemClock
+import android.util.Log
 import android.webkit.WebView
 import android.view.KeyEvent
 import android.view.WindowManager
@@ -216,6 +217,7 @@ fun ReaderWebView(
     val view = LocalView.current
     val systemDarkTheme = isSystemInDarkTheme()
     val clampedInitialIndex = initialChapterIndex.coerceIn(0, book.chapters.lastIndex)
+    Log.d("HoshiBM", "OPEN reader initialChapterIndex=$initialChapterIndex initialProgress=$initialProgress")
     val stateHolder = remember(book) {
         ReaderWebViewStateHolder(
             initialSettings = readerSettings,
@@ -438,6 +440,7 @@ fun ReaderWebView(
         return statisticsTracker?.statisticsForPersistenceOrNull()
     }
     fun saveReaderPosition(position: ReaderChapterPosition, statistics: List<ReadingStatistics>? = statisticsForSave()) {
+        Log.d("HoshiBM", "SAVE reader index=${position.index} progress=${position.progress}")
         onSaveBookmark(position.index, position.progress, statistics)
     }
     fun saveCurrentDisplayedPosition() {

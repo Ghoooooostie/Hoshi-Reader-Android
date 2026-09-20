@@ -915,6 +915,8 @@
     <string name="read_aloud_media_button_desc">上一段 | 下一段</string>
     <string name="read_aloud_by_page">按页朗读</string>
     <string name="read_aloud_by_page_desc">及时翻页，翻页时会停顿一下</string>
+    <string name="read_aloud_start_from_long_press">从长按句子开始朗读</string>
+    <string name="read_aloud_start_from_long_press_desc">长按句子时会同时从此句起按顺序朗读</string>
     <string name="read_aloud_system_tts_settings">系统 TTS 设置</string>
     <string name="read_aloud_system_tts_settings_desc">打开系统 TTS 设置界面</string>
 </resources>

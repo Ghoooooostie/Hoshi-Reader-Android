@@ -1,5 +1,6 @@
 package moe.antimony.hoshi.navigation
 
+import android.util.Log
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -72,6 +73,7 @@ internal class ReaderRouteStateHolder(
                 lastModified = repository.currentAppleReferenceDateSeconds(),
             )
             repository.saveBookmark(state.bookRoot, bookmark)
+            Log.d("HoshiBM", "WRITE bookmark idx=${bookmark.chapterIndex} progress=${bookmark.progress} char=${bookmark.characterCount}")
             if (statistics != null) {
                 repository.saveTrackedStatistics(state.bookRoot, statistics)
             }
