@@ -185,6 +185,7 @@ internal object LookupPopupHtml {
                             playWordAudio: { postMessage: function(content) { window.HoshiAndroidPopup.postMessage('playWordAudio', content); } },
                             shellReady: { postMessage: function() { window.HoshiAndroidPopup.postMessage('shellReady'); } },
                             contentReady: { postMessage: function() { window.HoshiAndroidPopup.postMessage('contentReady'); } },
+                            contentHeight: { postMessage: function(height) { window.HoshiAndroidPopup.postMessage('contentHeight', height); } },
                             popupScrolled: { postMessage: function() { window.HoshiAndroidPopup.postMessage('popupScrolled'); } },
                             switchAdvancedAiMode: { postMessage: function(mode) { window.HoshiAndroidPopup.postMessage('switchAdvancedAiMode', mode); } },
                             mineEntry: { postMessage: function(content) { return window.HoshiAndroidPopup.requestMessage('mineEntry', content); } },
@@ -263,9 +264,31 @@ internal object LookupPopupHtml {
                         var container = document.getElementById('entries-container');
                         var posted = false;
                         var observer = null;
+                        var heightObserver = null;
+                        function postContentHeight() {
+                            var body = document.body;
+                            if (!body) return;
+                            var rect = body.getBoundingClientRect();
+                            var height = (rect && rect.height > 0)
+                                ? rect.height
+                                : (document.documentElement ? document.documentElement.scrollHeight : 0);
+                            webkit.messageHandlers.contentHeight.postMessage(Math.ceil(height));
+                        }
+                        function observeContentHeight() {
+                            if (heightObserver) {
+                                heightObserver.disconnect();
+                                heightObserver = null;
+                            }
+                            if (typeof ResizeObserver === 'undefined' || !container) return;
+                            heightObserver = new ResizeObserver(function() {
+                                postContentHeight();
+                            });
+                            heightObserver.observe(container);
+                        }
                         function postReady() {
                             if (posted) return;
                             posted = true;
+                            postContentHeight();
                             webkit.messageHandlers.contentReady.postMessage();
                         }
                         function hasRenderableContent() {
@@ -296,6 +319,7 @@ internal object LookupPopupHtml {
                                 postReady();
                             }
                         };
+                        observeContentHeight();
                         window.addEventListener('message', function(event) {
                             if (event.origin !== 'https://appassets.androidplatform.net') return;
                             var message = event.data || {};

@@ -1089,3 +1089,113 @@ test('horizontal e-ink sasayaki line follows the ruby-aware height for the whole
     assert.equal(sasayakiHighlights[0].style.width, '32px');
     assert.equal(sasayakiHighlights[0].style.height, '1.5px');
 });
+
+test('contentHeight message shrinks the shell and iframe to the reported content height', () => {
+    const scene = popupHost();
+    scene.host.renderStack({ popups: [rootPopupPayload()] });
+    const layer = scene.document.getElementById('hoshi-reader-popup-layer');
+    const shell = layer.children[0];
+    const iframe = shell.querySelector('.hoshi-reader-popup-iframe');
+
+    scene.dispatchMessage({
+        source: 'hoshi-popup-iframe',
+        name: 'contentHeight',
+        popupId: 'root',
+        body: 80,
+    });
+
+    assert.equal(shell.style.height, '80px');
+    assert.equal(iframe.style.height, '80px');
+});
+
+test('contentHeight is clamped to the popup frame height', () => {
+    const scene = popupHost();
+    scene.host.renderStack({ popups: [rootPopupPayload()] });
+    const layer = scene.document.getElementById('hoshi-reader-popup-layer');
+    const shell = layer.children[0];
+    const iframe = shell.querySelector('.hoshi-reader-popup-iframe');
+
+    scene.dispatchMessage({
+        source: 'hoshi-popup-iframe',
+        name: 'contentHeight',
+        popupId: 'root',
+        body: 9999,
+    });
+
+    assert.equal(shell.style.height, '250px');
+    assert.equal(iframe.style.height, '250px');
+});
+
+test('contentHeight accounts for action and sasayaki bar heights', () => {
+    const scene = popupHost();
+    const payload = {
+        ...rootPopupPayload(),
+        actionBarVisible: true,
+        sasayakiVisible: true,
+        backCount: 1,
+    };
+    scene.host.renderStack({ popups: [payload] });
+    const layer = scene.document.getElementById('hoshi-reader-popup-layer');
+    const shell = layer.children[0];
+    const iframe = shell.querySelector('.hoshi-reader-popup-iframe');
+
+    scene.dispatchMessage({
+        source: 'hoshi-popup-iframe',
+        name: 'contentHeight',
+        popupId: 'root',
+        body: 40,
+    });
+
+    assert.equal(shell.style.height, '114px');
+    assert.equal(iframe.style.height, '40px');
+});
+
+test('re-rendering the same popup keeps the fitted content height', () => {
+    const scene = popupHost();
+    scene.host.renderStack({ popups: [rootPopupPayload()] });
+    scene.dispatchMessage({
+        source: 'hoshi-popup-iframe',
+        name: 'contentHeight',
+        popupId: 'root',
+        body: 80,
+    });
+
+    scene.host.renderStack({ popups: [rootPopupPayload()] });
+    const layer = scene.document.getElementById('hoshi-reader-popup-layer');
+    const shell = layer.children[0];
+    const iframe = shell.querySelector('.hoshi-reader-popup-iframe');
+    assert.equal(shell.style.height, '80px');
+    assert.equal(iframe.style.height, '80px');
+});
+
+test('content replacement resets the fitted height until a new report arrives', () => {
+    const scene = popupHost();
+    scene.host.renderStack({ popups: [rootPopupPayload()] });
+    scene.dispatchMessage({
+        source: 'hoshi-popup-iframe',
+        name: 'contentHeight',
+        popupId: 'root',
+        body: 80,
+    });
+
+    const replaced = {
+        ...rootPopupPayload(),
+        contentKey: 'next-content',
+        iframeUrl: 'https://appassets.androidplatform.net/popup/iframe.html#next',
+    };
+    scene.host.renderStack({ popups: [replaced] });
+    const layer = scene.document.getElementById('hoshi-reader-popup-layer');
+    const shell = layer.children[0];
+    const iframe = shell.querySelector('.hoshi-reader-popup-iframe');
+    assert.equal(shell.style.height, '250px');
+    assert.equal(iframe.style.height, 'calc(100% - 0px)');
+
+    scene.dispatchMessage({
+        source: 'hoshi-popup-iframe',
+        name: 'contentHeight',
+        popupId: 'root',
+        body: 60,
+    });
+    assert.equal(shell.style.height, '60px');
+    assert.equal(iframe.style.height, '60px');
+});

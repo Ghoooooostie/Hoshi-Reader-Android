@@ -219,6 +219,22 @@
         shell.dataset.eInkMode = String(!!payload.eInkMode);
     }
 
+    // 内容高度自适应：iframe 上报实际内容高度后，把外壳收缩到内容高度
+    // （仍夹在 [0, 弹窗框高度] 内，超出时 iframe 内部滚动）。
+    function applyContentHeight(record, contentHeight) {
+        const payload = record.payload;
+        if (!payload || record.shell.dataset.popupId === 'dictionary-search-root') return;
+        if (!Number.isFinite(contentHeight) || contentHeight <= 0) return;
+        const barsTop = frameContentTop(payload);
+        const maxContentHeight = Math.max(0, payload.frame.height - barsTop);
+        const next = Math.min(Math.ceil(contentHeight), maxContentHeight);
+        const shellHeight = `${barsTop + next}px`;
+        if (record.contentHeight === next && record.shell.style.height === shellHeight) return;
+        record.contentHeight = next;
+        record.shell.style.height = shellHeight;
+        record.iframe.style.height = `${next}px`;
+    }
+
     function iframeRenderMessage(payload) {
         const message = {
             type: 'renderPopup',
@@ -288,7 +304,7 @@
         iframe.className = 'hoshi-reader-popup-iframe';
         iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
         shell.dataset.revealReady = 'false';
-        const record = { shell, iframe, payload, contentReady: false, revealReady: false, loaded: false, root: false };
+        const record = { shell, iframe, payload, contentReady: false, revealReady: false, loaded: false, root: false, contentHeight: null };
         iframe.addEventListener('load', () => {
             record.loaded = true;
             if (record.payload) {
@@ -340,6 +356,7 @@
         record.root = isRoot;
         record.payload = payload;
         if (needsRender) {
+            record.contentHeight = null;
             setContentReady(record, false);
             setRevealReady(record, false);
             resetIframe(record);
@@ -364,6 +381,9 @@
         renderControls(record.shell, effectivePayload, record.iframe);
         record.iframe.style.top = `${frameContentTop(effectivePayload)}px`;
         record.iframe.style.height = `calc(100% - ${frameContentTop(effectivePayload)}px)`;
+        if (record.contentHeight != null) {
+            applyContentHeight(record, record.contentHeight);
+        }
         syncRootReveal();
         if (record.iframe.src !== effectivePayload.iframeUrl) {
             setContentReady(record, false);
@@ -380,6 +400,7 @@
         setContentReady(record, false);
         resetIframe(record);
         record.payload = null;
+        record.contentHeight = null;
         record.clearSelectionSignal = undefined;
         record.root = false;
         record.shell.dataset.popupId = '';
@@ -781,6 +802,10 @@
         const record = frames.get(popupId);
         if (data.name === 'contentReady' && record) {
             setContentReady(record, true);
+        }
+        if (data.name === 'contentHeight' && record) {
+            applyContentHeight(record, data.body);
+            return;
         }
         const body = data.name === 'textSelected' ? adjustSelectionBody(popupId, data.body) : data.body;
         postNative({
