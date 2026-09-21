@@ -116,8 +116,12 @@ class LocalReadAloudEngine @Inject constructor(
             player.play()
             val written = AtomicLong(0)
             val produced = withContext(Dispatchers.Default) {
+                // Supertonic reads the speed from the "speed" entry in `extra` first
+                // (GenerationConfig.GetExtraFloat("speed", config.speed)); include it
+                // explicitly so the rate is honoured even when the native layer does not
+                // forward the top-level `speed` field for this model backend.
                 val genConfig = GenerationConfig(sid = 0, speed = speechRate).apply {
-                    extra = mapOf("lang" to "ja")
+                    extra = mapOf("lang" to "ja", "speed" to speechRate.toString())
                 }
                 val audio: GeneratedAudio = engine.generateWithConfigAndCallback(
                     text = text,
