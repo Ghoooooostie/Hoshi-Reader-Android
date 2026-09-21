@@ -682,6 +682,15 @@ fun ReaderWebView(
             resumeReadAloudAfterLookup = ::resumeReadAloudAfterLookupIfNeeded,
         )
     }
+    fun resumeReadAloudAfterPageTranslationIfNeeded() {
+        if (stateHolder.readAloudWasPausedByPageTranslation) {
+            stateHolder.clearReadAloudPausedByPageTranslation()
+            if (!readAloudState.isPlaying) {
+                readAloudViewModel.resume()
+            }
+        }
+    }
+
     fun clearReaderPageTranslations() {
         readerPageTranslationJob?.cancel()
         readerPageTranslationJob = null
@@ -1071,14 +1080,6 @@ fun ReaderWebView(
             )
         ) {
             readAloudViewModel.pause()
-        }
-    }
-    fun resumeReadAloudAfterPageTranslationIfNeeded() {
-        if (stateHolder.readAloudWasPausedByPageTranslation) {
-            stateHolder.clearReadAloudPausedByPageTranslation()
-            if (!readAloudState.isPlaying) {
-                readAloudViewModel.resume()
-            }
         }
     }
     fun handleReaderInteraction() {

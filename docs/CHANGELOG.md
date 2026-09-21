@@ -20,6 +20,11 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   the translation queue now advance in document order instead of re-reading
   whatever happens to be on screen, so no paragraph is skipped when a translation
   reflows the page.
+- Fix a long stall when dismissing the lookup popup by tapping a blank area while
+  Read Aloud is playing: the tap used to run a JS word-selection probe that was
+  queued behind the reader WebView's highlight/scroll work, leaving the popup
+  frozen for seconds. A blank-area tap now closes an already-open popup directly
+  without the probe.
 
 ### Added
 

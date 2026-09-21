@@ -364,7 +364,16 @@ internal fun ChapterWebView(
                         ContinuousScrollTouchListener(
                             settings = readerSettings,
                             shouldIgnoreReaderGesture = ::shouldIgnoreReaderGestureEvent,
-                            onTap = { x, y -> selectAt(x, y) { currentOnReaderTapOutside.value() } },
+                            onTap = { x, y ->
+                                // 查词弹窗已打开时，点击空白处直接关闭弹窗，跳过耗时的 JS
+                                // 选区检测。朗读播放中 WebView 正忙于高亮/滚动当前句，该检测会被
+                                // 排队延迟，导致弹窗迟迟不消失、点击响应卡顿。
+                                if (currentReaderPopupFrames.value.isNotEmpty()) {
+                                    currentOnReaderTapOutside.value()
+                                } else {
+                                    selectAt(x, y) { currentOnReaderTapOutside.value() }
+                                }
+                            },
                             onScrollGesture = currentOnReaderInteraction.value,
                             onNextChapter = {
                                 currentOnReaderInteraction.value()
@@ -450,6 +459,25 @@ internal fun ChapterWebView(
                             }
 
                             override fun onTap(x: Float, y: Float) {
+                                if (currentReaderPopupFrames.value.isNotEmpty()) {
+                                    // 查词弹窗已打开时，点击空白处直接关闭弹窗，跳过耗时的 JS
+                                    // 选区检测。朗读播放中 WebView 正忙于高亮/滚动当前句，该检测会
+                                    // 被排队延迟，导致弹窗迟迟不消失、点击响应卡顿。
+                                    if (readerSettings.viewMode == ReaderViewMode.VisualNovel && readerSettings.visualNovelClickAdvance) {
+                                        currentOnReaderInteraction.value()
+                                        currentOnClearLookupPopup.value()
+                                        webView.navigatePageForDirection(
+                                            direction = ReaderNavigationDirection.Forward,
+                                            onNextChapter = currentOnNextChapter.value,
+                                            onPreviousChapter = currentOnPreviousChapter.value,
+                                            onDisplayedProgress = currentOnDisplayProgress.value,
+                                            onSaveProgress = currentOnSaveBookmark.value,
+                                        )
+                                    } else {
+                                        currentOnReaderTapOutside.value()
+                                    }
+                                    return
+                                }
                                 selectAt(x, y) {
                                     if (readerSettings.viewMode == ReaderViewMode.VisualNovel && readerSettings.visualNovelClickAdvance) {
                                         currentOnReaderInteraction.value()
