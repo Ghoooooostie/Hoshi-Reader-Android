@@ -49,6 +49,21 @@ internal object ReaderPageTranslationCommand {
         "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.highlightReadAloudTarget(" +
             "${readerJavaScriptStringLiteral(targetId)}, $reveal)"
 
+    /**
+     * Highlights the specific sentence currently being spoken within its paragraph and scrolls to
+     * it (音量键上一句/下一句跳转后让显示的文字也跟随变化). Falls back to the whole paragraph when the
+     * sentence text cannot be located in the DOM.
+     */
+    fun highlightReadAloudSentence(
+        targetId: String,
+        sentenceText: String?,
+        reveal: Boolean,
+    ): String {
+        val escapedSentence = sentenceText?.let { readerJavaScriptStringLiteral(it) } ?: "null"
+        return "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.highlightReadAloudSentence(" +
+            "${readerJavaScriptStringLiteral(targetId)}, $escapedSentence, $reveal)"
+    }
+
     fun clearReadAloudHighlight(): String =
         "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.clearReadAloudHighlight()"
 }

@@ -341,6 +341,95 @@ class ReaderHardwareKeyNavigationTest {
     }
 
     @Test
+    fun readAloudActiveVolumeKeysControlSentenceNavigation() {
+        val settings = ReaderSettings(volumeKeysControlReadAloud = true)
+
+        assertEquals(
+            ReaderHardwareKeyAction.ReadAloudSentenceNavigation(ReadAloudSentenceNavigationDirection.Next),
+            readerHardwareKeyActionForKeyEvent(
+                keyCode = KeyEvent.KEYCODE_VOLUME_UP,
+                action = KeyEvent.ACTION_DOWN,
+                repeatCount = 0,
+                settings = settings,
+                sasayakiEnabled = false,
+                hasSasayakiAudio = false,
+                readAloudActive = true,
+            ),
+        )
+        assertEquals(
+            ReaderHardwareKeyAction.ReadAloudSentenceNavigation(ReadAloudSentenceNavigationDirection.Previous),
+            readerHardwareKeyActionForKeyEvent(
+                keyCode = KeyEvent.KEYCODE_VOLUME_DOWN,
+                action = KeyEvent.ACTION_DOWN,
+                repeatCount = 0,
+                settings = settings,
+                sasayakiEnabled = false,
+                hasSasayakiAudio = false,
+                readAloudActive = true,
+            ),
+        )
+    }
+
+    @Test
+    fun readAloudSentenceNavigationReversesWithSetting() {
+        val settings = ReaderSettings(volumeKeysControlReadAloud = true, reverseVolumeKeyDirection = true)
+
+        assertEquals(
+            ReaderHardwareKeyAction.ReadAloudSentenceNavigation(ReadAloudSentenceNavigationDirection.Previous),
+            readerHardwareKeyActionForKeyEvent(
+                keyCode = KeyEvent.KEYCODE_VOLUME_UP,
+                action = KeyEvent.ACTION_DOWN,
+                repeatCount = 0,
+                settings = settings,
+                sasayakiEnabled = false,
+                hasSasayakiAudio = false,
+                readAloudActive = true,
+            ),
+        )
+    }
+
+    @Test
+    fun readAloudVolumeKeysTakePriorityOverPageTurns() {
+        val settings = ReaderSettings(
+            volumeKeysControlReadAloud = true,
+            volumeKeysTurnPages = true,
+            volumeKeysSeekSasayaki = true,
+        )
+
+        assertEquals(
+            ReaderHardwareKeyAction.ReadAloudSentenceNavigation(ReadAloudSentenceNavigationDirection.Next),
+            readerHardwareKeyActionForKeyEvent(
+                keyCode = KeyEvent.KEYCODE_VOLUME_UP,
+                action = KeyEvent.ACTION_DOWN,
+                repeatCount = 0,
+                settings = settings,
+                sasayakiEnabled = true,
+                hasSasayakiAudio = true,
+                readAloudActive = true,
+            ),
+        )
+    }
+
+    @Test
+    fun readAloudVolumeKeysIgnoredWhenNotActive() {
+        val settings = ReaderSettings(volumeKeysControlReadAloud = true, volumeKeysTurnPages = true)
+
+        // Not active -> falls through to page turn behaviour.
+        assertEquals(
+            ReaderHardwareKeyAction.ReaderNavigation(ReaderNavigationDirection.Forward),
+            readerHardwareKeyActionForKeyEvent(
+                keyCode = KeyEvent.KEYCODE_VOLUME_DOWN,
+                action = KeyEvent.ACTION_DOWN,
+                repeatCount = 0,
+                settings = settings,
+                sasayakiEnabled = false,
+                hasSasayakiAudio = false,
+                readAloudActive = false,
+            ),
+        )
+    }
+
+    @Test
     fun enabledVolumeKeysUseDefaultReaderDirection() {
         val settings = ReaderSettings(volumeKeysTurnPages = true, reverseVolumeKeyDirection = false)
 

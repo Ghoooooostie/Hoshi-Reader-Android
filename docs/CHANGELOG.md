@@ -72,6 +72,11 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   instead of starting a request. Long-pressing a translation re-translates that
   paragraph.
 - Add an optional “Hide thumbnails when collapsed” switch in Manage Shelves.
+- Add volume-key control for Read Aloud: when Read Aloud is playing, the volume keys
+  jump to the previous/next sentence (音量键控制朗读). The currently spoken sentence is
+  highlighted in the reader and the page follows along. Enable it in Settings > Behavior
+  (on by default); the existing reverse-volume-key-direction setting also flips which key
+  goes forward/back, and it takes priority over the other volume-key actions while reading.
   It defaults off; when enabled, collapsed shelves show only their title row.
 
 - Add global Theme settings in Settings and Reader. Follow system

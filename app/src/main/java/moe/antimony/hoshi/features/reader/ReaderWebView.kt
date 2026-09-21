@@ -1895,6 +1895,7 @@ fun ReaderWebView(
             sasayakiEnabled = sasayakiSettings.enabled,
             hasSasayakiAudio = sasayakiPlayer?.hasAudio == true,
             hasLookupPopup = stateHolder.lookupPopups.isNotEmpty(),
+            readAloudActive = readAloudState.isActive,
         )
         if (!keyEvent.consumed) return@rememberUpdatedState false
         when (val action = keyEvent.action) {
@@ -1914,6 +1915,12 @@ fun ReaderWebView(
             }
             ReaderHardwareKeyAction.SasayakiSeekForward -> {
                 sasayakiPlayer?.nextCue()
+            }
+            is ReaderHardwareKeyAction.ReadAloudSentenceNavigation -> {
+                when (action.direction) {
+                    ReadAloudSentenceNavigationDirection.Previous -> readAloudViewModel.skipPrevious()
+                    ReadAloudSentenceNavigationDirection.Next -> readAloudViewModel.skipNext()
+                }
             }
             null -> Unit
         }
@@ -2584,8 +2591,8 @@ fun ReaderWebView(
                 }
             }
         }
-        // 朗读位置同步：高亮当前正在朗读的段落并滚动跟随。
-        LaunchedEffect(readAloudState.currentParagraphId) {
+        // 朗读位置同步：高亮当前正在朗读的句子并滚动跟随（音量键上一句/下一句跳转后显示也跟随变化）。
+        LaunchedEffect(readAloudState.currentIndex) {
             val targetId = readAloudState.currentParagraphId
             if (targetId == null) {
                 webView?.evaluateJavascript(
@@ -2594,7 +2601,11 @@ fun ReaderWebView(
                 )
             } else {
                 webView?.evaluateJavascript(
-                    ReaderPageTranslationCommand.highlightReadAloudTarget(targetId, reveal = true),
+                    ReaderPageTranslationCommand.highlightReadAloudSentence(
+                        targetId = targetId,
+                        sentenceText = readAloudState.currentSentence,
+                        reveal = true,
+                    ),
                     null,
                 )
             }

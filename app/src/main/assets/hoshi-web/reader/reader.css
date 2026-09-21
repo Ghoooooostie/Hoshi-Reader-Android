@@ -108,6 +108,18 @@ html[data-hoshi-reader-eink-mode="true"] .hoshi-read-aloud-active {
     text-decoration-thickness: 1.5px;
     text-underline-offset: 2px;
 }
+.hoshi-read-aloud-sentence {
+    background-color: var(--hoshi-read-aloud-sentence-background-color, rgba(255, 193, 7, 0.55));
+    border-radius: 2px;
+}
+html[data-hoshi-reader-eink-mode="true"] .hoshi-read-aloud-sentence {
+    color: inherit !important;
+    background-color: transparent !important;
+    text-decoration: underline;
+    text-decoration-color: var(--hoshi-eink-line-color);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 2px;
+}
 .hoshi-reader-translation {
     display: block;
     color: var(--hoshi-text-color);

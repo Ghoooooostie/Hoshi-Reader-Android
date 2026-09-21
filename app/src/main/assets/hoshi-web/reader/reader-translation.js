@@ -8,6 +8,7 @@
   var REVEALED_CLASS = 'hoshi-reader-translation-revealed';
   var ON_LONG_PRESS_MODE = 'onLongPress';
   var READ_ALOUD_CLASS = 'hoshi-read-aloud-active';
+  var READ_ALOUD_SENTENCE_CLASS = 'hoshi-read-aloud-sentence';
   var displayMode = 'persistent';
 
   function isTargetElement(element) {
@@ -393,7 +394,102 @@
         document.querySelectorAll('.' + READ_ALOUD_CLASS),
         function(node) { node.classList.remove(READ_ALOUD_CLASS); }
       );
+      Array.prototype.forEach.call(
+        document.querySelectorAll('.' + READ_ALOUD_SENTENCE_CLASS),
+        function(node) { node.classList.remove(READ_ALOUD_SENTENCE_CLASS); }
+      );
       return true;
+    },
+    /**
+     * Highlights the specific sentence currently being spoken (音量键上一句/下一句跳转后让显示的文字
+     * 也跟随变化). Falls back to highlighting the whole paragraph when the sentence text cannot be
+     * located in the DOM (e.g. 按页朗读没有分句的段落). Skips ruby annotation text (<rt>/<rp>) when
+     * matching the sentence so furigana does not break offset alignment.
+     */
+    highlightReadAloudSentence: function(targetId, sentenceText, reveal) {
+      this.clearReadAloudHighlight();
+      var element = findTargetById(targetId);
+      if (!element) return null;
+      var sentence = (typeof sentenceText === 'string') ? sentenceText : '';
+      var range = sentence.length > 0 ? this._findSentenceRange(element, sentence) : null;
+      element.classList.add(READ_ALOUD_CLASS);
+      if (range) {
+        this._wrapRange(range, READ_ALOUD_SENTENCE_CLASS);
+      }
+      if (reveal) {
+        var targetRange = range || document.createRange().selectNodeContents(element);
+        if (global.hoshiReader && typeof global.hoshiReader.scrollToRange === 'function') {
+          if (global.hoshiReader.scrollToRange(targetRange)) {
+            return global.hoshiReader.calculateProgress();
+          }
+        } else if (typeof element.scrollIntoView === 'function') {
+          element.scrollIntoView();
+        }
+      }
+      return true;
+    },
+    /** Builds a range covering the first occurrence of [sentence] within [element]'s base text. */
+    _findSentenceRange: function(element, sentence) {
+      var segments = [];
+      var baseText = '';
+      var walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+      var node;
+      while ((node = walker.nextNode())) {
+        if (node.closest && node.closest('rt, rp')) continue;
+        var text = node.nodeValue;
+        segments.push({ node: node, baseStart: baseText.length, length: text.length });
+        baseText += text;
+      }
+      var index = baseText.indexOf(sentence);
+      if (index < 0) return null;
+      var end = index + sentence.length;
+      var range = document.createRange();
+      var startSet = false;
+      for (var i = 0; i < segments.length; i++) {
+        var seg = segments[i];
+        var segEnd = seg.baseStart + seg.length;
+        if (!startSet && seg.baseStart <= index && segEnd >= index) {
+          range.setStart(seg.node, index - seg.baseStart);
+          startSet = true;
+        }
+        if (seg.baseStart < end && segEnd >= end) {
+          range.setEnd(seg.node, end - seg.baseStart);
+          break;
+        }
+      }
+      if (!startSet) return null;
+      return range;
+    },
+    /** Wraps each text node slice covered by [range] in a span with [className]. */
+    _wrapRange: function(range, className) {
+      var nodes = [];
+      var walker = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, null, false);
+      var node;
+      while ((node = walker.nextNode())) {
+        if (!range.intersectsNode(node)) continue;
+        if (node.closest && node.closest('rt, rp')) continue;
+        var start = (node === range.startContainer) ? range.startOffset : 0;
+        var end = (node === range.endContainer) ? range.endOffset : node.nodeValue.length;
+        if (start >= end) continue;
+        nodes.push({ node: node, start: start, end: end });
+      }
+      for (var i = nodes.length - 1; i >= 0; i--) {
+        this._wrapTextSlice(nodes[i].node, nodes[i].start, nodes[i].end, className);
+      }
+    },
+    _wrapTextSlice: function(node, start, end, className) {
+      var target = node;
+      if (start > 0) {
+        target = target.splitText(start);
+      }
+      var sliceLength = end - start;
+      if (sliceLength < target.nodeValue.length) {
+        target.splitText(sliceLength);
+      }
+      var span = document.createElement('span');
+      span.className = className;
+      target.parentNode.insertBefore(span, target);
+      span.appendChild(target);
     }
   };
 })(window);

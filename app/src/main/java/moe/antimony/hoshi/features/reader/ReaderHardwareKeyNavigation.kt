@@ -12,6 +12,12 @@ internal sealed interface ReaderHardwareKeyAction {
     data class PopupTermNavigation(val direction: PopupTermNavigationDirection) : ReaderHardwareKeyAction
     data object SasayakiSeekForward : ReaderHardwareKeyAction
     data object SasayakiSeekBackward : ReaderHardwareKeyAction
+    data class ReadAloudSentenceNavigation(val direction: ReadAloudSentenceNavigationDirection) : ReaderHardwareKeyAction
+}
+
+internal enum class ReadAloudSentenceNavigationDirection {
+    Previous,
+    Next,
 }
 
 internal data class ReaderHardwareKeyEventResult(
@@ -32,6 +38,7 @@ internal fun readerNavigationDirectionForKeyEvent(
         settings = settings,
         sasayakiEnabled = false,
         hasSasayakiAudio = false,
+        readAloudActive = false,
     ).action as? ReaderHardwareKeyAction.ReaderNavigation)?.direction
 
 internal fun readerHardwareKeyActionForKeyEvent(
@@ -42,6 +49,7 @@ internal fun readerHardwareKeyActionForKeyEvent(
     sasayakiEnabled: Boolean,
     hasSasayakiAudio: Boolean,
     hasLookupPopup: Boolean = false,
+    readAloudActive: Boolean = false,
 ): ReaderHardwareKeyAction? =
     readerHardwareKeyEventForKeyEvent(
         keyCode = keyCode,
@@ -51,6 +59,7 @@ internal fun readerHardwareKeyActionForKeyEvent(
         sasayakiEnabled = sasayakiEnabled,
         hasSasayakiAudio = hasSasayakiAudio,
         hasLookupPopup = hasLookupPopup,
+        readAloudActive = readAloudActive,
     ).action
 
 internal fun readerHardwareKeyEventForKeyEvent(
@@ -61,6 +70,7 @@ internal fun readerHardwareKeyEventForKeyEvent(
     sasayakiEnabled: Boolean,
     hasSasayakiAudio: Boolean,
     hasLookupPopup: Boolean = false,
+    readAloudActive: Boolean = false,
 ): ReaderHardwareKeyEventResult {
     return when (keyCode) {
         KeyEvent.KEYCODE_PAGE_DOWN -> pageKeyResult(
@@ -82,6 +92,7 @@ internal fun readerHardwareKeyEventForKeyEvent(
             sasayakiEnabled = sasayakiEnabled,
             hasSasayakiAudio = hasSasayakiAudio,
             hasLookupPopup = hasLookupPopup,
+            readAloudActive = readAloudActive,
         )
         else -> ReaderHardwareKeyEventResult(consumed = false)
     }
@@ -108,6 +119,7 @@ private fun volumeKeyResult(
     sasayakiEnabled: Boolean,
     hasSasayakiAudio: Boolean,
     hasLookupPopup: Boolean,
+    readAloudActive: Boolean,
 ): ReaderHardwareKeyEventResult {
     val keyAction = readerVolumeKeyAction(
         keyCode = keyCode,
@@ -115,6 +127,7 @@ private fun volumeKeyResult(
         sasayakiEnabled = sasayakiEnabled,
         hasSasayakiAudio = hasSasayakiAudio,
         hasLookupPopup = hasLookupPopup,
+        readAloudActive = readAloudActive,
     ) ?: return ReaderHardwareKeyEventResult(consumed = false)
     return ReaderHardwareKeyEventResult(
         consumed = true,
@@ -128,7 +141,16 @@ private fun readerVolumeKeyAction(
     sasayakiEnabled: Boolean,
     hasSasayakiAudio: Boolean,
     hasLookupPopup: Boolean,
+    readAloudActive: Boolean,
 ): ReaderHardwareKeyAction? {
+    if (settings.volumeKeysControlReadAloud && readAloudActive) {
+        return ReaderHardwareKeyAction.ReadAloudSentenceNavigation(
+            readAloudSentenceDirectionForVolumeKey(
+                keyCode = keyCode,
+                reverseDirection = settings.reverseVolumeKeyDirection,
+            ),
+        )
+    }
     if (settings.volumeKeysNavigatePopupTerms && hasLookupPopup) {
         return ReaderHardwareKeyAction.PopupTermNavigation(
             popupTermNavigationDirectionForVolumeKey(
@@ -151,6 +173,24 @@ private fun readerVolumeKeyAction(
         ),
     )
 }
+
+private fun readAloudSentenceDirectionForVolumeKey(
+    keyCode: Int,
+    reverseDirection: Boolean,
+): ReadAloudSentenceNavigationDirection =
+    when (keyCode) {
+        KeyEvent.KEYCODE_VOLUME_UP -> if (reverseDirection) {
+            ReadAloudSentenceNavigationDirection.Previous
+        } else {
+            ReadAloudSentenceNavigationDirection.Next
+        }
+        KeyEvent.KEYCODE_VOLUME_DOWN -> if (reverseDirection) {
+            ReadAloudSentenceNavigationDirection.Next
+        } else {
+            ReadAloudSentenceNavigationDirection.Previous
+        }
+        else -> error("Unsupported volume key: $keyCode")
+    }
 
 private fun popupTermNavigationDirectionForVolumeKey(
     keyCode: Int,
