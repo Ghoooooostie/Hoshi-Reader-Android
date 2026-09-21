@@ -24,20 +24,55 @@
     if (element.querySelector(TARGET_SELECTOR)) return false;
     var display = global.getComputedStyle(element).display;
     if (display !== 'block' && display !== 'list-item' && display !== 'table-cell') return false;
-    return extractTargetText(element).length > 0;
+    return hasMatchableText(extractTargetText(element));
   }
 
   function collectCandidateElements() {
     var elements = Array.from(document.body.querySelectorAll(TARGET_SELECTOR));
-    Array.from(document.body.children).forEach(function(child) {
-      if (elements.indexOf(child) >= 0) return;
-      if (isStandaloneBlock(child)) {
-        elements.push(child);
-      }
-    });
+    // 递归遍历 body 下所有后代块级元素，捕获 TARGET_SELECTOR 之外的独立块
+    // （如 EPUB 中常见的 <div> 段落）。原实现只检查 document.body.children，
+    // 在 VN 等深层嵌套结构（正文位于 body > stage > screen > content 之下）会漏掉
+    // 嵌套段落，导致朗读队列为空、双击无法开始播放。
+    walkStandaloneBlocks(document.body, elements);
     return elements.filter(function(element) {
-      return extractTargetText(element).length > 0;
+      return hasMatchableText(extractTargetText(element));
     });
+  }
+
+  function walkStandaloneBlocks(root, collected) {
+    Array.prototype.forEach.call(root.children, function(child) {
+      if (collected.indexOf(child) >= 0) return;
+      if (child.classList && child.classList.contains(TRANSLATION_CLASS)) return;
+      if (child.querySelector(TARGET_SELECTOR)) {
+        // 内部已有更细的 target 元素（已由 querySelectorAll 收集），
+        // 仍向下递归以捕获同级的独立块（如与 <p> 并列的 <div> 段落）。
+        walkStandaloneBlocks(child, collected);
+        return;
+      }
+      if (isStandaloneBlock(child)) {
+        // 自身是独立块，但内部还有更细的独立块时交给后代收集，
+        // 避免把多段文字合并成一段。
+        if (!standaloneBlockDescendantExists(child)) {
+          collected.push(child);
+        } else {
+          walkStandaloneBlocks(child, collected);
+        }
+        return;
+      }
+      // 非独立块容器：继续向下递归。
+      walkStandaloneBlocks(child, collected);
+    });
+  }
+
+  function standaloneBlockDescendantExists(element) {
+    var children = Array.prototype.slice.call(element.children);
+    for (var i = 0; i < children.length; i++) {
+      var c = children[i];
+      if (c.classList && c.classList.contains(TRANSLATION_CLASS)) continue;
+      if (isStandaloneBlock(c)) return true;
+      if (standaloneBlockDescendantExists(c)) return true;
+    }
+    return false;
   }
 
   function extractTargetText(element) {
@@ -48,10 +83,15 @@
     });
     var text = (clone.textContent || '').replace(/\s+/g, ' ').trim();
     if (!text) return '';
-    if (global.hoshiReader && typeof global.hoshiReader.normalizeText === 'function') {
-      text = global.hoshiReader.normalizeText(text);
+    return text;
+  }
+
+  function hasMatchableText(text) {
+    if (!text) return false;
+    if (global.hoshiReader && typeof global.hoshiReader.countChars === 'function') {
+      return global.hoshiReader.countChars(text) > 0;
     }
-    return String(text || '').replace(/\s+/g, ' ').trim();
+    return text.length > 0;
   }
 
   function ensureTargetId(element, index) {

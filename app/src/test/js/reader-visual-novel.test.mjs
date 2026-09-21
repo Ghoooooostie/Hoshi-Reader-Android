@@ -8,6 +8,7 @@ const readerViewportUrl = new URL('../../main/assets/hoshi-web/reader/reader-vie
 const readerTextSemanticsUrl = new URL('../../main/assets/hoshi-web/reader/reader-text-semantics.js', import.meta.url);
 const readerMediaSemanticsUrl = new URL('../../main/assets/hoshi-web/reader/reader-media-semantics.js', import.meta.url);
 const readerVnContentStreamUrl = new URL('../../main/assets/hoshi-web/reader/reader-vn-content-stream.js', import.meta.url);
+const readerTranslationUrl = new URL('../../main/assets/hoshi-web/reader/reader-translation.js', import.meta.url);
 const readerVnRangeMapUrl = new URL('../../main/assets/hoshi-web/reader/reader-vn-range-map.js', import.meta.url);
 const readerVnSelectionProjectionUrl = new URL('../../main/assets/hoshi-web/reader/reader-vn-selection-projection.js', import.meta.url);
 const readerHighlightsUrl = new URL('../../main/assets/hoshi-web/reader/highlights.js', import.meta.url);
@@ -39,6 +40,10 @@ function readerMediaSemanticsSource() {
     return fs.readFileSync(readerMediaSemanticsUrl, 'utf8');
 }
 
+function readerTranslationSource() {
+    return fs.readFileSync(readerTranslationUrl, 'utf8');
+}
+
 function readerHighlightsSource() {
     return fs.readFileSync(readerHighlightsUrl, 'utf8');
 }
@@ -62,6 +67,7 @@ function readerSource() {
             '__HOSHI_READER_LAYOUT_SEMANTICS_SCRIPT__',
             'window.hoshiReaderLayoutSemantics = { sanitizeInlineBlocks: function() {} };',
         )
+        .replaceAll('__HOSHI_READER_TRANSLATION_SCRIPT__', readerTranslationSource())
         .replaceAll('__HOSHI_READER_VN_CONTENT_STREAM_SCRIPT__', readerVnContentStreamSource())
         .replaceAll('__HOSHI_READER_VN_RANGE_MAP_SCRIPT__', readerVnRangeMapSource())
         .replaceAll('__HOSHI_READER_VN_SELECTION_PROJECTION_SCRIPT__', readerVnSelectionProjectionSource())
@@ -88,6 +94,7 @@ function configuredReaderSource(options = {}) {
             '__HOSHI_READER_LAYOUT_SEMANTICS_SCRIPT__',
             options.layoutSemanticsScript ?? 'window.hoshiReaderLayoutSemantics = { sanitizeInlineBlocks: function() {} };',
         )
+        .replaceAll('__HOSHI_READER_TRANSLATION_SCRIPT__', options.translationScript ?? readerTranslationSource())
         .replaceAll('__HOSHI_READER_VN_CONTENT_STREAM_SCRIPT__', options.contentStreamScript ?? readerVnContentStreamSource())
         .replaceAll('__HOSHI_READER_VN_RANGE_MAP_SCRIPT__', options.rangeMapScript ?? readerVnRangeMapSource())
         .replaceAll(
@@ -129,6 +136,10 @@ class TestNode {
 
     get firstChild() {
         return this.childNodes?.[0] ?? null;
+    }
+
+    get children() {
+        return (this.childNodes ?? []).filter((child) => child.nodeType === 1);
     }
 
     get previousSibling() {
@@ -642,6 +653,8 @@ function matchesSelector(node, selector) {
         return node.classList.contains(selector.slice(1));
     }
     if (selector.startsWith('[') && selector.endsWith(']')) {
+        const valued = selector.match(/^\[\s*([\w-]+)\s*=\s*"([^"]*)"\s*\]$/);
+        if (valued) return node.getAttribute(valued[1]) === valued[2];
         return node.hasAttribute(selector.slice(1, -1));
     }
     const tagAttributeMatch = selector.match(/^([a-z]+)\[([a-z]+)="([^"]+)"\]$/i);
@@ -1122,6 +1135,41 @@ test('visual novel reader uses shared text semantics', () => {
 
     assert.equal(reader.countChars('一、二'), 2);
     assert.equal(countCalls, 1);
+});
+
+test('visual novel exposes the read aloud target contract for the visible screen', async () => {
+    const loaded = await initializeReader(
+        bodyWith(p('家電製品らしきものも見当たらない。'), p('明かりも電球ではない。')),
+        { mode: 'block', revealSpeed: 0 },
+    );
+    const translation = loaded.window.hoshiReaderPageTranslation;
+    assert.ok(translation, 'VN must expose hoshiReaderPageTranslation for read aloud');
+    assert.equal(typeof translation.targetAtPoint, 'function');
+    assert.equal(typeof translation.collectVisibleTargets, 'function');
+
+    const targets = JSON.parse(translation.collectVisibleTargets());
+    assert.deepEqual(targets.map((target) => target.text), ['家電製品らしきものも見当たらない。']);
+
+    loaded.document.elementFromPoint = () => currentScreen(loaded.reader).querySelector('p');
+    const hit = JSON.parse(translation.targetAtPoint(12, 24, true));
+    assert.equal(hit.id, targets[0].id);
+    assert.equal(hit.text, '家電製品らしきものも見当たらない。');
+    assert.equal(hit.onTranslation, false);
+});
+
+test('visual novel read aloud highlight targets the cloned screen paragraph', async () => {
+    const loaded = await initializeReader(bodyWith(p('家電製品らしきものも見当たらない。')), {
+        mode: 'block',
+        revealSpeed: 0,
+    });
+    const translation = loaded.window.hoshiReaderPageTranslation;
+    const paragraph = currentScreen(loaded.reader).querySelector('p');
+    const targetId = JSON.parse(translation.collectVisibleTargets())[0].id;
+
+    assert.equal(translation.highlightReadAloudTarget(targetId, false), true);
+    assert.equal(paragraph.classList.contains('hoshi-read-aloud-active'), true);
+    assert.equal(translation.clearReadAloudHighlight(), true);
+    assert.equal(paragraph.classList.contains('hoshi-read-aloud-active'), false);
 });
 
 test('block mode renders one top-level block per screen without cloning the entire chapter', async () => {

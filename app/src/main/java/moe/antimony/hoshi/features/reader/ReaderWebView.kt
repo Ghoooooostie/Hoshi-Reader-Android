@@ -2418,6 +2418,37 @@ fun ReaderWebView(
             onToggleFocusMode = ::handleReaderTapOutside,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
+        // VN 一屏通常只有一句，朗读队列里没有"上一句/下一句"可跳，此时按屏跳转继续朗读。
+        fun skipReadAloudToScreen(direction: ReaderNavigationDirection) {
+            val currentWebView = webView
+            if (currentWebView == null) {
+                readAloudViewModel.pause()
+                return
+            }
+            currentWebView.evaluateJavascript(
+                ReaderPaginationScripts.paginateInvocation(direction),
+            ) { result ->
+                // 已在章节首/末，无处可跳：保持当前会话，不中断朗读。
+                if (!ReaderPaginationScripts.didScroll(result)) return@evaluateJavascript
+                currentWebView.evaluateJavascript(
+                    ReaderPaginationScripts.progressInvocation(),
+                ) { progressResult ->
+                    ReaderPaginationScripts.doubleResult(progressResult)?.let { progress ->
+                        saveDisplayedProgress(progress)
+                    }
+                }
+                scope.launch {
+                    delay(if (readAloudSettings.readAloudByPage) 600L else 250L)
+                    collectVisibleReaderPageTranslationTargets { visible ->
+                        val items = readAloudQueueItems(visible, readAloudSettings.readAloudByPage)
+                        if (items.isEmpty()) return@collectVisibleReaderPageTranslationTargets
+                        lastReadAloudParagraphId = visible.lastOrNull()?.id
+                        readAloudViewModel.continueWith(items)
+                    }
+                }
+            }
+        }
+
         val useSasayakiBar = sasayakiBottomPlaybackControls.visible
         val readAloudBottomPlaybackControls = readerReadAloudBottomPlaybackControls(
             isActive = readAloudState.isActive,
@@ -2428,7 +2459,14 @@ fun ReaderWebView(
         val onSkipBackward: () -> Unit = if (useSasayakiBar) {
             { performSasayakiBottomSkipAction(sasayakiBottomSkipButtonActions.left) }
         } else {
-            { readAloudViewModel.skipPrevious() }
+            {
+                // VN 一屏通常只有一句，队列里没有"上一句"：退到上一屏继续读。
+                if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel && readAloudState.currentIndex <= 0) {
+                    skipReadAloudToScreen(ReaderNavigationDirection.Backward)
+                } else {
+                    readAloudViewModel.skipPrevious()
+                }
+            }
         }
         val onTogglePlayback: () -> Unit = if (useSasayakiBar) {
             { sasayakiPlayer?.togglePlayback() }
@@ -2438,7 +2476,17 @@ fun ReaderWebView(
         val onSkipForward: () -> Unit = if (useSasayakiBar) {
             { performSasayakiBottomSkipAction(sasayakiBottomSkipButtonActions.right) }
         } else {
-            { readAloudViewModel.skipNext() }
+            {
+                // VN 一屏通常只有一句，队列里没有"下一句"：翻到下一屏继续读。
+                if (
+                    effectiveSettings.viewMode == ReaderViewMode.VisualNovel &&
+                    readAloudState.currentIndex >= readAloudState.items.lastIndex
+                ) {
+                    skipReadAloudToScreen(ReaderNavigationDirection.Forward)
+                } else {
+                    readAloudViewModel.skipNext()
+                }
+            }
         }
         val playing = if (useSasayakiBar) sasayakiPlayer?.isPlaying == true else readAloudState.isPlaying
         ReaderBottomSafeProgress(

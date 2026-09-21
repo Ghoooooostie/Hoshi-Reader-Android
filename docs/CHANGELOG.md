@@ -47,6 +47,7 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   until the chapter ends. New Read Aloud settings add: ignore audio focus, pause
   during phone calls, keep the service awake (wake lock), media-button previous/next
   mapped to paragraphs, read by page, and a shortcut to the system TTS settings.
+  Read Aloud works in paginated, continuous and Visual Novel reading modes.
 - Add a Read Aloud option to start speaking from the sentence you trigger with the sentence
   gesture. When enabled in the Read Aloud settings, the sentence gesture both shows the
   translation and begins reading from that sentence, then continues through the chapter in order.
