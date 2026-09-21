@@ -188,7 +188,6 @@ function popupContext({
         return element;
     };
     const documentListeners = new Map();
-    const entriesContainer = new FakeElement();
     const searchTextContainer = new FakeElement();
     const overlay = new FakeElement();
     const document = {
@@ -1101,7 +1100,9 @@ test('popup inserts the advanced ai card before dictionary entries', () => {
 
     assert.equal(container.children[0].className, 'advanced-ai-card');
     assert.equal(container.children[0].dataset.status, 'success');
-    assert.equal(container.children[0].children[0].textContent, 'AI 词语分析');
+    const header = container.children[0].children[0];
+    assert.equal(header.className, 'advanced-ai-card-header');
+    assert.equal(header.children[0].textContent, 'AI 词语分析');
     assert.equal(container.children[1], existingEntry);
 });
 
@@ -1119,7 +1120,41 @@ test('popup renders the advanced ai card even when there are no dictionary entri
 
     assert.equal(entriesContainer.children.length, 1);
     assert.equal(entriesContainer.children[0].className, 'advanced-ai-card');
-    assert.equal(entriesContainer.children[0].children[0].textContent, '长难句分析');
+    const header2 = entriesContainer.children[0].children[0];
+    assert.equal(header2.className, 'advanced-ai-card-header');
+    assert.equal(header2.children[0].textContent, '长难句分析');
+});
+
+test('popup advanced ai card is collapsed by default and toggles on header click', () => {
+    const { context } = popupContext();
+    const container = new FakeElement([], 'div');
+
+    const card = context.insertAdvancedAiCard(container, {
+        title: 'AI 词语分析',
+        status: 'success',
+        body: '这里是句中的谓语动词。',
+    });
+
+    assert.ok(card);
+    assert.equal(card.className, 'advanced-ai-card');
+    assert.equal(card.dataset.collapsed, 'true');
+
+    const header = card.children[0];
+    assert.equal(header.className, 'advanced-ai-card-header');
+    const title = header.children[0];
+    assert.equal(title.className, 'advanced-ai-card-title');
+    assert.equal(title.textContent, 'AI 词语分析');
+    const toggle = header.children[1];
+    assert.equal(toggle.className, 'advanced-ai-card-toggle');
+
+    const body = card.children.find((child) => child.className === 'advanced-ai-card-body');
+    assert.ok(body);
+
+    header.dispatch('click', { preventDefault() {}, stopPropagation() {} });
+    assert.equal(card.dataset.collapsed, 'false');
+
+    header.dispatch('click', { preventDefault() {}, stopPropagation() {} });
+    assert.equal(card.dataset.collapsed, 'true');
 });
 
 test('popup renders each deinflection trace candidate as its own tag row', () => {

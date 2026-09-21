@@ -76,11 +76,42 @@ body {
     background: transparent;
 }
 
+.advanced-ai-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    margin-bottom: 6px;
+}
+
 .advanced-ai-card-title {
     font-size: 12px;
     font-weight: 600;
     opacity: 0.76;
-    margin-bottom: 6px;
+}
+
+.advanced-ai-card-toggle {
+    flex: 0 0 auto;
+    width: 0;
+    height: 0;
+    margin-left: 8px;
+    border-style: solid;
+    border-width: 5px 0 5px 7px;
+    border-color: transparent transparent transparent currentColor;
+    opacity: 0.72;
+}
+
+.advanced-ai-card:not([data-collapsed="true"]) .advanced-ai-card-toggle {
+    border-width: 7px 5px 0 5px;
+    border-color: currentColor transparent transparent transparent;
+    margin-top: -2px;
+    margin-bottom: -2px;
+}
+
+.advanced-ai-card[data-collapsed="true"] .advanced-ai-card-mode-switch,
+.advanced-ai-card[data-collapsed="true"] .advanced-ai-card-body {
+    display: none;
 }
 
 .advanced-ai-card-mode-switch {

@@ -26,6 +26,12 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   frozen for seconds. A blank-area tap now closes an already-open popup directly
   without the probe.
 
+### Changed
+
+- The long-press lookup popup's advanced AI analysis card now defaults to
+  collapsed; tap its header to expand it. This keeps the popup focused on the
+  dictionary result on first open.
+
 ### Added
 
 - Add Read Aloud in the reader menu. It opens a settings popup where you pick the

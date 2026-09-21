@@ -354,10 +354,21 @@ function createAdvancedAiCard(advancedAi) {
     }
     const card = el('section', { className: 'advanced-ai-card' });
     card.setAttribute('data-status', advancedAi.status || 'success');
-    card.appendChild(el('div', {
+    card.setAttribute('data-collapsed', 'true');
+
+    const header = el('div', { className: 'advanced-ai-card-header' });
+    header.appendChild(el('div', {
         className: 'advanced-ai-card-title',
         textContent: advancedAi.title,
     }));
+    header.appendChild(el('div', { className: 'advanced-ai-card-toggle' }));
+    header.addEventListener('click', (event) => {
+        event.preventDefault();
+        const collapsed = card.getAttribute('data-collapsed') === 'true';
+        card.setAttribute('data-collapsed', collapsed ? 'false' : 'true');
+    });
+    card.appendChild(header);
+
     const modeOptions = Array.isArray(advancedAi.modeOptions) ? advancedAi.modeOptions : [];
     if (modeOptions.length > 1 && window.webkit?.messageHandlers?.switchAdvancedAiMode) {
         const selector = el('div', { className: 'advanced-ai-card-mode-switch' });
