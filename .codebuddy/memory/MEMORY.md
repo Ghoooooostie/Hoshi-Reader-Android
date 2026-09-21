@@ -56,3 +56,7 @@
 - 症状"调了语速没效果"的根因（本地引擎）：`LocalReadAloudEngine.kt` 的 `GenerationConfig` 只设了 `extra = mapOf("lang" to "ja")`，没把 `"speed"` 放进 `extra`，若 JNI 没转发顶层 `speed` 即静默用默认 1.0。修复：生成时 `extra = mapOf("lang" to "ja", "speed" to speechRate.toString())`，让 Supertonic 一定从 extra 读到语速。
 - System 引擎只能靠 `TextToSpeech.setSpeechRate()`（对象级），标准 Android SDK 无 `KEY_PARAM_RATE` 这种公开按句语速常量（只有 `KEY_PARAM_STREAM/VOLUME/UTTERANCE_ID/SESSION_ID/PAN`），不要引用 `KEY_PARAM_RATE`，否则编译失败。部分设备日文语音忽略对象级 setSpeechRate 时应用层无标准解法。
 - 验证：`app\src\main\java\moe\antimony\hoshi\features\readaloud\LocalReadAloudEngine.kt` 与 `SystemReadAloudEngine.kt`；编译 `:app:compileDebugKotlin` BUILD SUCCESSFUL。
+
+## 朗读换引擎即时生效（durable）
+- 朗读会话正在播放时切换引擎（`engineId` 系统/本地，或在系统引擎下切换具体语音 `selectedSystemEngineName`）原本不会即时生效：`playFrom` 只在 start/resume/skip 时 `selectEngine()`，正在跑的句子循环一直持有旧引擎引用，要等暂停+恢复或跳句才换。
+- 修复在 `ReadAloudController.kt` 的 init 设置收集器里：记录 `prevEngineId`/`prevSelectedSystemEngineName`，当 `engineId` 变化（或系统引擎下 `selectedSystemEngineName` 变化）且 `isActive && isPlaying` 时，`playbackJob?.cancel()` + `activeEngine.stop()` + `playFrom(currentIndex)` 用新引擎从当前句重启。仅在真正影响当前引擎时才重启（本地引擎下改系统语音不重启）。语速变化不触发重启，靠每句 `setSpeechRate` 自然生效。

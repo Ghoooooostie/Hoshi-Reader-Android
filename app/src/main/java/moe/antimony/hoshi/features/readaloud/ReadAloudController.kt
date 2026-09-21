@@ -100,6 +100,8 @@ class ReadAloudController @Inject constructor(
     private var sleepTimerJob: Job? = null
 
     init {
+        var prevEngineId: ReadAloudEngineId? = null
+        var prevSelectedSystemEngineName: String? = null
         applicationScope.launch {
             settingsRepository.settings.collect { settings ->
                 speechRate = settings.speechRate
@@ -109,6 +111,21 @@ class ReadAloudController @Inject constructor(
                 if (!settings.pauseWhilePhoneCalls) unregisterPhoneStateListener()
                 systemEngine.setSpeechRate(settings.speechRate)
                 localEngine.setSpeechRate(settings.speechRate)
+
+                // 切换引擎（系统/本地，或在系统引擎下切换具体语音）后即时生效：
+                // 正在朗读时用新引擎从当前句重新开始，避免继续用旧引擎读完本章。
+                val engineBackendChanged = settings.engineId != prevEngineId
+                val systemVoiceChanged = settings.selectedSystemEngineName != prevSelectedSystemEngineName
+                val affectsActive = engineBackendChanged ||
+                    (systemVoiceChanged && settings.engineId == ReadAloudEngineId.System)
+                prevEngineId = settings.engineId
+                prevSelectedSystemEngineName = settings.selectedSystemEngineName
+                if (affectsActive && mutableState.value.isActive && mutableState.value.isPlaying) {
+                    val restartAt = mutableState.value.currentIndex.coerceAtLeast(0)
+                    playbackJob?.cancel()
+                    activeEngine.stop()
+                    playFrom(restartAt)
+                }
             }
         }
     }
