@@ -161,11 +161,27 @@ internal fun ChapterWebView(
     val readerContentReloadKey = remember(readerSettings) {
         readerSettings.readerContentReloadKey()
     }
+    val vnBackgroundImageCss = remember(
+        readerSettings.viewMode,
+        readerSettings.vnBackgroundEnabled,
+        readerSettings.vnBackgroundImagePath,
+    ) {
+        if (
+            readerSettings.viewMode == ReaderViewMode.VisualNovel &&
+            readerSettings.vnBackgroundEnabled &&
+            !readerSettings.vnBackgroundImagePath.isNullOrEmpty()
+        ) {
+            ReaderVnBackgroundStore.cssUrl(context) ?: "none"
+        } else {
+            "none"
+        }
+    }
     val appearanceUpdateKey = readerAppearanceUpdateKey(
         settings = readerSettings,
         systemDark = systemDark,
         sasayakiTextColor = sasayakiTextColor,
         sasayakiBackgroundColor = sasayakiBackgroundColor,
+        vnBackgroundImageCss = vnBackgroundImageCss,
     )
     val readerAppearanceScript = remember(appearanceUpdateKey) {
         readerAppearanceScript(appearanceUpdateKey)
@@ -616,6 +632,7 @@ internal data class ReaderAppearanceUpdateKey(
     val visualNovelRevealSpeed: Int,
     val sasayakiTextColorCss: String,
     val sasayakiBackgroundColorCss: String,
+    val vnBackgroundImageCss: String = "none",
 )
 
 internal fun readerAppearanceUpdateKey(
@@ -623,6 +640,7 @@ internal fun readerAppearanceUpdateKey(
     systemDark: Boolean,
     sasayakiTextColor: Long,
     sasayakiBackgroundColor: Long,
+    vnBackgroundImageCss: String = "none",
 ): ReaderAppearanceUpdateKey =
     ReaderAppearanceUpdateKey(
         backgroundColorCss = settings.backgroundColorCss(systemDark),
@@ -633,6 +651,7 @@ internal fun readerAppearanceUpdateKey(
         visualNovelRevealSpeed = settings.visualNovelRevealSpeed.coerceIn(0, 120),
         sasayakiTextColorCss = sasayakiTextColor.toReaderCssColor(),
         sasayakiBackgroundColorCss = sasayakiBackgroundColor.toReaderCssColor(includeAlpha = true),
+        vnBackgroundImageCss = vnBackgroundImageCss,
     )
 
 internal fun readerWebViewLoadKey(
@@ -1114,6 +1133,7 @@ private fun readerAppearanceScript(
     val visualNovelRevealSpeed = appearanceUpdateKey.visualNovelRevealSpeed
     val sasayakiText = readerJavaScriptStringLiteral(appearanceUpdateKey.sasayakiTextColorCss)
     val sasayakiBackground = readerJavaScriptStringLiteral(appearanceUpdateKey.sasayakiBackgroundColorCss)
+    val vnBackgroundImage = readerJavaScriptStringLiteral(appearanceUpdateKey.vnBackgroundImageCss)
     return """
         (function() {
           document.documentElement.style.setProperty('--hoshi-background-color', $backgroundColor);
@@ -1125,6 +1145,7 @@ private fun readerAppearanceScript(
           window.hoshiReader?.setRevealSpeed?.($visualNovelRevealSpeed);
           document.documentElement.style.setProperty('--hoshi-sasayaki-text-color', $sasayakiText);
           document.documentElement.style.setProperty('--hoshi-sasayaki-background-color', $sasayakiBackground);
+          document.documentElement.style.setProperty('--hoshi-vn-background-image', $vnBackgroundImage);
           window.hoshiReader?.refreshSasayakiCuePresentation?.();
         })();
     """.trimIndent()

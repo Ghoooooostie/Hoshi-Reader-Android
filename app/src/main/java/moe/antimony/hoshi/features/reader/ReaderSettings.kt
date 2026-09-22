@@ -108,6 +108,9 @@ data class ReaderSettings(
     val visualNovelPreserveDialogueBubbles: Boolean = false,
     val visualNovelClickAdvance: Boolean = false,
     val visualNovelMergeCrossScreenSasayakiCues: Boolean = false,
+    val vnBackgroundEnabled: Boolean = false,
+    val vnBackgroundColor: Long = 0xFF000000,
+    val vnBackgroundImagePath: String? = null,
     val statisticsAutostartOnBookOpen: Boolean = false,
     val statisticsAutostartOnPageTurn: Boolean = false,
     val statisticsResetMinutes: Int = 0,
@@ -220,6 +223,9 @@ data class ReaderSettings(
         get() = if (verticalWriting) "0" else "${(horizontalPadding / 2.0).cssNumber()}vw"
 
     fun backgroundColor(systemDark: Boolean): Long {
+        if (viewMode == ReaderViewMode.VisualNovel && vnBackgroundEnabled) {
+            return vnBackgroundColor
+        }
         displaySettings?.let { return resolveDisplaySettings(it, systemDark).backgroundColor }
         if (eInkMode) {
             return if (usesDarkInterface(systemDark)) 0xFF000000 else 0xFFFFFFFF
@@ -233,13 +239,18 @@ data class ReaderSettings(
         }
     }
 
-    fun backgroundColorCss(systemDark: Boolean): String =
-        backgroundColor(systemDark).toReaderCssColor(
-            includeAlpha = displaySettings?.let {
+    fun backgroundColorCss(systemDark: Boolean): String {
+        val color = backgroundColor(systemDark)
+        val includeAlpha = if (viewMode == ReaderViewMode.VisualNovel && vnBackgroundEnabled) {
+            color.readerColorAlpha() != 0xFF
+        } else {
+            displaySettings?.let {
                 val resolved = resolveDisplaySettings(it, systemDark)
                 !resolved.eInkMode && resolved.palette == DisplayPalettePreset.Custom
-            } ?: (!eInkMode && theme == ReaderTheme.Custom),
-        )
+            } ?: (!eInkMode && theme == ReaderTheme.Custom)
+        }
+        return color.toReaderCssColor(includeAlpha = includeAlpha)
+    }
 
     fun textColorCss(systemDark: Boolean): String {
         displaySettings?.let { global ->
@@ -522,6 +533,9 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
             "visualNovelMergeCrossScreenSasayakiCues",
             false,
         ),
+        vnBackgroundEnabled = preferences.getBoolean("vnBackgroundEnabled", false),
+        vnBackgroundColor = preferences.getLong("vnBackgroundColor", 0xFF000000),
+        vnBackgroundImagePath = preferences.getString("vnBackgroundImagePath", null),
         statisticsAutostartOnBookOpen = if (preferences.contains("statisticsAutostartOnBookOpen")) {
             preferences.getBoolean("statisticsAutostartOnBookOpen", false)
         } else {
@@ -616,6 +630,9 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
             .putBoolean("visualNovelPreserveDialogueBubbles", settings.visualNovelPreserveDialogueBubbles)
             .putBoolean("visualNovelClickAdvance", settings.visualNovelClickAdvance)
             .putBoolean("visualNovelMergeCrossScreenSasayakiCues", settings.visualNovelMergeCrossScreenSasayakiCues)
+            .putBoolean("vnBackgroundEnabled", settings.vnBackgroundEnabled)
+            .putLong("vnBackgroundColor", settings.vnBackgroundColor)
+            .putString("vnBackgroundImagePath", settings.vnBackgroundImagePath)
             .putBoolean("statisticsAutostartOnBookOpen", settings.statisticsAutostartOnBookOpen)
             .putBoolean("statisticsAutostartOnPageTurn", settings.statisticsAutostartOnPageTurn)
             .remove("statisticsAutostartMode")
@@ -818,6 +835,9 @@ class ReaderSettingsRepository(
             visualNovelPreserveDialogueBubbles = this[KEY_VISUAL_NOVEL_PRESERVE_DIALOGUE_BUBBLES] ?: false,
             visualNovelClickAdvance = this[KEY_VISUAL_NOVEL_CLICK_ADVANCE] ?: false,
             visualNovelMergeCrossScreenSasayakiCues = this[KEY_VISUAL_NOVEL_MERGE_CROSS_SCREEN_SASAYAKI_CUES] ?: false,
+            vnBackgroundEnabled = this[KEY_VN_BACKGROUND_ENABLED] ?: false,
+            vnBackgroundColor = this[KEY_VN_BACKGROUND_COLOR] ?: 0xFF000000,
+            vnBackgroundImagePath = this[KEY_VN_BACKGROUND_IMAGE_PATH],
             statisticsAutostartOnBookOpen = this[KEY_STATISTICS_AUTOSTART_ON_BOOK_OPEN] ?: false,
             statisticsAutostartOnPageTurn = this[KEY_STATISTICS_AUTOSTART_ON_PAGE_TURN] ?: false,
             statisticsResetMinutes = this[KEY_STATISTICS_RESET_MINUTES] ?: 0,
@@ -904,6 +924,10 @@ class ReaderSettingsRepository(
         this[KEY_VISUAL_NOVEL_PRESERVE_DIALOGUE_BUBBLES] = settings.visualNovelPreserveDialogueBubbles
         this[KEY_VISUAL_NOVEL_CLICK_ADVANCE] = settings.visualNovelClickAdvance
         this[KEY_VISUAL_NOVEL_MERGE_CROSS_SCREEN_SASAYAKI_CUES] = settings.visualNovelMergeCrossScreenSasayakiCues
+        this[KEY_VN_BACKGROUND_ENABLED] = settings.vnBackgroundEnabled
+        this[KEY_VN_BACKGROUND_COLOR] = settings.vnBackgroundColor
+        settings.vnBackgroundImagePath?.let { this[KEY_VN_BACKGROUND_IMAGE_PATH] = it }
+            ?: remove(KEY_VN_BACKGROUND_IMAGE_PATH)
         this[KEY_STATISTICS_AUTOSTART_ON_BOOK_OPEN] = settings.statisticsAutostartOnBookOpen
         this[KEY_STATISTICS_AUTOSTART_ON_PAGE_TURN] = settings.statisticsAutostartOnPageTurn
         remove(KEY_STATISTICS_AUTOSTART_MODE)
@@ -1042,6 +1066,9 @@ class ReaderSettingsRepository(
         private val KEY_VISUAL_NOVEL_CLICK_ADVANCE = booleanPreferencesKey("visualNovelClickAdvance")
         private val KEY_VISUAL_NOVEL_MERGE_CROSS_SCREEN_SASAYAKI_CUES =
             booleanPreferencesKey("visualNovelMergeCrossScreenSasayakiCues")
+        private val KEY_VN_BACKGROUND_ENABLED = booleanPreferencesKey("vnBackgroundEnabled")
+        private val KEY_VN_BACKGROUND_COLOR = longPreferencesKey("vnBackgroundColor")
+        private val KEY_VN_BACKGROUND_IMAGE_PATH = stringPreferencesKey("vnBackgroundImagePath")
         private val KEY_STATISTICS_AUTOSTART_MODE = stringPreferencesKey("statisticsAutostartMode")
         private val KEY_STATISTICS_AUTOSTART_ON_BOOK_OPEN =
             booleanPreferencesKey("statisticsAutostartOnBookOpen")
@@ -1230,6 +1257,9 @@ private data class ProfileReaderAppearanceSettings(
     val visualNovelPreserveDialogueBubbles: Boolean = false,
     val visualNovelClickAdvance: Boolean = false,
     val visualNovelMergeCrossScreenSasayakiCues: Boolean = false,
+    val vnBackgroundEnabled: Boolean = false,
+    val vnBackgroundColor: Long = 0xFF000000,
+    val vnBackgroundImagePath: String? = null,
     val showStatisticsToggle: Boolean = false,
     val showReadingSpeed: Boolean = false,
     val showReadingTime: Boolean = false,
@@ -1296,6 +1326,9 @@ private fun ReaderSettings.toProfileAppearanceSettings(): ProfileReaderAppearanc
         visualNovelPreserveDialogueBubbles = visualNovelPreserveDialogueBubbles,
         visualNovelClickAdvance = visualNovelClickAdvance,
         visualNovelMergeCrossScreenSasayakiCues = visualNovelMergeCrossScreenSasayakiCues,
+        vnBackgroundEnabled = vnBackgroundEnabled,
+        vnBackgroundColor = vnBackgroundColor,
+        vnBackgroundImagePath = vnBackgroundImagePath,
         showStatisticsToggle = showStatisticsToggle,
         showReadingSpeed = showReadingSpeed,
         showReadingTime = showReadingTime,
@@ -1364,6 +1397,9 @@ private fun ReaderSettings.withProfileAppearance(appearance: ProfileReaderAppear
         visualNovelPreserveDialogueBubbles = appearance.visualNovelPreserveDialogueBubbles,
         visualNovelClickAdvance = appearance.visualNovelClickAdvance,
         visualNovelMergeCrossScreenSasayakiCues = appearance.visualNovelMergeCrossScreenSasayakiCues,
+        vnBackgroundEnabled = appearance.vnBackgroundEnabled,
+        vnBackgroundColor = appearance.vnBackgroundColor,
+        vnBackgroundImagePath = appearance.vnBackgroundImagePath,
         showStatisticsToggle = appearance.showStatisticsToggle,
         showReadingSpeed = appearance.showReadingSpeed,
         showReadingTime = appearance.showReadingTime,

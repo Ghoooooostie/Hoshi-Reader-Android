@@ -34,6 +34,10 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ### Added
 
+- Add a Visual Novel background setting. In Settings > Appearance (when the reading
+  mode is Visual Novel), enable "VN Background" and pick a color or choose an image
+  from your device; switching into VN mode uses that background, while
+  paginated/continuous modes keep using the normal background.
 - Add Read Aloud in the reader menu. It opens a settings popup where you pick the
   engine (system text-to-speech or a downloaded local model), a specific system TTS
   voice and the speech rate, then start speaking the Japanese text of the visible

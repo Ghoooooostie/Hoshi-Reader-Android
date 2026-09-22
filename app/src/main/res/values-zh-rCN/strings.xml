@@ -443,6 +443,10 @@
     <string name="reader_visual_novel_preserve_dialogue">对话保持同屏</string>
     <string name="reader_visual_novel_click_advance">点击空白处前进</string>
     <string name="reader_visual_novel_merge_cross_screen_sasayaki_cues">字幕文本同屏</string>
+    <string name="reader_visual_novel_background">VN 背景</string>
+    <string name="reader_visual_novel_background_color">VN 背景颜色</string>
+    <string name="reader_visual_novel_background_image">VN 背景图片</string>
+    <string name="reader_visual_novel_background_image_remove">移除 VN 背景图片</string>
     <string name="reader_appearance_chapter_swipe_distance">章节滑动距离</string>
     <string name="reader_appearance_page_swipe_threshold">翻页滑动阈值</string>
     <string name="reader_appearance_page_swipe_threshold_value">%1$d px</string>

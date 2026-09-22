@@ -362,7 +362,14 @@ internal object ReaderContentStyles {
                 HighlightColor.entries.joinToString("\n") {
                     ".hoshi-highlight-${it.rawValue} { background-color: ${it.cssBackground} !important; }"
                 },
-            )
+            ) + """
+            html, body {
+                background-image: var(--hoshi-vn-background-image) !important;
+                background-size: cover !important;
+                background-position: center center !important;
+                background-repeat: no-repeat !important;
+            }
+        """.trimIndent()
     }
 }
 

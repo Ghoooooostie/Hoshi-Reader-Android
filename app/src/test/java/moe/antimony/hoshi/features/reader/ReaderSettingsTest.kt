@@ -674,6 +674,52 @@ class ReaderSettingsTest {
     }
 
     @Test
+    fun visualNovelBackgroundReplacesContentBackgroundColor() {
+        val settings = ReaderSettings(
+            theme = ReaderTheme.Sepia,
+            viewMode = ReaderViewMode.VisualNovel,
+            vnBackgroundEnabled = true,
+            vnBackgroundColor = 0xFF1A2B3C,
+        )
+
+        assertEquals(0xFF1A2B3C, settings.backgroundColor(systemDark = false))
+        assertEquals(0xFF1A2B3C, settings.backgroundColor(systemDark = true))
+        assertEquals("#1a2b3c", settings.backgroundColorCss(systemDark = false).lowercase())
+        assertEquals("#1a2b3c", settings.backgroundColorCss(systemDark = true).lowercase())
+    }
+
+    @Test
+    fun visualNovelBackgroundKeepsThemeColorWhenDisabledOrOutsideVisualNovel() {
+        val outsideVisualNovel = ReaderSettings(
+            theme = ReaderTheme.Sepia,
+            viewMode = ReaderViewMode.Paginated,
+            vnBackgroundEnabled = true,
+            vnBackgroundColor = 0xFF1A2B3C,
+        )
+        assertEquals(0xFFF2E2C9, outsideVisualNovel.backgroundColor(systemDark = false))
+
+        val disabled = ReaderSettings(
+            theme = ReaderTheme.Sepia,
+            viewMode = ReaderViewMode.VisualNovel,
+            vnBackgroundEnabled = false,
+            vnBackgroundColor = 0xFF1A2B3C,
+        )
+        assertEquals(0xFFF2E2C9, disabled.backgroundColor(systemDark = false))
+    }
+
+    @Test
+    fun visualNovelBackgroundCssPreservesConfiguredAlpha() {
+        val settings = ReaderSettings(
+            theme = ReaderTheme.Dark,
+            viewMode = ReaderViewMode.VisualNovel,
+            vnBackgroundEnabled = true,
+            vnBackgroundColor = 0x801A2B3C,
+        )
+
+        assertEquals("#1a2b3c80", settings.backgroundColorCss(systemDark = false).lowercase())
+    }
+
+    @Test
     fun customReaderCssPreservesConfiguredColorAlpha() {
         val css = ReaderContentStyles.styleTag(
             settings = ReaderSettings(

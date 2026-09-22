@@ -432,6 +432,8 @@ class ReaderSettingsRepositoryTest {
                     visualNovelPreserveDialogueBubbles = true,
                     visualNovelClickAdvance = false,
                     visualNovelMergeCrossScreenSasayakiCues = true,
+                    vnBackgroundEnabled = true,
+                    vnBackgroundColor = 0xFF112233,
                     blurImages = true,
                     statisticsAutostartOnBookOpen = true,
                     statisticsAutostartOnPageTurn = true,
@@ -501,6 +503,8 @@ class ReaderSettingsRepositoryTest {
             assertTrue(saved.visualNovelPreserveDialogueBubbles)
             assertFalse(saved.visualNovelClickAdvance)
             assertTrue(saved.visualNovelMergeCrossScreenSasayakiCues)
+            assertTrue(saved.vnBackgroundEnabled)
+            assertEquals(0xFF112233L, saved.vnBackgroundColor)
             assertTrue(saved.blurImages)
             assertTrue(saved.statisticsAutostartOnBookOpen)
             assertTrue(saved.statisticsAutostartOnPageTurn)
@@ -580,6 +584,8 @@ class ReaderSettingsRepositoryTest {
                     readerAiFullPageTranslationEnabled = true,
                     readerAiLongPressMode = ReaderAiLongPressMode.Analysis,
                     visualNovelMergeCrossScreenSasayakiCues = true,
+                    vnBackgroundEnabled = true,
+                    vnBackgroundColor = 0xFF112233,
                     volumeKeysTurnPages = true,
                     volumeKeysNavigatePopupTerms = true,
                     lockCurrentOrientation = true,
@@ -600,6 +606,8 @@ class ReaderSettingsRepositoryTest {
             assertTrue(inherited.readerAiFullPageTranslationEnabled)
             assertEquals(ReaderAiLongPressMode.Analysis, inherited.readerAiLongPressMode)
             assertTrue(inherited.visualNovelMergeCrossScreenSasayakiCues)
+            assertTrue(inherited.vnBackgroundEnabled)
+            assertEquals(0xFF112233L, inherited.vnBackgroundColor)
             assertTrue(inherited.volumeKeysTurnPages)
             assertTrue(inherited.volumeKeysNavigatePopupTerms)
             assertTrue(inherited.lockCurrentOrientation)
@@ -617,6 +625,8 @@ class ReaderSettingsRepositoryTest {
                     readerAiFullPageTranslationEnabled = false,
                     readerAiLongPressMode = ReaderAiLongPressMode.Translation,
                     visualNovelMergeCrossScreenSasayakiCues = false,
+                    vnBackgroundEnabled = false,
+                    vnBackgroundColor = 0xFF445566,
                     volumeKeysTurnPages = false,
                     volumeKeysNavigatePopupTerms = false,
                     lockCurrentOrientation = false,
@@ -636,6 +646,8 @@ class ReaderSettingsRepositoryTest {
             assertTrue(japanese.readerAiFullPageTranslationEnabled)
             assertEquals(ReaderAiLongPressMode.Analysis, japanese.readerAiLongPressMode)
             assertTrue(japanese.visualNovelMergeCrossScreenSasayakiCues)
+            assertTrue(japanese.vnBackgroundEnabled)
+            assertEquals(0xFF112233L, japanese.vnBackgroundColor)
             assertFalse(japanese.volumeKeysTurnPages)
             assertFalse(japanese.volumeKeysNavigatePopupTerms)
             assertFalse(japanese.lockCurrentOrientation)

@@ -11,6 +11,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -63,7 +64,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import coil3.compose.AsyncImage
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -192,12 +195,24 @@ private fun ReaderAppearanceContent(
     var fontMenuExpanded by remember { mutableStateOf(false) }
     var fontVariantMenuExpanded by remember { mutableStateOf(false) }
     var fontToDelete by remember { mutableStateOf<ReaderFontFamily?>(null) }
+    var vnBackgroundPickerOpen by remember { mutableStateOf(false) }
     val fontImporter = rememberLauncherForActivityResult(FileImportContent()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         runCatching {
             context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         viewModel.importFont(context.contentResolver, uri)
+    }
+    val vnBackgroundImagePicker = rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+    ) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val saved = ReaderVnBackgroundStore.save(context, uri)
+        if (saved) {
+            currentOnSettingsChange { current ->
+                current.copy(vnBackgroundImagePath = ReaderVnBackgroundStore.storedRelPath())
+            }
+        }
     }
     val selectedFontSpec = remember(settings, fontUiState.library.revision) {
         fontManager.resolveRenderSpec(
@@ -534,6 +549,94 @@ private fun ReaderAppearanceContent(
                                     current.copy(visualNovelMergeCrossScreenSasayakiCues = checked)
                                 }
                             },
+                        )
+                    }
+                    AppearanceDivider(palette)
+                    SwitchRow(
+                        label = stringResource(R.string.reader_visual_novel_background),
+                        checked = settings.vnBackgroundEnabled,
+                        onCheckedChange = { checked ->
+                            onSettingsChange { current -> current.copy(vnBackgroundEnabled = checked) }
+                        },
+                    )
+                    if (settings.vnBackgroundEnabled) {
+                        AppearanceDivider(palette)
+                        ReaderColorSettingRow(
+                            label = stringResource(R.string.reader_visual_novel_background_color),
+                            color = settings.vnBackgroundColor,
+                            onClick = { vnBackgroundPickerOpen = true },
+                        )
+                        AppearanceDivider(palette)
+                        val vnImageFile = settings.vnBackgroundImagePath?.let { java.io.File(context.filesDir, it) }
+                        val metrics = readerSheetDensityMetrics()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { vnBackgroundImagePicker.launch("image/*") }
+                                .padding(
+                                    horizontal = 14.dp,
+                                    vertical = metrics.appearanceRowVerticalPaddingDp.dp,
+                                ),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.reader_visual_novel_background_image),
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            if (vnImageFile != null && vnImageFile.exists()) {
+                                AsyncImage(
+                                    model = vnImageFile,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(RoundedCornerShape(14.dp)),
+                                )
+                            }
+                        }
+                        if (settings.vnBackgroundImagePath != null) {
+                            AppearanceDivider(palette)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        ReaderVnBackgroundStore.clear(context)
+                                        onSettingsChange { current -> current.copy(vnBackgroundImagePath = null) }
+                                    }
+                                    .padding(
+                                        horizontal = 14.dp,
+                                        vertical = metrics.appearanceRowVerticalPaddingDp.dp,
+                                    ),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                                Text(
+                                    text = stringResource(R.string.reader_visual_novel_background_image_remove),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        }
+                    }
+                    if (vnBackgroundPickerOpen) {
+                        ReaderColorPickerDialog(
+                            title = stringResource(R.string.reader_visual_novel_background_color),
+                            initialColor = settings.vnBackgroundColor,
+                            defaultColor = 0xFF000000,
+                            onColorChange = { color ->
+                                onSettingsChange { current -> current.copy(vnBackgroundColor = color) }
+                                vnBackgroundPickerOpen = false
+                            },
+                            onDismiss = { vnBackgroundPickerOpen = false },
                         )
                     }
                     AppearanceDivider(palette)

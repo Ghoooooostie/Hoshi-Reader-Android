@@ -445,6 +445,10 @@
     <string name="reader_visual_novel_preserve_dialogue">Keep Dialogue Together</string>
     <string name="reader_visual_novel_click_advance">Tap Blank Area to Advance</string>
     <string name="reader_visual_novel_merge_cross_screen_sasayaki_cues">Keep Sasayaki Text Together</string>
+    <string name="reader_visual_novel_background">VN Background</string>
+    <string name="reader_visual_novel_background_color">VN Background Color</string>
+    <string name="reader_visual_novel_background_image">VN Background Image</string>
+    <string name="reader_visual_novel_background_image_remove">Remove VN Background Image</string>
     <string name="reader_appearance_chapter_swipe_distance">Chapter Swipe Distance</string>
     <string name="reader_appearance_page_swipe_threshold">Page Swipe Threshold</string>
     <string name="reader_appearance_page_swipe_threshold_value">%1$d px</string>
