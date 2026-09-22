@@ -359,3 +359,66 @@ test('collectTargetsAfter walks the following paragraphs in document order', () 
     // 锚点不在文档中（换章等）时返回空，由调用方决定回退策略。
     assert.deepEqual(JSON.parse(api.collectTargetsAfter('missing-id', 5)), []);
 });
+
+test('read-aloud translation shows the spoken sentence under its paragraph', () => {
+    const { body, api } = createTranslationEnvironment();
+    addParagraph(body, '第一段原文');
+    const targets = JSON.parse(api.collectVisibleTargets());
+
+    assert.equal(api.showReadAloudTranslation(targets[0].id, '第一句译文'), true);
+
+    const block = body.querySelector('.hoshi-read-aloud-translation');
+    assert.ok(block);
+    assert.equal(block.textContent, '第一句译文');
+    assert.equal(block.classList.contains('hoshi-reader-translation'), true);
+    assert.equal(block.getAttribute('data-hoshi-read-aloud-translation-for'), targets[0].id);
+});
+
+test('read-aloud translation keeps a single block that follows playback', () => {
+    const { body, api } = createTranslationEnvironment();
+    addParagraph(body, '第一段原文');
+    addParagraph(body, '第二段原文');
+    const targets = JSON.parse(api.collectVisibleTargets());
+
+    api.showReadAloudTranslation(targets[0].id, '第一句译文');
+    api.showReadAloudTranslation(targets[1].id, '第二句译文');
+
+    assert.equal(body.querySelectorAll('.hoshi-read-aloud-translation').length, 1);
+    const block = body.querySelector('.hoshi-read-aloud-translation');
+    assert.equal(block.textContent, '第二句译文');
+    // 跟读块挂在"当前正在朗读的段落"后面（此处是第二个段落）。
+    assert.equal(body.children.indexOf(block), 2);
+    assert.equal(api.clearReadAloudTranslation(), true);
+    assert.equal(body.querySelectorAll('.hoshi-read-aloud-translation').length, 0);
+});
+
+test('read-aloud translation is not collected as a paragraph target', () => {
+    const { body, api } = createTranslationEnvironment();
+    addParagraph(body, '第一段原文');
+    addParagraph(body, '第二段原文');
+    const targets = JSON.parse(api.collectVisibleTargets());
+
+    api.showReadAloudTranslation(targets[0].id, '第一句译文');
+
+    const after = JSON.parse(api.collectVisibleTargets());
+    assert.deepEqual(after.map(target => target.text), ['第一段原文', '第二段原文']);
+    assert.deepEqual(
+        JSON.parse(api.collectTargetsAfter(targets[0].id, 5)).map(target => target.text),
+        ['第二段原文'],
+    );
+});
+
+test('page translation does not overwrite the read-aloud translation block', () => {
+    const { body, api } = createTranslationEnvironment();
+    const paragraph = addParagraph(body, '第一段原文');
+    const targets = JSON.parse(api.collectVisibleTargets());
+
+    api.showReadAloudTranslation(targets[0].id, '第一句译文');
+    api.applyTranslation(targets[0].id, '整段译文');
+
+    const readAloudBlock = body.querySelector('.hoshi-read-aloud-translation');
+    assert.equal(readAloudBlock.textContent, '第一句译文');
+    // 整页译文另建一块，不会改写跟读块。
+    assert.equal(body.querySelectorAll('.hoshi-reader-translation').length, 2);
+    assert.ok(paragraph.nextElementSibling);
+});

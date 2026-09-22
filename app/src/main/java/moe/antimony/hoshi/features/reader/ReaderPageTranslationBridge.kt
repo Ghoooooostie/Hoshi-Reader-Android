@@ -75,6 +75,20 @@ internal object ReaderPageTranslationCommand {
             "${readerJavaScriptStringLiteral(targetId)}, $escapedSentence, $reveal, $highlightVisible)"
     }
 
+    /**
+     * Shows the translation of the sentence currently being spoken directly under its paragraph
+     * (跟读翻译). Replaces the previous read-aloud translation block so only one follows playback.
+     */
+    fun showReadAloudTranslation(
+        targetId: String,
+        translation: String,
+    ): String =
+        "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.showReadAloudTranslation(" +
+            "${readerJavaScriptStringLiteral(targetId)}, ${readerJavaScriptStringLiteral(translation)})"
+
+    fun clearReadAloudTranslation(): String =
+        "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.clearReadAloudTranslation()"
+
     fun clearReadAloudHighlight(): String =
         "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.clearReadAloudHighlight()"
 }

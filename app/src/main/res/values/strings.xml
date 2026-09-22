@@ -339,7 +339,9 @@
     <string name="reader_translation_ai_loading">Loading AI response...</string>
     <string name="reader_translation_ai_request_failed">Unable to load AI translation.</string>
     <string name="reader_translation_ai_style_section">Style</string>
-    <string name="reader_translation_ai_style_follow_text">Translation text stays slightly lighter than the current body text.</string>
+    <string name="reader_translation_ai_style_color">Translation color</string>
+    <string name="reader_translation_ai_style_color_supporting">Fully transparent follows the current body text color.</string>
+    <string name="reader_translation_ai_style_opacity">Translation opacity</string>
     <string name="reader_search" comment="Reader Contents panel tab label, distinct from dictionary search placeholder.">Search</string>
     <string name="reader_search_in_book">Search in this book</string>
     <string name="reader_search_empty_prompt">Enter text to search this book</string>
@@ -934,6 +936,8 @@
     <string name="read_aloud_by_page_desc">Turns pages promptly; pauses briefly at each page turn</string>
     <string name="read_aloud_highlight_while_playing">Highlight While Playing</string>
     <string name="read_aloud_highlight_while_playing_desc">Highlight the sentence being read aloud; turn off to scroll along without highlighting it</string>
+    <string name="read_aloud_translate_current_sentence">Translate As It Reads</string>
+    <string name="read_aloud_translate_current_sentence_desc">Translate the sentence being read aloud and show the translation under its paragraph; needs Advanced AI sentence translation</string>
     <string name="read_aloud_start_from_sentence_gesture">Read from the sentence gesture</string>
     <string name="read_aloud_start_from_sentence_gesture_desc">Triggering the sentence gesture also starts reading aloud from that sentence, in order</string>
     <string name="read_aloud_auto_pause_on_lookup">Auto-Pause on Lookup</string>

@@ -11,6 +11,8 @@ __HOSHI_PARAGRAPH_SPACING_CSS__
     --hoshi-reader-vertical-writing: __HOSHI_READER_VERTICAL_WRITING__;
     --hoshi-sasayaki-text-color: __HOSHI_SASAYAKI_TEXT_COLOR__;
     --hoshi-sasayaki-background-color: __HOSHI_SASAYAKI_BACKGROUND_COLOR__;
+    --hoshi-translation-color: __HOSHI_TRANSLATION_COLOR__;
+    --hoshi-translation-opacity: __HOSHI_TRANSLATION_OPACITY__;
     --hoshi-vn-background-image: none;
     --hoshi-vn-text-background: transparent;
     --hoshi-vn-text-padding: 0px;
@@ -126,8 +128,8 @@ html[data-hoshi-reader-eink-mode="true"] .hoshi-read-aloud-sentence {
 }
 .hoshi-reader-translation {
     display: block;
-    color: var(--hoshi-text-color);
-    opacity: 0.72;
+    color: var(--hoshi-translation-color, var(--hoshi-text-color));
+    opacity: var(--hoshi-translation-opacity, 0.72);
     margin: 0.45em 0 0.9em 0;
     font-size: 0.92em;
     line-height: 1.6;

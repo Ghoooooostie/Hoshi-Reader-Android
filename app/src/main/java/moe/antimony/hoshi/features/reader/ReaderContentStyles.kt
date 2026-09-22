@@ -353,6 +353,8 @@ internal object ReaderContentStyles {
                 "__HOSHI_SASAYAKI_BACKGROUND_COLOR__",
                 sasayakiBackgroundColor.toReaderCssColor(includeAlpha = true),
             )
+            .replace("__HOSHI_TRANSLATION_COLOR__", settings.translationColorCss())
+            .replace("__HOSHI_TRANSLATION_OPACITY__", settings.translationOpacityCss())
             .replace("__HOSHI_LAYOUT_CSS__", layoutCss)
             .replace("__HOSHI_IMAGE_MAX_WIDTH_FALLBACK__", settings.imageMaxWidthFallbackCss)
             .replace("__HOSHI_IMAGE_MAX_HEIGHT_FALLBACK__", settings.imageMaxHeightFallbackCss)

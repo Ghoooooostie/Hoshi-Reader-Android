@@ -63,6 +63,11 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   the highlight over the sentence being spoken (the page still scrolls along), and a
   shortcut to the system TTS settings.
   Read Aloud works in paginated, continuous and Visual Novel reading modes.
+  A new “Translate As It Reads” toggle translates the sentence being spoken as
+  playback reaches it (跟读翻译): the translation appears under that paragraph and
+  moves along with playback instead of translating the whole page, the next sentence
+  is prepared in advance, and sentences already translated are reused. It needs
+  Advanced AI sentence translation to be configured.
 - Add a Read Aloud option to start speaking from the sentence you trigger with the sentence
   gesture. When enabled in the Read Aloud settings, the sentence gesture both shows the
   translation and begins reading from that sentence, then continues through the chapter in order.
@@ -88,7 +93,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   paragraph. In Visual Novel mode each screen is re-rendered on every page turn, so
   a paragraph now keeps one stable translation target across screens instead of
   being renumbered per screen; the sentence gesture no longer reveals a different
-  sentence's translation from earlier in the chapter.
+  sentence's translation from earlier in the chapter. Its Style group now sets the
+  translation color (fully transparent follows the current body text color) and the
+  translation opacity, so translations no longer have to stay a fixed lighter gray.
 - Add an optional “Hide thumbnails when collapsed” switch in Manage Shelves.
 - Add volume-key control for Read Aloud: when Read Aloud is playing, the volume keys
   jump to the previous/next sentence (音量键控制朗读). The currently spoken sentence is

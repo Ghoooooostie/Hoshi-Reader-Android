@@ -268,6 +268,14 @@ fun ReadAloudSettingsSheet(
                     },
                 )
                 ReadAloudToggleRow(
+                    title = stringResource(R.string.read_aloud_translate_current_sentence),
+                    subtitle = stringResource(R.string.read_aloud_translate_current_sentence_desc),
+                    checked = settings.translateCurrentSentence,
+                    onCheckedChange = { enabled ->
+                        viewModel.updateSettings { it.copy(translateCurrentSentence = enabled) }
+                    },
+                )
+                ReadAloudToggleRow(
                     title = stringResource(R.string.read_aloud_start_from_sentence_gesture),
                     subtitle = stringResource(R.string.read_aloud_start_from_sentence_gesture_desc),
                     checked = settings.startReadingFromLongPress,

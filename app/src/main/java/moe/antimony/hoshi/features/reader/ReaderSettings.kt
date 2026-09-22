@@ -55,6 +55,17 @@ internal const val ReaderPageSwipeThresholdDefaultPx = 72
 internal const val ReaderPageSwipeThresholdMinPx = 0
 internal const val ReaderPageSwipeThresholdMaxPx = 360
 internal const val ReaderPageSwipeThresholdStepPx = 18
+internal const val ReaderTranslationColorFollowText = 0x00000000L
+internal const val ReaderTranslationOpacityDefault = 0.72f
+internal const val ReaderTranslationOpacityMin = 0.3f
+internal const val ReaderTranslationOpacityMax = 1.0f
+internal const val ReaderTranslationOpacityStep = 0.02f
+
+internal fun Float.coerceReaderTranslationOpacity(): Float =
+    coerceIn(ReaderTranslationOpacityMin, ReaderTranslationOpacityMax)
+
+internal fun readerTranslationOpacitySliderSteps(): Int =
+    ((ReaderTranslationOpacityMax - ReaderTranslationOpacityMin) / ReaderTranslationOpacityStep).toInt() - 1
 
 internal fun Double.coerceReaderPopupScale(): Double =
     coerceIn(ReaderPopupScaleMin, ReaderPopupScaleMax)
@@ -100,6 +111,10 @@ data class ReaderSettings(
         ReaderAiFullPageTranslationDisplayMode.Persistent,
     val readerAiLongPressMode: ReaderAiLongPressMode = ReaderAiLongPressMode.Translation,
     val readerAiTranslationFallbackEnabled: Boolean = false,
+    /** 译文颜色；alpha 为 0（[ReaderTranslationColorFollowText]）表示跟随正文颜色。 */
+    val translationColor: Long = ReaderTranslationColorFollowText,
+    /** 译文不透明度（0.3 - 1.0）。 */
+    val translationOpacity: Float = ReaderTranslationOpacityDefault,
     val readerDoubleTapAction: ReaderGestureAction = ReaderGestureAction.None,
     val readerLongPressAction: ReaderGestureAction = ReaderGestureAction.SentenceAction,
     val visualNovelRevealSpeed: Int = 45,
@@ -271,6 +286,17 @@ data class ReaderSettings(
         } else {
             "transparent"
         }
+
+    /** 译文颜色：alpha 为 0 表示跟随正文，用 CSS 变量跟随主题切换。 */
+    fun translationColorCss(): String =
+        if (translationColor.readerColorAlpha() == 0) {
+            "var(--hoshi-text-color)"
+        } else {
+            translationColor.toReaderCssColor(includeAlpha = true)
+        }
+
+    fun translationOpacityCss(): String =
+        String.format(Locale.US, "%.2f", translationOpacity.coerceReaderTranslationOpacity())
 
     fun textColorCss(systemDark: Boolean): String {
         displaySettings?.let { global ->
@@ -537,6 +563,9 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
             preferences.getString("readerAiLongPressMode", null),
         ),
         readerAiTranslationFallbackEnabled = preferences.getBoolean("readerAiTranslationFallbackEnabled", false),
+        translationColor = preferences.getLong("translationColor", ReaderTranslationColorFollowText),
+        translationOpacity = preferences.getFloat("translationOpacity", ReaderTranslationOpacityDefault)
+            .coerceReaderTranslationOpacity(),
         readerDoubleTapAction = ReaderGestureAction.fromStorage(
             preferences.getString("readerDoubleTapAction", null),
         ),
@@ -645,6 +674,8 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
             .putString("readerAiFullPageTranslationDisplayMode", settings.readerAiFullPageTranslationDisplayMode.name)
             .putString("readerAiLongPressMode", settings.readerAiLongPressMode.name)
             .putBoolean("readerAiTranslationFallbackEnabled", settings.readerAiTranslationFallbackEnabled)
+            .putLong("translationColor", settings.translationColor)
+            .putFloat("translationOpacity", settings.translationOpacity.coerceReaderTranslationOpacity())
             .putString("readerDoubleTapAction", settings.readerDoubleTapAction.name)
             .putString("readerLongPressAction", settings.readerLongPressAction.name)
             .putInt("visualNovelRevealSpeed", settings.visualNovelRevealSpeed.coerceVisualNovelRevealSpeed())
@@ -851,6 +882,9 @@ class ReaderSettingsRepository(
             ),
             readerAiLongPressMode = ReaderAiLongPressMode.fromStorage(this[KEY_READER_AI_LONG_PRESS_MODE]),
             readerAiTranslationFallbackEnabled = this[KEY_READER_AI_TRANSLATION_FALLBACK_ENABLED] ?: false,
+            translationColor = this[KEY_TRANSLATION_COLOR] ?: ReaderTranslationColorFollowText,
+            translationOpacity = (this[KEY_TRANSLATION_OPACITY] ?: ReaderTranslationOpacityDefault)
+                .coerceReaderTranslationOpacity(),
             readerDoubleTapAction = ReaderGestureAction.fromStorage(this[KEY_READER_DOUBLE_TAP_ACTION]),
             readerLongPressAction = ReaderGestureAction.fromStorage(
                 this[KEY_READER_LONG_PRESS_ACTION],
@@ -946,6 +980,8 @@ class ReaderSettingsRepository(
         this[KEY_READER_AI_FULL_PAGE_TRANSLATION_DISPLAY_MODE] = settings.readerAiFullPageTranslationDisplayMode.name
         this[KEY_READER_AI_LONG_PRESS_MODE] = settings.readerAiLongPressMode.name
         this[KEY_READER_AI_TRANSLATION_FALLBACK_ENABLED] = settings.readerAiTranslationFallbackEnabled
+        this[KEY_TRANSLATION_COLOR] = settings.translationColor
+        this[KEY_TRANSLATION_OPACITY] = settings.translationOpacity.coerceReaderTranslationOpacity()
         this[KEY_READER_DOUBLE_TAP_ACTION] = settings.readerDoubleTapAction.name
         this[KEY_READER_LONG_PRESS_ACTION] = settings.readerLongPressAction.name
         this[KEY_VISUAL_NOVEL_REVEAL_SPEED] = settings.visualNovelRevealSpeed.coerceVisualNovelRevealSpeed()
@@ -1089,6 +1125,8 @@ class ReaderSettingsRepository(
         private val KEY_READER_AI_LONG_PRESS_MODE = stringPreferencesKey("readerAiLongPressMode")
         private val KEY_READER_AI_TRANSLATION_FALLBACK_ENABLED =
             booleanPreferencesKey("readerAiTranslationFallbackEnabled")
+        private val KEY_TRANSLATION_COLOR = longPreferencesKey("translationColor")
+        private val KEY_TRANSLATION_OPACITY = floatPreferencesKey("translationOpacity")
         private val KEY_READER_DOUBLE_TAP_ACTION = stringPreferencesKey("readerDoubleTapAction")
         private val KEY_READER_LONG_PRESS_ACTION = stringPreferencesKey("readerLongPressAction")
         private val KEY_VISUAL_NOVEL_REVEAL_SPEED = intPreferencesKey("visualNovelRevealSpeed")
@@ -1286,6 +1324,8 @@ private data class ProfileReaderAppearanceSettings(
         ReaderAiFullPageTranslationDisplayMode.Persistent,
     val readerAiLongPressMode: ReaderAiLongPressMode = ReaderAiLongPressMode.Translation,
     val readerAiTranslationFallbackEnabled: Boolean = false,
+    val translationColor: Long = ReaderTranslationColorFollowText,
+    val translationOpacity: Float = ReaderTranslationOpacityDefault,
     val visualNovelRevealSpeed: Int = 45,
     val visualNovelScreenMode: VisualNovelScreenMode = VisualNovelScreenMode.Block,
     val visualNovelSentencesPerScreen: Int = 1,
@@ -1357,6 +1397,8 @@ private fun ReaderSettings.toProfileAppearanceSettings(): ProfileReaderAppearanc
         readerAiFullPageTranslationDisplayMode = readerAiFullPageTranslationDisplayMode,
         readerAiLongPressMode = readerAiLongPressMode,
         readerAiTranslationFallbackEnabled = readerAiTranslationFallbackEnabled,
+        translationColor = translationColor,
+        translationOpacity = translationOpacity.coerceReaderTranslationOpacity(),
         visualNovelRevealSpeed = visualNovelRevealSpeed.coerceVisualNovelRevealSpeed(),
         visualNovelScreenMode = visualNovelScreenMode,
         visualNovelSentencesPerScreen = visualNovelSentencesPerScreen.coerceIn(1, 12),
@@ -1430,6 +1472,8 @@ private fun ReaderSettings.withProfileAppearance(appearance: ProfileReaderAppear
         readerAiFullPageTranslationDisplayMode = appearance.readerAiFullPageTranslationDisplayMode,
         readerAiLongPressMode = appearance.readerAiLongPressMode,
         readerAiTranslationFallbackEnabled = appearance.readerAiTranslationFallbackEnabled,
+        translationColor = appearance.translationColor,
+        translationOpacity = appearance.translationOpacity.coerceReaderTranslationOpacity(),
         visualNovelRevealSpeed = appearance.visualNovelRevealSpeed.coerceVisualNovelRevealSpeed(),
         visualNovelScreenMode = appearance.visualNovelScreenMode,
         visualNovelSentencesPerScreen = appearance.visualNovelSentencesPerScreen.coerceIn(1, 12),

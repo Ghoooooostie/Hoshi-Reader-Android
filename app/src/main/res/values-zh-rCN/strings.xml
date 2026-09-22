@@ -337,7 +337,9 @@
     <string name="reader_translation_ai_loading">AI 处理中</string>
     <string name="reader_translation_ai_request_failed">AI 翻译加载失败。</string>
     <string name="reader_translation_ai_style_section">样式组</string>
-    <string name="reader_translation_ai_style_follow_text">译文颜色会比当前正文颜色浅一点。</string>
+    <string name="reader_translation_ai_style_color">译文颜色</string>
+    <string name="reader_translation_ai_style_color_supporting">完全透明（alpha 为 0）表示跟随正文颜色。</string>
+    <string name="reader_translation_ai_style_opacity">译文透明度</string>
     <string name="reader_search" comment="Reader Contents panel tab label, distinct from dictionary search placeholder.">搜索</string>
     <string name="reader_search_in_book">在书中搜索</string>
     <string name="reader_search_empty_prompt">输入文本搜索本书</string>
@@ -932,6 +934,8 @@
     <string name="read_aloud_by_page_desc">及时翻页，翻页时会停顿一下</string>
     <string name="read_aloud_highlight_while_playing">播放高亮</string>
     <string name="read_aloud_highlight_while_playing_desc">朗读播放时高亮当前朗读的句子；关闭后仍会滚动跟随，只是不显示高亮</string>
+    <string name="read_aloud_translate_current_sentence">跟读翻译</string>
+    <string name="read_aloud_translate_current_sentence_desc">朗读到哪一句就翻译哪一句，译文显示在该段落下方；需要配置高级 AI 的整句翻译</string>
     <string name="read_aloud_start_from_sentence_gesture">从句子手势开始朗读</string>
     <string name="read_aloud_start_from_sentence_gesture_desc">触发句子手势时会同时从此句起按顺序朗读</string>
     <string name="read_aloud_auto_pause_on_lookup">查词时自动暂停</string>

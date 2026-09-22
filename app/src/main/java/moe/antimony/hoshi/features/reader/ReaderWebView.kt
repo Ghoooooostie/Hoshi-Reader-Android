@@ -291,6 +291,9 @@ fun ReaderWebView(
     // 译文已入队到的最后一个段落。译文队列同样按文档顺序推进，
     // 否则被排版漂移顶出可见区的段落永远轮不到翻译。
     var lastEnqueuedTranslationTargetId by remember { mutableStateOf<String?>(null) }
+    // 跟读翻译缓存：键是「章 + 段落 id + 句文本」，朗读来回跳句时不必重复请求。
+    val readAloudSentenceTranslations = remember { mutableMapOf<String, String>() }
+    var readAloudSentenceTranslationJob by remember { mutableStateOf<Job?>(null) }
     val popupAssets = remember(context) { LookupPopupAssets.load(context) }
     val readerPopupBridgeHolder = remember { ReaderLookupPopupBridgeCallbackHolder() }
     val popupDarkMode = effectiveSettings.usesDarkInterface(systemDarkTheme)
@@ -2179,6 +2182,9 @@ fun ReaderWebView(
         pageTranslationCoordinator.clearActiveWork()
         lastEnqueuedTranslationTargetId = null
         lastReadAloudParagraphId = null
+        readAloudSentenceTranslationJob?.cancel()
+        readAloudSentenceTranslationJob = null
+        readAloudSentenceTranslations.clear()
     }
     LaunchedEffect(
         effectiveSettings.readerAiFullPageTranslationEnabled,
@@ -2548,6 +2554,69 @@ fun ReaderWebView(
                 readAloudViewModel.start(items, book.title)
             }
         }
+        fun clearReadAloudSentenceTranslation() {
+            readAloudSentenceTranslationJob?.cancel()
+            readAloudSentenceTranslationJob = null
+            webView?.evaluateJavascript(ReaderPageTranslationCommand.clearReadAloudTranslation(), null)
+        }
+        fun readAloudSentenceTranslationKey(targetId: String, sentence: String): String =
+            "$currentPageTranslationChapterKey::$targetId::$sentence"
+        /** 只写入缓存不显示：给下一句预热，尽量让译文在朗读到之前就绪。 */
+        fun prefetchReadAloudSentenceTranslation(targetId: String, sentence: String) {
+            val key = readAloudSentenceTranslationKey(targetId, sentence)
+            if (readAloudSentenceTranslations.containsKey(key)) return
+            scope.launch {
+                val ready = advancedAiSettingsRepository.settings.first()
+                    .sentenceTranslationAvailability() as? AdvancedAiAvailability.Ready
+                    ?: return@launch
+                val translation = runCatching {
+                    withContext(Dispatchers.IO) {
+                        advancedAiClient.translateSentence(ready.settings, sentence)
+                    }
+                }.getOrNull()?.takeIf { it.isNotBlank() } ?: return@launch
+                readAloudSentenceTranslations[key] = translation
+            }
+        }
+        /** 翻译当前正在朗读的这一句；AI 返回晚于朗读推进时不覆盖后续句子的译文。 */
+        fun requestReadAloudSentenceTranslation(
+            targetId: String,
+            sentence: String,
+            nextTargetId: String? = null,
+            nextSentence: String? = null,
+        ) {
+            val key = readAloudSentenceTranslationKey(targetId, sentence)
+            val cached = readAloudSentenceTranslations[key]
+            if (cached != null) {
+                webView?.evaluateJavascript(
+                    ReaderPageTranslationCommand.showReadAloudTranslation(targetId, cached),
+                    null,
+                )
+            } else {
+                webView?.evaluateJavascript(ReaderPageTranslationCommand.clearReadAloudTranslation(), null)
+            }
+            readAloudSentenceTranslationJob?.cancel()
+            readAloudSentenceTranslationJob = scope.launch {
+                val ready = advancedAiSettingsRepository.settings.first()
+                    .sentenceTranslationAvailability() as? AdvancedAiAvailability.Ready
+                    ?: return@launch
+                val translation = runCatching {
+                    withContext(Dispatchers.IO) {
+                        advancedAiClient.translateSentence(ready.settings, sentence)
+                    }
+                }.getOrNull()?.takeIf { it.isNotBlank() } ?: return@launch
+                readAloudSentenceTranslations[key] = translation
+                val current = readAloudViewModel.state.value
+                if (current.currentParagraphId == targetId && current.currentSentence == sentence) {
+                    webView?.evaluateJavascript(
+                        ReaderPageTranslationCommand.showReadAloudTranslation(targetId, translation),
+                        null,
+                    )
+                }
+                if (nextTargetId != null && nextSentence != null) {
+                    prefetchReadAloudSentenceTranslation(nextTargetId, nextSentence)
+                }
+            }
+        }
 
         // 队列播完：翻到下一页/滚动一屏后继续朗读；到章节末尾则停止（对应 legadoT 的跟读翻页）。
         // 翻页成功后显式把新位置写回书签，否则朗读全程不保存进度，关闭后再打开会回到起点（第一章）。
@@ -2614,6 +2683,10 @@ fun ReaderWebView(
                     ReaderPageTranslationCommand.clearReadAloudHighlight(),
                     null,
                 )
+                webView?.evaluateJavascript(
+                    ReaderPageTranslationCommand.clearReadAloudTranslation(),
+                    null,
+                )
             } else {
                 webView?.evaluateJavascript(
                     ReaderPageTranslationCommand.highlightReadAloudSentence(
@@ -2625,6 +2698,26 @@ fun ReaderWebView(
                     null,
                 )
             }
+        }
+        // 跟读翻译：朗读到哪一句就翻译哪一句，译文显示在该段落下方（需高级 AI 整句翻译配置）。
+        LaunchedEffect(readAloudState.currentIndex, readAloudSettings.translateCurrentSentence) {
+            if (!readAloudSettings.translateCurrentSentence) {
+                clearReadAloudSentenceTranslation()
+                return@LaunchedEffect
+            }
+            val targetId = readAloudState.currentParagraphId
+            val sentence = readAloudState.currentSentence
+            if (targetId == null || sentence.isNullOrBlank()) {
+                clearReadAloudSentenceTranslation()
+                return@LaunchedEffect
+            }
+            val next = readAloudState.items.getOrNull(readAloudState.currentIndex + 1)
+            requestReadAloudSentenceTranslation(
+                targetId = targetId,
+                sentence = sentence,
+                nextTargetId = next?.paragraphId,
+                nextSentence = next?.text,
+            )
         }
         // 关闭"播放高亮"时立即清掉当前高亮，不必等下一句。
         LaunchedEffect(readAloudSettings.highlightWhilePlaying) {

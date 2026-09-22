@@ -46,6 +46,8 @@ data class ReadAloudSettings(
     val pauseForPageTranslation: Boolean = true,
     /** 播放时高亮当前正在朗读的句子；关闭后仍会滚动跟随，只是不显示高亮。 */
     val highlightWhilePlaying: Boolean = true,
+    /** 跟读翻译：朗读到哪一句就翻译哪一句，译文显示在原段落下方。 */
+    val translateCurrentSentence: Boolean = false,
 ) {
     companion object {
         const val DefaultSpeechRate = 1.0f
@@ -95,6 +97,7 @@ private fun Preferences.toReadAloudSettings(): ReadAloudSettings = ReadAloudSett
     pauseForLookup = this[Keys.pauseForLookup] ?: true,
     pauseForPageTranslation = this[Keys.pauseForPageTranslation] ?: true,
     highlightWhilePlaying = this[Keys.highlightWhilePlaying] ?: true,
+    translateCurrentSentence = this[Keys.translateCurrentSentence] ?: false,
 )
 
 private fun MutablePreferences.writeReadAloudSettings(settings: ReadAloudSettings) {
@@ -111,6 +114,7 @@ private fun MutablePreferences.writeReadAloudSettings(settings: ReadAloudSetting
     this[Keys.pauseForLookup] = settings.pauseForLookup
     this[Keys.pauseForPageTranslation] = settings.pauseForPageTranslation
     this[Keys.highlightWhilePlaying] = settings.highlightWhilePlaying
+    this[Keys.translateCurrentSentence] = settings.translateCurrentSentence
 }
 
 private object Keys {
@@ -127,4 +131,5 @@ private object Keys {
     val pauseForLookup = booleanPreferencesKey("pauseForLookup")
     val pauseForPageTranslation = booleanPreferencesKey("pauseForPageTranslation")
     val highlightWhilePlaying = booleanPreferencesKey("highlightWhilePlaying")
+    val translateCurrentSentence = booleanPreferencesKey("translateCurrentSentence")
 }

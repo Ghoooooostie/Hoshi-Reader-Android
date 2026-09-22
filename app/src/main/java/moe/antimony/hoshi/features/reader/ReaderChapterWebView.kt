@@ -644,6 +644,8 @@ internal data class ReaderAppearanceUpdateKey(
     val vnTextBackgroundCss: String = "transparent",
     val vnTextPaddingCss: String = "0px",
     val vnTextRadiusCss: String = "0px",
+    val translationColorCss: String = "var(--hoshi-text-color)",
+    val translationOpacityCss: String = "0.72",
 )
 
 internal fun readerAppearanceUpdateKey(
@@ -669,6 +671,8 @@ internal fun readerAppearanceUpdateKey(
         vnTextBackgroundCss = vnTextBackgroundCss,
         vnTextPaddingCss = vnTextPaddingCss,
         vnTextRadiusCss = vnTextRadiusCss,
+        translationColorCss = settings.translationColorCss(),
+        translationOpacityCss = settings.translationOpacityCss(),
     )
 
 internal fun readerWebViewLoadKey(
@@ -1154,6 +1158,8 @@ private fun readerAppearanceScript(
     val vnTextBackground = readerJavaScriptStringLiteral(appearanceUpdateKey.vnTextBackgroundCss)
     val vnTextPadding = readerJavaScriptStringLiteral(appearanceUpdateKey.vnTextPaddingCss)
     val vnTextRadius = readerJavaScriptStringLiteral(appearanceUpdateKey.vnTextRadiusCss)
+    val translationColor = readerJavaScriptStringLiteral(appearanceUpdateKey.translationColorCss)
+    val translationOpacity = readerJavaScriptStringLiteral(appearanceUpdateKey.translationOpacityCss)
     return """
         (function() {
           document.documentElement.style.setProperty('--hoshi-background-color', $backgroundColor);
@@ -1169,6 +1175,8 @@ private fun readerAppearanceScript(
           document.documentElement.style.setProperty('--hoshi-vn-text-background', $vnTextBackground);
           document.documentElement.style.setProperty('--hoshi-vn-text-padding', $vnTextPadding);
           document.documentElement.style.setProperty('--hoshi-vn-text-radius', $vnTextRadius);
+          document.documentElement.style.setProperty('--hoshi-translation-color', $translationColor);
+          document.documentElement.style.setProperty('--hoshi-translation-opacity', $translationOpacity);
           window.hoshiReader?.refreshSasayakiCuePresentation?.();
         })();
     """.trimIndent()

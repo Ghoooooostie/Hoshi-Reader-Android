@@ -9,6 +9,8 @@
   var ON_LONG_PRESS_MODE = 'onLongPress';
   var READ_ALOUD_CLASS = 'hoshi-read-aloud-active';
   var READ_ALOUD_SENTENCE_CLASS = 'hoshi-read-aloud-sentence';
+  var READ_ALOUD_TRANSLATION_CLASS = 'hoshi-read-aloud-translation';
+  var READ_ALOUD_TRANSLATION_ATTRIBUTE = 'data-hoshi-read-aloud-translation-for';
   var VN_UNREVEALED_SELECTOR = '[data-hoshi-visual-novel-unrevealed]';
   var displayMode = 'persistent';
 
@@ -413,6 +415,36 @@
         Array.from(document.querySelectorAll('.' + TRANSLATION_CLASS)).forEach(function(node) {
           node.remove();
         });
+        refreshReaderLayout();
+      });
+      return true;
+    },
+    /**
+     * 朗读跟读翻译：把"当前正在朗读的这一句"的译文显示在原文段落下方。
+     * 与整页译文块分开管理（不同的 data 属性），互不覆盖；同一时刻只保留一个跟读块，
+     * 朗读推进到下一句时整块替换。
+     */
+    showReadAloudTranslation: function(targetId, translation) {
+      this.clearReadAloudTranslation();
+      var element = findTargetById(targetId);
+      if (!element) return false;
+      withPreservedReadingPosition(function() {
+        var block = document.createElement('div');
+        // 带整页译文 class：复用译文样式，并被段落收集逻辑（朗读队列 / 翻译目标）排除。
+        // 但不设 data-hoshi-translation-for，整页译文不会改写它。
+        block.className = TRANSLATION_CLASS + ' ' + READ_ALOUD_TRANSLATION_CLASS;
+        block.setAttribute(READ_ALOUD_TRANSLATION_ATTRIBUTE, targetId);
+        block.textContent = translation || '';
+        element.insertAdjacentElement('afterend', block);
+        refreshReaderLayout();
+      });
+      return true;
+    },
+    clearReadAloudTranslation: function() {
+      var blocks = document.querySelectorAll('.' + READ_ALOUD_TRANSLATION_CLASS);
+      if (!blocks || blocks.length === 0) return true;
+      withPreservedReadingPosition(function() {
+        Array.prototype.forEach.call(blocks, function(node) { node.remove(); });
         refreshReaderLayout();
       });
       return true;
