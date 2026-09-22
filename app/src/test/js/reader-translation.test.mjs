@@ -408,7 +408,7 @@ test('read-aloud translation is not collected as a paragraph target', () => {
     );
 });
 
-test('page translation does not overwrite the read-aloud translation block', () => {
+test('page translation replaces the read-aloud translation block for the same paragraph', () => {
     const { body, api } = createTranslationEnvironment();
     const paragraph = addParagraph(body, '第一段原文');
     const targets = JSON.parse(api.collectVisibleTargets());
@@ -416,9 +416,38 @@ test('page translation does not overwrite the read-aloud translation block', () 
     api.showReadAloudTranslation(targets[0].id, '第一句译文');
     api.applyTranslation(targets[0].id, '整段译文');
 
-    const readAloudBlock = body.querySelector('.hoshi-read-aloud-translation');
-    assert.equal(readAloudBlock.textContent, '第一句译文');
-    // 整页译文另建一块，不会改写跟读块。
-    assert.equal(body.querySelectorAll('.hoshi-reader-translation').length, 2);
-    assert.ok(paragraph.nextElementSibling);
+    // 显式给出该段译文时移除跟读块，一段只保留一份译文。
+    assert.equal(body.querySelectorAll('.hoshi-read-aloud-translation').length, 0);
+    assert.equal(body.querySelectorAll('.hoshi-reader-translation').length, 1);
+    assert.equal(paragraph.nextElementSibling.textContent, '整段译文');
+});
+
+test('read-aloud translation reuses an existing paragraph translation instead of duplicating it', () => {
+    const { body, api } = createTranslationEnvironment();
+    const paragraph = addParagraph(body, '第一段原文');
+    const targets = JSON.parse(api.collectVisibleTargets());
+
+    api.applyTranslation(targets[0].id, '整段译文');
+    api.showReadAloudTranslation(targets[0].id, '第一句译文');
+
+    assert.equal(body.querySelectorAll('.hoshi-read-aloud-translation').length, 0);
+    assert.equal(body.querySelectorAll('.hoshi-reader-translation').length, 1);
+    assert.equal(paragraph.nextElementSibling.textContent, '整段译文');
+});
+
+test('read-aloud translation reveals a hidden paragraph translation on the same paragraph', () => {
+    const { body, api } = createTranslationEnvironment();
+    addParagraph(body, '第一段原文');
+    const targets = JSON.parse(api.collectVisibleTargets());
+
+    api.setDisplayMode('onLongPress');
+    api.applyTranslation(targets[0].id, '整段译文');
+    assert.equal(body.querySelector('.hoshi-reader-translation').classList.contains('hoshi-reader-translation-hidden'), true);
+
+    api.showReadAloudTranslation(targets[0].id, '第一句译文');
+
+    const block = body.querySelector('.hoshi-reader-translation');
+    assert.equal(body.querySelectorAll('.hoshi-reader-translation').length, 1);
+    assert.equal(block.classList.contains('hoshi-reader-translation-hidden'), false);
+    assert.equal(block.classList.contains('hoshi-reader-translation-revealed'), true);
 });

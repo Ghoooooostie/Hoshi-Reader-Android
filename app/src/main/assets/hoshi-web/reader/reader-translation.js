@@ -364,6 +364,11 @@
     applyTranslation: function(targetId, translation) {
       var element = findTargetById(targetId);
       if (!element) return false;
+      // 该段被显式给出译文（句子手势/整页翻译）时移除跟读块，保证一段只有一份译文。
+      Array.prototype.forEach.call(
+        document.querySelectorAll('[' + READ_ALOUD_TRANSLATION_ATTRIBUTE + '="' + targetId + '"]'),
+        function(node) { node.remove(); }
+      );
       var block = findTranslationNode(element, targetId);
       withPreservedReadingPosition(function() {
         if (!block) {
@@ -421,13 +426,22 @@
     },
     /**
      * 朗读跟读翻译：把"当前正在朗读的这一句"的译文显示在原文段落下方。
-     * 与整页译文块分开管理（不同的 data 属性），互不覆盖；同一时刻只保留一个跟读块，
+     * 同一段落已有译文块（整页翻译/句子手势）时直接复用，不再另插；
+     * 否则插入独立的跟读块（不同的 data 属性），同一时刻只保留一个，
      * 朗读推进到下一句时整块替换。
      */
     showReadAloudTranslation: function(targetId, translation) {
       this.clearReadAloudTranslation();
       var element = findTargetById(targetId);
       if (!element) return false;
+      // 该段已有译文块（整页翻译/句子手势）时不再另插跟读块，避免同段出现两份译文。
+      var existing = findTranslationNode(element, targetId);
+      if (existing) {
+        if (existing.classList.contains(HIDDEN_CLASS)) {
+          this.revealTranslation(targetId);
+        }
+        return true;
+      }
       withPreservedReadingPosition(function() {
         var block = document.createElement('div');
         // 带整页译文 class：复用译文样式，并被段落收集逻辑（朗读队列 / 翻译目标）排除。
