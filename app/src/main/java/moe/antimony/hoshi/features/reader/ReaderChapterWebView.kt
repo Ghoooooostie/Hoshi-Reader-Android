@@ -86,11 +86,9 @@ internal fun ChapterWebView(
     sasayakiTextColor: Long,
     sasayakiBackgroundColor: Long,
     onTextSelected: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit,
-    onSentenceLongPressed: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit,
     onPageTranslationLongPressed: (ReaderPageTranslationTarget) -> Unit,
     onPageTranslationRevealRequested: (ReaderPageTranslationTarget) -> Unit,
     onReadAloudStartFromPoint: (Float, Float) -> Unit,
-    readAloudStartFromLongPress: Boolean,
     onClearLookupPopup: () -> Unit,
     onReaderTapOutside: () -> Unit,
     onReaderInteraction: () -> Unit,
@@ -105,11 +103,9 @@ internal fun ChapterWebView(
     modifier: Modifier = Modifier,
 ) {
     val currentOnTextSelected = rememberUpdatedState(onTextSelected)
-    val currentOnSentenceLongPressed = rememberUpdatedState(onSentenceLongPressed)
     val currentOnPageTranslationLongPressed = rememberUpdatedState(onPageTranslationLongPressed)
     val currentOnPageTranslationRevealRequested = rememberUpdatedState(onPageTranslationRevealRequested)
     val currentOnReadAloudStartFromPoint = rememberUpdatedState(onReadAloudStartFromPoint)
-    val currentReadAloudStartFromLongPress = rememberUpdatedState(readAloudStartFromLongPress)
     val currentOnSaveBookmark = rememberUpdatedState(onSaveBookmark)
     val currentOnDisplayProgress = rememberUpdatedState(onDisplayProgress)
     val currentOnContinuousScrollDisplayProgress = rememberUpdatedState(onContinuousScrollDisplayProgress)
@@ -290,9 +286,6 @@ internal fun ChapterWebView(
                 this.onHighlightCreated = { color, id, creation ->
                     currentOnHighlightCreated.value(color, id, creation)
                 }
-                this.onSentenceLongPressed = { selection, selectionRects ->
-                    currentOnSentenceLongPressed.value(selection, selectionRects)
-                }
                 this.onPageTranslationLongPressed = { target ->
                     currentOnPageTranslationLongPressed.value(target)
                 }
@@ -302,7 +295,6 @@ internal fun ChapterWebView(
                 this.onReadAloudStartFromPoint = { x, y ->
                     currentOnReadAloudStartFromPoint.value(x, y)
                 }
-                this.readAloudStartFromLongPress = { currentReadAloudStartFromLongPress.value }
                 this.fullPageTranslationEnabled = currentReaderSettings.value.readerAiFullPageTranslationEnabled
                 this.longPressAction = { currentReaderSettings.value.readerLongPressAction }
                 hideForReaderRestore()
@@ -696,12 +688,9 @@ internal fun readerSelectionMaxLength(settings: DictionarySettings): Int =
 
 private class HoshiReaderWebView(context: Context) : WebView(context) {
     var onHighlightCreated: (HighlightColor, String, ReaderHighlightCreationResult) -> Unit = { _, _, _ -> }
-    var onSentenceLongPressed: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit =
-        { _, _ -> }
     var onPageTranslationLongPressed: (ReaderPageTranslationTarget) -> Unit = {}
     var onPageTranslationRevealRequested: (ReaderPageTranslationTarget) -> Unit = {}
     var onReadAloudStartFromPoint: (Float, Float) -> Unit = { _, _ -> }
-    var readAloudStartFromLongPress: () -> Boolean = { false }
     var fullPageTranslationEnabled: Boolean = false
     private var nativeSelectionActionModeActive = false
     private var nativeSelectionActionMode: ActionMode? = null
@@ -853,44 +842,23 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         val density = resources.displayMetrics.density
         val x = androidPixelsToCssPixels(androidX, density)
         val y = androidPixelsToCssPixels(androidY, density)
-        if (readAloudStartFromLongPress()) {
-            onReadAloudStartFromPoint(x, y)
-        }
+        // 句子手势只负责朗读：从落点的那一句开始播，不再弹出句子翻译/AI 卡。
+        onReadAloudStartFromPoint(x, y)
+        // 整页翻译开启时保留译文块上的手势（长按译文重翻、长按原文展开译文），
+        // 否则「长按显示」模式下译文永远无法展开。
+        if (!fullPageTranslationEnabled) return true
         evaluateJavascript(
-            ReaderPageTranslationCommand.targetAtPoint(x, y, fullPageTranslationEnabled),
+            ReaderPageTranslationCommand.targetAtPoint(x, y, includeOriginal = true),
         ) { translationHitResult ->
             val hit = ReaderPageTranslationBridgePayload.hitFromJavascriptResult(translationHitResult)
-            if (hit != null) {
-                when {
-                    hit.onTranslation -> onPageTranslationLongPressed(hit.target)
-                    fullPageTranslationEnabled -> onPageTranslationRevealRequested(hit.target)
-                    else -> startSentenceSelection(x, y)
-                }
-                return@evaluateJavascript
+                ?: return@evaluateJavascript
+            if (hit.onTranslation) {
+                onPageTranslationLongPressed(hit.target)
+            } else {
+                onPageTranslationRevealRequested(hit.target)
             }
-            startSentenceSelection(x, y)
         }
         return true
-    }
-
-    private fun startSentenceSelection(
-        x: Float,
-        y: Float,
-    ) {
-        evaluateJavascript(
-            ReaderSelectionCommand.SelectSentence(x = x, y = y).source,
-        ) { result ->
-            val selectionResult = ReaderSelectionResult.fromWebViewResult(result)
-            if (selectionResult.selectedNothing || selectionResult.isImageTap || selectionResult.isLinkTap) {
-                return@evaluateJavascript
-            }
-            val selection = ReaderSelectionBridgePayload.fromJson(result) ?: return@evaluateJavascript
-            onSentenceLongPressed(selection) { highlightCount, onRectsLoaded ->
-                evaluateJavascript(ReaderSelectionCommand.SelectionRects(highlightCount).source) { rectsResult ->
-                    onRectsLoaded(ReaderSelectionBridgePayload.rectsFromJavascriptResult(rectsResult))
-                }
-            }
-        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -916,11 +884,9 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         dismissHighlightColorPopup()
         setNativeSelectionActionMode(null)
         onHighlightCreated = { _, _, _ -> }
-        onSentenceLongPressed = { _, _ -> }
         onPageTranslationLongPressed = {}
         onPageTranslationRevealRequested = {}
         onReadAloudStartFromPoint = { _, _ -> }
-        readAloudStartFromLongPress = { false }
     }
 }
 

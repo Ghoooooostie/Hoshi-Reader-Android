@@ -310,7 +310,7 @@
     <string name="reader_behavior_double_tap_action">双击</string>
     <string name="reader_behavior_long_press_action">长按</string>
     <string name="reader_gesture_action_none">关闭</string>
-    <string name="reader_gesture_action_sentence">朗读并翻译句子</string>
+    <string name="reader_gesture_action_sentence">朗读</string>
     <string name="reader_gesture_action_word_selection">滑动选词查词</string>
     <string name="reader_statistics_pause">暂停统计</string>
     <string name="reader_statistics_start">开始统计</string>
@@ -936,8 +936,6 @@
     <string name="read_aloud_highlight_while_playing_desc">朗读播放时高亮当前朗读的句子；关闭后仍会滚动跟随，只是不显示高亮</string>
     <string name="read_aloud_translate_current_sentence">跟读翻译</string>
     <string name="read_aloud_translate_current_sentence_desc">朗读到哪一句就翻译哪一句，译文显示在该段落下方；需要配置高级 AI 的整句翻译</string>
-    <string name="read_aloud_start_from_sentence_gesture">从句子手势开始朗读</string>
-    <string name="read_aloud_start_from_sentence_gesture_desc">触发句子手势时会同时从此句起按顺序朗读</string>
     <string name="read_aloud_auto_pause_on_lookup">查词时自动暂停</string>
     <string name="read_aloud_auto_pause_on_lookup_desc">朗读播放中打开查词弹窗时暂停，关闭弹窗后继续</string>
     <string name="read_aloud_auto_pause_on_page_translation">整页翻译时自动暂停</string>

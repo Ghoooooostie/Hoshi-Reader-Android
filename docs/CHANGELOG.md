@@ -68,16 +68,16 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   moves along with playback instead of translating the whole page, the next sentence
   is prepared in advance, and sentences already translated are reused. It needs
   Advanced AI sentence translation to be configured.
-- Add a Read Aloud option to start speaking from the sentence you trigger with the sentence
-  gesture. When enabled in the Read Aloud settings, the sentence gesture both shows the
-  translation and begins reading from that sentence, then continues through the chapter in order.
 - Add configurable reader gestures in Settings > Behavior. The long-press action can be set to
-  "Read & translate sentence" (the previous default) or "Slide to select words": the latter keeps
+  "Read aloud" (the previous default) or "Slide to select words": the latter keeps
   the native text selection, so you can long-press a word and drag the selection handles to adjust
   it, then use the system menu to copy, annotate, or look it up. The double-tap action can be set
-  to "Read & translate sentence" so you can trigger the sentence gesture with a double-tap instead
+  to "Read aloud" so you can trigger the sentence gesture with a double-tap instead
   of a long-press. Both default to off / long-press sentence so existing behavior is unchanged
-  until configured.
+  until configured. Either gesture now only starts Read Aloud from that sentence and continues
+  through the chapter in order; it no longer opens the sentence translation card, so the
+  "Read from the sentence gesture" Read Aloud toggle is gone. Translations while listening come
+  from the "Translate As It Reads" toggle instead.
 - Add an Advanced AI settings page that can show AI word-in-sentence analysis
   above lookup popup dictionaries, show AI sentence Chinese analysis in Process
   Text lookup, and let Anki templates render `{sentence-cn}` and

@@ -276,14 +276,6 @@ fun ReadAloudSettingsSheet(
                     },
                 )
                 ReadAloudToggleRow(
-                    title = stringResource(R.string.read_aloud_start_from_sentence_gesture),
-                    subtitle = stringResource(R.string.read_aloud_start_from_sentence_gesture_desc),
-                    checked = settings.startReadingFromLongPress,
-                    onCheckedChange = { enabled ->
-                        viewModel.updateSettings { it.copy(startReadingFromLongPress = enabled) }
-                    },
-                )
-                ReadAloudToggleRow(
                     title = stringResource(R.string.read_aloud_auto_pause_on_lookup),
                     subtitle = stringResource(R.string.read_aloud_auto_pause_on_lookup_desc),
                     checked = settings.pauseForLookup,

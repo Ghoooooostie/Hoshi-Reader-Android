@@ -312,7 +312,7 @@
     <string name="reader_behavior_double_tap_action">Double-tap</string>
     <string name="reader_behavior_long_press_action">Long-press</string>
     <string name="reader_gesture_action_none">Off</string>
-    <string name="reader_gesture_action_sentence">Read &amp; translate sentence</string>
+    <string name="reader_gesture_action_sentence">Read aloud</string>
     <string name="reader_gesture_action_word_selection">Slide to select words</string>
     <string name="reader_statistics_pause">Pause statistics</string>
     <string name="reader_statistics_start">Start statistics</string>
@@ -938,8 +938,6 @@
     <string name="read_aloud_highlight_while_playing_desc">Highlight the sentence being read aloud; turn off to scroll along without highlighting it</string>
     <string name="read_aloud_translate_current_sentence">Translate As It Reads</string>
     <string name="read_aloud_translate_current_sentence_desc">Translate the sentence being read aloud and show the translation under its paragraph; needs Advanced AI sentence translation</string>
-    <string name="read_aloud_start_from_sentence_gesture">Read from the sentence gesture</string>
-    <string name="read_aloud_start_from_sentence_gesture_desc">Triggering the sentence gesture also starts reading aloud from that sentence, in order</string>
     <string name="read_aloud_auto_pause_on_lookup">Auto-Pause on Lookup</string>
     <string name="read_aloud_auto_pause_on_lookup_desc">Pause playback while a lookup popup is open during read-aloud</string>
     <string name="read_aloud_auto_pause_on_page_translation">Auto-Pause on Page Translation</string>

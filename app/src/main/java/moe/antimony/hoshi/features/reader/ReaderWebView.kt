@@ -601,11 +601,6 @@ fun ReaderWebView(
         )?.let { (popup, highlightCount) ->
             popup.copy(sasayakiCue = sasayakiCueForSelection(selection)) to highlightCount
         }
-    fun readerAiRootPopup(selection: ReaderSelectionData): LookupPopupItem =
-        createReaderAiPopupItem(
-            selection = selection,
-            options = rootLookupPopupOptions(),
-        )
     fun lookupChildPopup(selection: ReaderSelectionData): Pair<LookupPopupItem, Int>? =
         createLookupPopupItem(
             selection = selection,
@@ -1338,52 +1333,6 @@ fun ReaderWebView(
             }
         }
     }
-    val handleSentenceLongPressed: (ReaderSelectionData, (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit =
-        { selection, selectionRects ->
-            cancelSasayakiAutoPage()
-            stateHolder.enterFocusModeForReaderInteraction()
-            rootSelectionHighlight = null
-            // 打开 AI 弹窗时不要先清空弹窗：清空会触发播放器异步恢复，而恢复的 isPlaying
-            // 不会立即置位，会与随后的暂停检查竞态，导致朗读/咲咲在弹窗打开时仍在播放。
-            // 直接用新弹窗替换旧弹窗即可；仅在取消选择/关闭弹窗时才清空并恢复播放。
-            val popup = readerAiRootPopup(selection)
-            pauseSasayakiForLookupIfNeeded()
-            pauseReadAloudForLookupIfNeeded()
-            readerAiPopupModes = readerAiPopupModes + (popup.id to effectiveSettings.readerAiLongPressMode)
-            rootSelectionHighlight = ReaderRootSelectionHighlight(
-                popupId = popup.id,
-                rects = null,
-            )
-            setLookupPopups(listOf(popup))
-            requestReaderPopupSentenceAi(
-                popupId = popup.id,
-                selection = selection,
-                mode = effectiveSettings.readerAiLongPressMode,
-            )
-            val highlightCount = selection.text.codePointCount(0, selection.text.length)
-            selectionRects(highlightCount) { rects ->
-                if (stateHolder.lookupPopups.none { it.id == popup.id }) return@selectionRects
-                val displayRects = rects.ifEmpty { listOf(selection.rect) }
-                val anchor = readerPopupAnchorRect(displayRects, selection.rect)
-                setLookupPopups(
-                    stateHolder.lookupPopups.map { existing ->
-                        if (existing.id == popup.id) {
-                            existing.copy(
-                                state = existing.state.copy(
-                                    selection = existing.state.selection.copy(rect = anchor),
-                                ),
-                            )
-                        } else {
-                            existing
-                        }
-                    },
-                )
-                rootSelectionHighlight = ReaderRootSelectionHighlight(
-                    popupId = popup.id,
-                    rects = displayRects,
-                )
-            }
-        }
     val handlePageTranslationLongPressed: (ReaderPageTranslationTarget) -> Unit =
         { target ->
             cancelSasayakiAutoPage()
@@ -2396,11 +2345,9 @@ fun ReaderWebView(
                         sasayakiTextColor = currentSasayakiColors.textColor,
                         sasayakiBackgroundColor = currentSasayakiColors.backgroundColor,
                         onTextSelected = handleTextSelected,
-                        onSentenceLongPressed = handleSentenceLongPressed,
                         onPageTranslationLongPressed = handlePageTranslationLongPressed,
                         onPageTranslationRevealRequested = handlePageTranslationRevealRequested,
                         onReadAloudStartFromPoint = { x, y -> startReadAloudFromLongPressPoint(x, y) },
-                        readAloudStartFromLongPress = readAloudSettings.startReadingFromLongPress,
                         onClearLookupPopup = ::closeLookupPopupsAndSelection,
                         onReaderTapOutside = ::handleReaderTapOutside,
                         onReaderInteraction = ::handleReaderInteraction,
