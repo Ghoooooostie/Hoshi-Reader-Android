@@ -330,10 +330,6 @@
     <string name="reader_translation_ai_display_persistent">常驻显示</string>
     <string name="reader_translation_ai_display_long_press">长按显示</string>
     <string name="reader_translation_ai_display_mode_supporting">常驻显示：译文一直显示在原文下方。长按显示：译文默认收起，长按原文段落才展开。</string>
-    <string name="reader_translation_ai_long_press_section">长按配置</string>
-    <string name="reader_translation_ai_default_mode">默认长按模式</string>
-    <string name="reader_translation_ai_mode_translation">整句翻译</string>
-    <string name="reader_translation_ai_mode_analysis" comment="Reader long-press mode label, intentionally matching the Advanced AI sentence analysis card title.">长难句分析</string>
     <string name="reader_translation_ai_loading">AI 处理中</string>
     <string name="reader_translation_ai_request_failed">AI 翻译加载失败。</string>
     <string name="reader_translation_ai_style_section">样式组</string>

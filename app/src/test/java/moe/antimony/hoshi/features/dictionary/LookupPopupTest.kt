@@ -10,10 +10,9 @@ import moe.antimony.hoshi.features.reader.ReaderLookupPopupFramePayload
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupRootHighlightPayload
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupStackPayload
 import moe.antimony.hoshi.features.reader.ReaderLookupPopupViewport
-import moe.antimony.hoshi.features.reader.ReaderAiLongPressMode
+import moe.antimony.hoshi.features.advancedai.toPayload
 import moe.antimony.hoshi.features.reader.readerLookupPopupIframeUrl
 import moe.antimony.hoshi.features.reader.readerLookupPopupTouchBlocksReaderGesture
-import moe.antimony.hoshi.features.reader.toReaderAiPopupPayload
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.advancedai.AdvancedAiCardKind
 import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiState
@@ -310,10 +309,7 @@ class LookupPopupTest {
             popup = popup,
             popupIndex = 0,
             viewport = ReaderLookupPopupViewport(width = 500.0, height = 800.0),
-            advancedAi = popup.state.advancedAiState.toReaderAiPopupPayload(
-                mode = ReaderAiLongPressMode.Translation,
-                resolve = { "resolved" },
-            ),
+            advancedAi = popup.state.advancedAiState.toPayload(resolve = { "resolved" }),
         )
 
         assertTrue(payload.frame.height < 280.0)

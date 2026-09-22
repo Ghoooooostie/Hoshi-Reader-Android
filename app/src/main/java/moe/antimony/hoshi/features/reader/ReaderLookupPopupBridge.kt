@@ -310,12 +310,6 @@ internal sealed class ReaderLookupPopupBridgeMessage {
         override val messageId: String?,
     ) : ReaderLookupPopupBridgeMessage()
 
-    data class SwitchAdvancedAiMode(
-        override val popupId: String,
-        override val messageId: String?,
-        val mode: ReaderAiLongPressMode,
-    ) : ReaderLookupPopupBridgeMessage()
-
     data class ScrollState(
         override val popupId: String,
         override val messageId: String?,
@@ -426,11 +420,6 @@ internal sealed class ReaderLookupPopupBridgeMessage {
                 )
                 "contentReady" -> ContentReady(popupId, messageId)
                 "popupScrolled" -> PopupScrolled(popupId, messageId)
-                "switchAdvancedAiMode" -> SwitchAdvancedAiMode(
-                    popupId = popupId,
-                    messageId = messageId,
-                    mode = ReaderAiLongPressMode.entries.firstOrNull { it.name == payload.string("body") } ?: return null,
-                )
                 "scrollState" -> {
                     val body = payload.obj("body") ?: return null
                     ScrollState(

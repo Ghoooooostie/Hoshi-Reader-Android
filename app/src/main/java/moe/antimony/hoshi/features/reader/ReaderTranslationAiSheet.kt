@@ -120,27 +120,6 @@ internal fun ReaderTranslationAiSheet(
                     }
                 }
                 TranslationAiSection(
-                    title = stringResource(R.string.reader_translation_ai_long_press_section),
-                    palette = palette,
-                ) {
-                    TranslationAiSegmentedRow(
-                        label = stringResource(R.string.reader_translation_ai_default_mode),
-                        options = listOf(
-                            stringResource(R.string.reader_translation_ai_mode_translation),
-                            stringResource(R.string.reader_translation_ai_mode_analysis),
-                        ),
-                        selectedIndex = ReaderAiLongPressMode.entries
-                            .indexOf(settings.readerAiLongPressMode)
-                            .coerceAtLeast(0),
-                        onSelected = { index ->
-                            ReaderAiLongPressMode.entries.getOrNull(index)?.let { mode ->
-                                onSettingsChange(settings.copy(readerAiLongPressMode = mode))
-                            }
-                        },
-                        palette = palette,
-                    )
-                }
-                TranslationAiSection(
                     title = stringResource(R.string.reader_translation_ai_style_section),
                     palette = palette,
                 ) {

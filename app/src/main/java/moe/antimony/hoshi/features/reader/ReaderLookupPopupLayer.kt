@@ -21,7 +21,6 @@ internal data class ReaderPopupHistoryCounts(
 internal fun readerLookupPopupFramePayloads(
     popups: List<LookupPopupItem>,
     histories: Map<String, ReaderPopupHistoryCounts>,
-    readerAiPopupModes: Map<String, ReaderAiLongPressMode>,
     viewport: ReaderLookupPopupViewport,
     sasayakiWasPaused: Boolean,
     sasayakiIsPlaying: Boolean,
@@ -45,12 +44,7 @@ internal fun readerLookupPopupFramePayloads(
                 popupIndex = index,
                 rootSelectionHighlight = rootSelectionHighlight,
             ),
-            advancedAi = readerAiPopupModes[popup.id]?.let { mode ->
-                popup.state.advancedAiState.toReaderAiPopupPayload(
-                    mode = mode,
-                    resolve = resolveUiText,
-                )
-            } ?: popup.state.advancedAiState.toPayload(resolveUiText),
+            advancedAi = popup.state.advancedAiState.toPayload(resolveUiText),
         )
     }
 

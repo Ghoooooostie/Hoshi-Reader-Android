@@ -210,7 +210,6 @@ class ReaderSettingsRepositoryTest {
             assertEquals(ReaderViewMode.Paginated, settings.viewMode)
             assertFalse(settings.continuousMode)
             assertFalse(settings.readerAiFullPageTranslationEnabled)
-            assertEquals(ReaderAiLongPressMode.Translation, settings.readerAiLongPressMode)
             assertEquals(45, settings.visualNovelRevealSpeed)
             assertEquals(VisualNovelScreenMode.Block, settings.visualNovelScreenMode)
             assertEquals(1, settings.visualNovelSentencesPerScreen)
@@ -349,7 +348,6 @@ class ReaderSettingsRepositoryTest {
                 fontSize = 29,
                 viewMode = ReaderViewMode.Continuous,
                 readerAiFullPageTranslationEnabled = true,
-                readerAiLongPressMode = ReaderAiLongPressMode.Analysis,
                 chapterSwipeDistance = 120,
                 pageSwipeThresholdPx = 500,
                 topSafeAreaDp = 100,
@@ -380,7 +378,6 @@ class ReaderSettingsRepositoryTest {
             assertEquals(ReaderViewMode.Continuous, migrated.viewMode)
             assertTrue(migrated.continuousMode)
             assertTrue(migrated.readerAiFullPageTranslationEnabled)
-            assertEquals(ReaderAiLongPressMode.Analysis, migrated.readerAiLongPressMode)
             assertEquals(60, migrated.chapterSwipeDistance)
             assertEquals(360, migrated.pageSwipeThresholdPx)
             assertEquals(72, migrated.topSafeAreaDp)
@@ -425,7 +422,6 @@ class ReaderSettingsRepositoryTest {
                     furiganaMode = FuriganaMode.Hidden,
                     viewMode = ReaderViewMode.VisualNovel,
                     readerAiFullPageTranslationEnabled = true,
-                    readerAiLongPressMode = ReaderAiLongPressMode.Analysis,
                     visualNovelRevealSpeed = 80,
                     visualNovelScreenMode = VisualNovelScreenMode.Sentences,
                     visualNovelSentencesPerScreen = 3,
@@ -498,7 +494,6 @@ class ReaderSettingsRepositoryTest {
             assertEquals(ReaderViewMode.VisualNovel, saved.viewMode)
             assertFalse(saved.continuousMode)
             assertTrue(saved.readerAiFullPageTranslationEnabled)
-            assertEquals(ReaderAiLongPressMode.Analysis, saved.readerAiLongPressMode)
             assertEquals(80, saved.visualNovelRevealSpeed)
             assertEquals(VisualNovelScreenMode.Sentences, saved.visualNovelScreenMode)
             assertEquals(3, saved.visualNovelSentencesPerScreen)
@@ -586,7 +581,6 @@ class ReaderSettingsRepositoryTest {
                     topSafeAreaDp = 46,
                     bottomSafeAreaDp = 44,
                     readerAiFullPageTranslationEnabled = true,
-                    readerAiLongPressMode = ReaderAiLongPressMode.Analysis,
                     visualNovelMergeCrossScreenSasayakiCues = true,
                     vnBackgroundEnabled = true,
                     vnBackgroundColor = 0xFF112233,
@@ -610,7 +604,6 @@ class ReaderSettingsRepositoryTest {
             assertEquals(46, inherited.topSafeAreaDp)
             assertEquals(44, inherited.bottomSafeAreaDp)
             assertTrue(inherited.readerAiFullPageTranslationEnabled)
-            assertEquals(ReaderAiLongPressMode.Analysis, inherited.readerAiLongPressMode)
             assertTrue(inherited.visualNovelMergeCrossScreenSasayakiCues)
             assertTrue(inherited.vnBackgroundEnabled)
             assertEquals(0xFF112233L, inherited.vnBackgroundColor)
@@ -631,7 +624,6 @@ class ReaderSettingsRepositoryTest {
                     topSafeAreaDp = 58,
                     bottomSafeAreaDp = 60,
                     readerAiFullPageTranslationEnabled = false,
-                    readerAiLongPressMode = ReaderAiLongPressMode.Translation,
                     visualNovelMergeCrossScreenSasayakiCues = false,
                     vnBackgroundEnabled = false,
                     vnBackgroundColor = 0xFF445566,
@@ -652,7 +644,6 @@ class ReaderSettingsRepositoryTest {
             assertEquals(46, japanese.topSafeAreaDp)
             assertEquals(44, japanese.bottomSafeAreaDp)
             assertTrue(japanese.readerAiFullPageTranslationEnabled)
-            assertEquals(ReaderAiLongPressMode.Analysis, japanese.readerAiLongPressMode)
             assertTrue(japanese.visualNovelMergeCrossScreenSasayakiCues)
             assertTrue(japanese.vnBackgroundEnabled)
             assertEquals(0xFF112233L, japanese.vnBackgroundColor)

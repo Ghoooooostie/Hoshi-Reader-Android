@@ -172,11 +172,10 @@ class ReaderLookupPopupBridgeMessageTest {
                 """{"name":"scrollState","popupId":"root","body":{"atTop":true,"scrollTop":0.0}}""",
             ),
         )
-        assertEquals(
-            "SwitchAdvancedAiMode(popupId=root, messageId=null, mode=Analysis)",
+        assertNull(
             ReaderLookupPopupBridgeMessage.fromJson(
                 """{"name":"switchAdvancedAiMode","popupId":"root","body":"Analysis"}""",
-            )?.toString(),
+            ),
         )
     }
 

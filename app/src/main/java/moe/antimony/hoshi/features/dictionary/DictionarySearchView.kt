@@ -599,7 +599,6 @@ fun DictionarySearchView(
                     }
                 }
             }
-            is ReaderLookupPopupBridgeMessage.SwitchAdvancedAiMode -> Unit
             is ReaderLookupPopupBridgeMessage.SourceHistoryRestored -> {
                 if (message.popupId == DictionarySearchRootPopupId) {
                     searchViewModel.restoreRootSourceHistory(message.sentenceOffset)

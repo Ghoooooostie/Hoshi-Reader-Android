@@ -1,7 +1,6 @@
 package moe.antimony.hoshi.features.dictionary
 
 import moe.antimony.hoshi.features.display.DisplayAccentSource
-import moe.antimony.hoshi.features.reader.ReaderAiLongPressMode
 import moe.antimony.hoshi.features.reader.ReaderSettingsHostError
 import moe.antimony.hoshi.features.reader.ReaderSettingsHostViewModel
 import android.annotation.SuppressLint
@@ -337,7 +336,6 @@ private fun ProcessTextLookupOverlay(
             query = query,
             popups = displayedPopups,
             histories = popupHistories,
-            readerAiPopupModes = emptyMap(),
             viewport = viewport,
             iframeUrl = readerPopupIframeUrl,
             resolveUiText = { it.resolve(context) },
@@ -588,7 +586,6 @@ private fun ProcessTextLookupOverlay(
                 }
                 is ReaderLookupPopupBridgeMessage.ContentReady,
                 is ReaderLookupPopupBridgeMessage.ScrollState,
-                is ReaderLookupPopupBridgeMessage.SwitchAdvancedAiMode,
                 is ReaderLookupPopupBridgeMessage.SasayakiReplayCue,
                 is ReaderLookupPopupBridgeMessage.SasayakiTogglePlayback,
                 is ReaderLookupPopupBridgeMessage.SasayakiPlayForward,
@@ -789,12 +786,10 @@ internal fun processTextLookupFramePayloads(
     histories: Map<String, ReaderPopupHistoryCounts>,
     viewport: ReaderLookupPopupViewport,
     iframeUrl: String,
-    readerAiPopupModes: Map<String, ReaderAiLongPressMode> = emptyMap(),
     resolveUiText: (UiText) -> String = { error("Unexpected popup UI text $it") },
 ): List<ReaderLookupPopupFramePayload> = readerLookupPopupFramePayloads(
     popups = popups,
     histories = histories,
-    readerAiPopupModes = readerAiPopupModes,
     viewport = viewport,
     sasayakiWasPaused = false,
     sasayakiIsPlaying = false,

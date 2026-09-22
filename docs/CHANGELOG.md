@@ -82,9 +82,12 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   above lookup popup dictionaries, show AI sentence Chinese analysis in Process
   Text lookup, and let Anki templates render `{sentence-cn}` and
   `{advanced-ai-word}` when configured.
-- Add a Reader Translation (AI) panel with profile-scoped long-press mode,
-  in-reader sentence translation and sentence analysis cards, and visible-page
-  paragraph translation that fills in directly under the source text.
+- Add a Reader Translation (AI) panel with visible-page paragraph translation
+  that fills in directly under the source text. Because the sentence gesture now
+  only reads aloud, the panel no longer has a "Long press" group: the reader no
+  longer offers the default long-press mode (sentence translation vs. sentence
+  analysis) or shows a sentence translation card in lookup popups. Sentence
+  analysis and word analysis remain available in Process Text lookup.
   Full-page translation adds a display mode: always visible keeps translations
   under each paragraph, while on long press keeps them hidden until the original
   paragraph is long-pressed. Translations are prepared in the background while

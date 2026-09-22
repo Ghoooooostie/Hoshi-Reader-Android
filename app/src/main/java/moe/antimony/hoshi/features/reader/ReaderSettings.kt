@@ -109,7 +109,6 @@ data class ReaderSettings(
     val readerAiFullPageTranslationEnabled: Boolean = false,
     val readerAiFullPageTranslationDisplayMode: ReaderAiFullPageTranslationDisplayMode =
         ReaderAiFullPageTranslationDisplayMode.Persistent,
-    val readerAiLongPressMode: ReaderAiLongPressMode = ReaderAiLongPressMode.Translation,
     val readerAiTranslationFallbackEnabled: Boolean = false,
     /** 译文颜色；alpha 为 0（[ReaderTranslationColorFollowText]）表示跟随正文颜色。 */
     val translationColor: Long = ReaderTranslationColorFollowText,
@@ -399,21 +398,11 @@ enum class ReaderViewMode(val rawValue: String) {
     }
 }
 
-enum class ReaderAiLongPressMode {
-    Translation,
-    Analysis;
-
-    companion object {
-        fun fromStorage(value: String?): ReaderAiLongPressMode =
-            entries.firstOrNull { it.name == value } ?: Translation
-    }
-}
-
 /**
  * 阅读器手势触发的行为。
  *
  * - [None]: 该手势不执行句子操作。
- * - [SentenceAction]: 选中落点句子，弹出 AI 翻译/解析，并按朗读设置决定是否从该句起朗读。
+ * - [SentenceAction]: 从落点那一句开始朗读。
  * - [WordSelection]: 选中落点词语查词，长按后可以滑动扩展选区。
  */
 enum class ReaderGestureAction {
@@ -559,9 +548,6 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
         readerAiFullPageTranslationDisplayMode = ReaderAiFullPageTranslationDisplayMode.fromStorage(
             preferences.getString("readerAiFullPageTranslationDisplayMode", null),
         ),
-        readerAiLongPressMode = ReaderAiLongPressMode.fromStorage(
-            preferences.getString("readerAiLongPressMode", null),
-        ),
         readerAiTranslationFallbackEnabled = preferences.getBoolean("readerAiTranslationFallbackEnabled", false),
         translationColor = preferences.getLong("translationColor", ReaderTranslationColorFollowText),
         translationOpacity = preferences.getFloat("translationOpacity", ReaderTranslationOpacityDefault)
@@ -672,7 +658,6 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
             .putBoolean("continuousMode", settings.continuousMode)
             .putBoolean("readerAiFullPageTranslationEnabled", settings.readerAiFullPageTranslationEnabled)
             .putString("readerAiFullPageTranslationDisplayMode", settings.readerAiFullPageTranslationDisplayMode.name)
-            .putString("readerAiLongPressMode", settings.readerAiLongPressMode.name)
             .putBoolean("readerAiTranslationFallbackEnabled", settings.readerAiTranslationFallbackEnabled)
             .putLong("translationColor", settings.translationColor)
             .putFloat("translationOpacity", settings.translationOpacity.coerceReaderTranslationOpacity())
@@ -880,7 +865,6 @@ class ReaderSettingsRepository(
             readerAiFullPageTranslationDisplayMode = ReaderAiFullPageTranslationDisplayMode.fromStorage(
                 this[KEY_READER_AI_FULL_PAGE_TRANSLATION_DISPLAY_MODE],
             ),
-            readerAiLongPressMode = ReaderAiLongPressMode.fromStorage(this[KEY_READER_AI_LONG_PRESS_MODE]),
             readerAiTranslationFallbackEnabled = this[KEY_READER_AI_TRANSLATION_FALLBACK_ENABLED] ?: false,
             translationColor = this[KEY_TRANSLATION_COLOR] ?: ReaderTranslationColorFollowText,
             translationOpacity = (this[KEY_TRANSLATION_OPACITY] ?: ReaderTranslationOpacityDefault)
@@ -978,7 +962,6 @@ class ReaderSettingsRepository(
         this[KEY_CONTINUOUS_MODE] = settings.continuousMode
         this[KEY_READER_AI_FULL_PAGE_TRANSLATION_ENABLED] = settings.readerAiFullPageTranslationEnabled
         this[KEY_READER_AI_FULL_PAGE_TRANSLATION_DISPLAY_MODE] = settings.readerAiFullPageTranslationDisplayMode.name
-        this[KEY_READER_AI_LONG_PRESS_MODE] = settings.readerAiLongPressMode.name
         this[KEY_READER_AI_TRANSLATION_FALLBACK_ENABLED] = settings.readerAiTranslationFallbackEnabled
         this[KEY_TRANSLATION_COLOR] = settings.translationColor
         this[KEY_TRANSLATION_OPACITY] = settings.translationOpacity.coerceReaderTranslationOpacity()
@@ -1122,7 +1105,6 @@ class ReaderSettingsRepository(
             booleanPreferencesKey("readerAiFullPageTranslationEnabled")
         private val KEY_READER_AI_FULL_PAGE_TRANSLATION_DISPLAY_MODE =
             stringPreferencesKey("readerAiFullPageTranslationDisplayMode")
-        private val KEY_READER_AI_LONG_PRESS_MODE = stringPreferencesKey("readerAiLongPressMode")
         private val KEY_READER_AI_TRANSLATION_FALLBACK_ENABLED =
             booleanPreferencesKey("readerAiTranslationFallbackEnabled")
         private val KEY_TRANSLATION_COLOR = longPreferencesKey("translationColor")
@@ -1322,7 +1304,6 @@ private data class ProfileReaderAppearanceSettings(
     val readerAiFullPageTranslationEnabled: Boolean = false,
     val readerAiFullPageTranslationDisplayMode: ReaderAiFullPageTranslationDisplayMode =
         ReaderAiFullPageTranslationDisplayMode.Persistent,
-    val readerAiLongPressMode: ReaderAiLongPressMode = ReaderAiLongPressMode.Translation,
     val readerAiTranslationFallbackEnabled: Boolean = false,
     val translationColor: Long = ReaderTranslationColorFollowText,
     val translationOpacity: Float = ReaderTranslationOpacityDefault,
@@ -1395,7 +1376,6 @@ private fun ReaderSettings.toProfileAppearanceSettings(): ProfileReaderAppearanc
         continuousMode = continuousMode,
         readerAiFullPageTranslationEnabled = readerAiFullPageTranslationEnabled,
         readerAiFullPageTranslationDisplayMode = readerAiFullPageTranslationDisplayMode,
-        readerAiLongPressMode = readerAiLongPressMode,
         readerAiTranslationFallbackEnabled = readerAiTranslationFallbackEnabled,
         translationColor = translationColor,
         translationOpacity = translationOpacity.coerceReaderTranslationOpacity(),
@@ -1470,7 +1450,6 @@ private fun ReaderSettings.withProfileAppearance(appearance: ProfileReaderAppear
         },
         readerAiFullPageTranslationEnabled = appearance.readerAiFullPageTranslationEnabled,
         readerAiFullPageTranslationDisplayMode = appearance.readerAiFullPageTranslationDisplayMode,
-        readerAiLongPressMode = appearance.readerAiLongPressMode,
         readerAiTranslationFallbackEnabled = appearance.readerAiTranslationFallbackEnabled,
         translationColor = appearance.translationColor,
         translationOpacity = appearance.translationOpacity.coerceReaderTranslationOpacity(),
