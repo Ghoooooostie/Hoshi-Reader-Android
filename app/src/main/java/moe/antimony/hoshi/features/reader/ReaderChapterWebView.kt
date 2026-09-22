@@ -176,12 +176,20 @@ internal fun ChapterWebView(
             "none"
         }
     }
+    val vnTextPanelActive = readerSettings.viewMode == ReaderViewMode.VisualNovel &&
+        readerSettings.vnTextBackgroundEnabled
+    val vnTextBackgroundCss = readerSettings.vnTextBackgroundCss(systemDark)
+    val vnTextPaddingCss = if (vnTextPanelActive) "0.6em 0.9em" else "0px"
+    val vnTextRadiusCss = if (vnTextPanelActive) "0.6em" else "0px"
     val appearanceUpdateKey = readerAppearanceUpdateKey(
         settings = readerSettings,
         systemDark = systemDark,
         sasayakiTextColor = sasayakiTextColor,
         sasayakiBackgroundColor = sasayakiBackgroundColor,
         vnBackgroundImageCss = vnBackgroundImageCss,
+        vnTextBackgroundCss = vnTextBackgroundCss,
+        vnTextPaddingCss = vnTextPaddingCss,
+        vnTextRadiusCss = vnTextRadiusCss,
     )
     val readerAppearanceScript = remember(appearanceUpdateKey) {
         readerAppearanceScript(appearanceUpdateKey)
@@ -633,6 +641,9 @@ internal data class ReaderAppearanceUpdateKey(
     val sasayakiTextColorCss: String,
     val sasayakiBackgroundColorCss: String,
     val vnBackgroundImageCss: String = "none",
+    val vnTextBackgroundCss: String = "transparent",
+    val vnTextPaddingCss: String = "0px",
+    val vnTextRadiusCss: String = "0px",
 )
 
 internal fun readerAppearanceUpdateKey(
@@ -641,6 +652,9 @@ internal fun readerAppearanceUpdateKey(
     sasayakiTextColor: Long,
     sasayakiBackgroundColor: Long,
     vnBackgroundImageCss: String = "none",
+    vnTextBackgroundCss: String = "transparent",
+    vnTextPaddingCss: String = "0px",
+    vnTextRadiusCss: String = "0px",
 ): ReaderAppearanceUpdateKey =
     ReaderAppearanceUpdateKey(
         backgroundColorCss = settings.backgroundColorCss(systemDark),
@@ -652,6 +666,9 @@ internal fun readerAppearanceUpdateKey(
         sasayakiTextColorCss = sasayakiTextColor.toReaderCssColor(),
         sasayakiBackgroundColorCss = sasayakiBackgroundColor.toReaderCssColor(includeAlpha = true),
         vnBackgroundImageCss = vnBackgroundImageCss,
+        vnTextBackgroundCss = vnTextBackgroundCss,
+        vnTextPaddingCss = vnTextPaddingCss,
+        vnTextRadiusCss = vnTextRadiusCss,
     )
 
 internal fun readerWebViewLoadKey(
@@ -1134,6 +1151,9 @@ private fun readerAppearanceScript(
     val sasayakiText = readerJavaScriptStringLiteral(appearanceUpdateKey.sasayakiTextColorCss)
     val sasayakiBackground = readerJavaScriptStringLiteral(appearanceUpdateKey.sasayakiBackgroundColorCss)
     val vnBackgroundImage = readerJavaScriptStringLiteral(appearanceUpdateKey.vnBackgroundImageCss)
+    val vnTextBackground = readerJavaScriptStringLiteral(appearanceUpdateKey.vnTextBackgroundCss)
+    val vnTextPadding = readerJavaScriptStringLiteral(appearanceUpdateKey.vnTextPaddingCss)
+    val vnTextRadius = readerJavaScriptStringLiteral(appearanceUpdateKey.vnTextRadiusCss)
     return """
         (function() {
           document.documentElement.style.setProperty('--hoshi-background-color', $backgroundColor);
@@ -1146,6 +1166,9 @@ private fun readerAppearanceScript(
           document.documentElement.style.setProperty('--hoshi-sasayaki-text-color', $sasayakiText);
           document.documentElement.style.setProperty('--hoshi-sasayaki-background-color', $sasayakiBackground);
           document.documentElement.style.setProperty('--hoshi-vn-background-image', $vnBackgroundImage);
+          document.documentElement.style.setProperty('--hoshi-vn-text-background', $vnTextBackground);
+          document.documentElement.style.setProperty('--hoshi-vn-text-padding', $vnTextPadding);
+          document.documentElement.style.setProperty('--hoshi-vn-text-radius', $vnTextRadius);
           window.hoshiReader?.refreshSasayakiCuePresentation?.();
         })();
     """.trimIndent()

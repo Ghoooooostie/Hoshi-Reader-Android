@@ -34,10 +34,19 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ### Added
 
-- Add a Visual Novel background setting. In Settings > Appearance (when the reading
-  mode is Visual Novel), enable "VN Background" and pick a color or choose an image
-  from your device; switching into VN mode uses that background, while
-  paginated/continuous modes keep using the normal background.
+- Add Visual Novel background settings under Settings > Appearance. "VN Background"
+  lets you pick a background color or choose an image from your device, and "VN Text
+  Background" draws a configurable panel behind the on-screen text (auto-contrasting
+  by default) so dialogue stays readable over a background image. Both settings are
+  always visible; they take effect when the reading mode is Visual Novel, while
+  paginated/continuous modes keep using the normal background. "VN Background" no
+  longer defaults to an opaque black that blanked the whole page: when no color is
+  chosen it now falls back to the normal theme background, and the legacy default
+  black already stored on devices is migrated to "unset" on first read. The page
+  background color no longer paints over a chosen background image (the color now only
+  shows when no image is set), and the two color rows are relabeled "VN Page Background
+  Color" and "VN Text Panel" / "VN Text Panel Color" so the whole-page background is
+  no longer mistaken for the text panel.
 - Add Read Aloud in the reader menu. It opens a settings popup where you pick the
   engine (system text-to-speech or a downloaded local model), a specific system TTS
   voice and the speech rate, then start speaking the Japanese text of the visible
@@ -50,7 +59,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   follows along, turning pages (with a brief pause per page in Read-by-page mode)
   until the chapter ends. New Read Aloud settings add: ignore audio focus, pause
   during phone calls, keep the service awake (wake lock), media-button previous/next
-  mapped to paragraphs, read by page, and a shortcut to the system TTS settings.
+  mapped to paragraphs, read by page, a "Highlight While Playing" toggle that hides
+  the highlight over the sentence being spoken (the page still scrolls along), and a
+  shortcut to the system TTS settings.
   Read Aloud works in paginated, continuous and Visual Novel reading modes.
 - Add a Read Aloud option to start speaking from the sentence you trigger with the sentence
   gesture. When enabled in the Read Aloud settings, the sentence gesture both shows the
@@ -74,7 +85,10 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   paragraph is long-pressed. Translations are prepared in the background while
   full-page translation is on, so a long press reveals an existing translation
   instead of starting a request. Long-pressing a translation re-translates that
-  paragraph.
+  paragraph. In Visual Novel mode each screen is re-rendered on every page turn, so
+  a paragraph now keeps one stable translation target across screens instead of
+  being renumbered per screen; the sentence gesture no longer reveals a different
+  sentence's translation from earlier in the chapter.
 - Add an optional “Hide thumbnails when collapsed” switch in Manage Shelves.
 - Add volume-key control for Read Aloud: when Read Aloud is playing, the volume keys
   jump to the previous/next sentence (音量键控制朗读). The currently spoken sentence is

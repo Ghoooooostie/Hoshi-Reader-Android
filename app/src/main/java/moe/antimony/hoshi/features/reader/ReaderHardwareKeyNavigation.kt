@@ -128,7 +128,8 @@ private fun volumeKeyResult(
         hasSasayakiAudio = hasSasayakiAudio,
         hasLookupPopup = hasLookupPopup,
         readAloudActive = readAloudActive,
-    ) ?: return ReaderHardwareKeyEventResult(consumed = false)
+    )
+    keyAction ?: return ReaderHardwareKeyEventResult(consumed = false)
     return ReaderHardwareKeyEventResult(
         consumed = true,
         action = keyAction.takeIf { action == KeyEvent.ACTION_DOWN },

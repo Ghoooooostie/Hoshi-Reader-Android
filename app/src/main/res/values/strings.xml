@@ -446,7 +446,9 @@
     <string name="reader_visual_novel_click_advance">Tap Blank Area to Advance</string>
     <string name="reader_visual_novel_merge_cross_screen_sasayaki_cues">Keep Sasayaki Text Together</string>
     <string name="reader_visual_novel_background">VN Background</string>
-    <string name="reader_visual_novel_background_color">VN Background Color</string>
+    <string name="reader_visual_novel_background_color">VN Page Background Color</string>
+    <string name="reader_visual_novel_text_background">VN Text Panel</string>
+    <string name="reader_visual_novel_text_background_color">VN Text Panel Color</string>
     <string name="reader_visual_novel_background_image">VN Background Image</string>
     <string name="reader_visual_novel_background_image_remove">Remove VN Background Image</string>
     <string name="reader_appearance_chapter_swipe_distance">Chapter Swipe Distance</string>
@@ -930,6 +932,8 @@
     <string name="read_aloud_media_button_desc">Previous paragraph | next paragraph</string>
     <string name="read_aloud_by_page">Read by page</string>
     <string name="read_aloud_by_page_desc">Turns pages promptly; pauses briefly at each page turn</string>
+    <string name="read_aloud_highlight_while_playing">Highlight While Playing</string>
+    <string name="read_aloud_highlight_while_playing_desc">Highlight the sentence being read aloud; turn off to scroll along without highlighting it</string>
     <string name="read_aloud_start_from_sentence_gesture">Read from the sentence gesture</string>
     <string name="read_aloud_start_from_sentence_gesture_desc">Triggering the sentence gesture also starts reading aloud from that sentence, in order</string>
     <string name="read_aloud_auto_pause_on_lookup">Auto-Pause on Lookup</string>

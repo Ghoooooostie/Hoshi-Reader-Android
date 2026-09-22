@@ -109,8 +109,10 @@ data class ReaderSettings(
     val visualNovelClickAdvance: Boolean = false,
     val visualNovelMergeCrossScreenSasayakiCues: Boolean = false,
     val vnBackgroundEnabled: Boolean = false,
-    val vnBackgroundColor: Long = 0xFF000000,
+    val vnBackgroundColor: Long = 0x00000000,
     val vnBackgroundImagePath: String? = null,
+    val vnTextBackgroundEnabled: Boolean = false,
+    val vnTextBackgroundColor: Long? = null,
     val statisticsAutostartOnBookOpen: Boolean = false,
     val statisticsAutostartOnPageTurn: Boolean = false,
     val statisticsResetMinutes: Int = 0,
@@ -224,7 +226,10 @@ data class ReaderSettings(
 
     fun backgroundColor(systemDark: Boolean): Long {
         if (viewMode == ReaderViewMode.VisualNovel && vnBackgroundEnabled) {
-            return vnBackgroundColor
+            val color = vnBackgroundColor
+            // A transparent (unset) color means "no VN color override": fall through to
+            // the normal theme background instead of blanking the whole page black.
+            if (color.readerColorAlpha() != 0) return color
         }
         displaySettings?.let { return resolveDisplaySettings(it, systemDark).backgroundColor }
         if (eInkMode) {
@@ -251,6 +256,21 @@ data class ReaderSettings(
         }
         return color.toReaderCssColor(includeAlpha = includeAlpha)
     }
+
+    /**
+     * Effective color of the Visual Novel text panel. A `null` [vnTextBackgroundColor]
+     * means "auto": a dark scrim on a light-on-dark interface, otherwise a light scrim,
+     * so the panel always contrasts with the reader text.
+     */
+    fun vnTextPanelColor(systemDark: Boolean): Long = vnTextBackgroundColor
+        ?: if (usesDarkInterface(systemDark)) 0xB3000000 else 0xCCFFFFFF
+
+    fun vnTextBackgroundCss(systemDark: Boolean): String =
+        if (viewMode == ReaderViewMode.VisualNovel && vnTextBackgroundEnabled) {
+            vnTextPanelColor(systemDark).toReaderCssColor(includeAlpha = true)
+        } else {
+            "transparent"
+        }
 
     fun textColorCss(systemDark: Boolean): String {
         displaySettings?.let { global ->
@@ -534,8 +554,11 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
             false,
         ),
         vnBackgroundEnabled = preferences.getBoolean("vnBackgroundEnabled", false),
-        vnBackgroundColor = preferences.getLong("vnBackgroundColor", 0xFF000000),
+        vnBackgroundColor = preferences.getLong("vnBackgroundColor", 0xFF000000L)
+            .let { if (it == 0xFF000000L) 0x00000000 else it },
         vnBackgroundImagePath = preferences.getString("vnBackgroundImagePath", null),
+        vnTextBackgroundEnabled = preferences.getBoolean("vnTextBackgroundEnabled", false),
+        vnTextBackgroundColor = preferences.getLong("vnTextBackgroundColor", -1L).takeIf { it != -1L },
         statisticsAutostartOnBookOpen = if (preferences.contains("statisticsAutostartOnBookOpen")) {
             preferences.getBoolean("statisticsAutostartOnBookOpen", false)
         } else {
@@ -599,7 +622,7 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
     }
 
     fun save(settings: ReaderSettings) {
-        preferences.edit()
+        val editor = preferences.edit()
             .putString("theme", settings.theme.label)
             .putBoolean("eInkMode", settings.eInkMode)
             .putString("uiTheme", settings.uiTheme.label)
@@ -633,6 +656,10 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
             .putBoolean("vnBackgroundEnabled", settings.vnBackgroundEnabled)
             .putLong("vnBackgroundColor", settings.vnBackgroundColor)
             .putString("vnBackgroundImagePath", settings.vnBackgroundImagePath)
+            .putBoolean("vnTextBackgroundEnabled", settings.vnTextBackgroundEnabled)
+        settings.vnTextBackgroundColor?.let { editor.putLong("vnTextBackgroundColor", it) }
+            ?: editor.remove("vnTextBackgroundColor")
+        editor
             .putBoolean("statisticsAutostartOnBookOpen", settings.statisticsAutostartOnBookOpen)
             .putBoolean("statisticsAutostartOnPageTurn", settings.statisticsAutostartOnPageTurn)
             .remove("statisticsAutostartMode")
@@ -836,8 +863,11 @@ class ReaderSettingsRepository(
             visualNovelClickAdvance = this[KEY_VISUAL_NOVEL_CLICK_ADVANCE] ?: false,
             visualNovelMergeCrossScreenSasayakiCues = this[KEY_VISUAL_NOVEL_MERGE_CROSS_SCREEN_SASAYAKI_CUES] ?: false,
             vnBackgroundEnabled = this[KEY_VN_BACKGROUND_ENABLED] ?: false,
-            vnBackgroundColor = this[KEY_VN_BACKGROUND_COLOR] ?: 0xFF000000,
+            vnBackgroundColor = (this[KEY_VN_BACKGROUND_COLOR] ?: 0xFF000000L)
+            .let { if (it == 0xFF000000L) 0x00000000 else it },
             vnBackgroundImagePath = this[KEY_VN_BACKGROUND_IMAGE_PATH],
+            vnTextBackgroundEnabled = this[KEY_VN_TEXT_BACKGROUND_ENABLED] ?: false,
+            vnTextBackgroundColor = this[KEY_VN_TEXT_BACKGROUND_COLOR],
             statisticsAutostartOnBookOpen = this[KEY_STATISTICS_AUTOSTART_ON_BOOK_OPEN] ?: false,
             statisticsAutostartOnPageTurn = this[KEY_STATISTICS_AUTOSTART_ON_PAGE_TURN] ?: false,
             statisticsResetMinutes = this[KEY_STATISTICS_RESET_MINUTES] ?: 0,
@@ -928,6 +958,9 @@ class ReaderSettingsRepository(
         this[KEY_VN_BACKGROUND_COLOR] = settings.vnBackgroundColor
         settings.vnBackgroundImagePath?.let { this[KEY_VN_BACKGROUND_IMAGE_PATH] = it }
             ?: remove(KEY_VN_BACKGROUND_IMAGE_PATH)
+        this[KEY_VN_TEXT_BACKGROUND_ENABLED] = settings.vnTextBackgroundEnabled
+        settings.vnTextBackgroundColor?.let { this[KEY_VN_TEXT_BACKGROUND_COLOR] = it }
+            ?: remove(KEY_VN_TEXT_BACKGROUND_COLOR)
         this[KEY_STATISTICS_AUTOSTART_ON_BOOK_OPEN] = settings.statisticsAutostartOnBookOpen
         this[KEY_STATISTICS_AUTOSTART_ON_PAGE_TURN] = settings.statisticsAutostartOnPageTurn
         remove(KEY_STATISTICS_AUTOSTART_MODE)
@@ -1069,6 +1102,8 @@ class ReaderSettingsRepository(
         private val KEY_VN_BACKGROUND_ENABLED = booleanPreferencesKey("vnBackgroundEnabled")
         private val KEY_VN_BACKGROUND_COLOR = longPreferencesKey("vnBackgroundColor")
         private val KEY_VN_BACKGROUND_IMAGE_PATH = stringPreferencesKey("vnBackgroundImagePath")
+        private val KEY_VN_TEXT_BACKGROUND_ENABLED = booleanPreferencesKey("vnTextBackgroundEnabled")
+        private val KEY_VN_TEXT_BACKGROUND_COLOR = longPreferencesKey("vnTextBackgroundColor")
         private val KEY_STATISTICS_AUTOSTART_MODE = stringPreferencesKey("statisticsAutostartMode")
         private val KEY_STATISTICS_AUTOSTART_ON_BOOK_OPEN =
             booleanPreferencesKey("statisticsAutostartOnBookOpen")
@@ -1258,8 +1293,10 @@ private data class ProfileReaderAppearanceSettings(
     val visualNovelClickAdvance: Boolean = false,
     val visualNovelMergeCrossScreenSasayakiCues: Boolean = false,
     val vnBackgroundEnabled: Boolean = false,
-    val vnBackgroundColor: Long = 0xFF000000,
+    val vnBackgroundColor: Long = 0x00000000,
     val vnBackgroundImagePath: String? = null,
+    val vnTextBackgroundEnabled: Boolean = false,
+    val vnTextBackgroundColor: Long? = null,
     val showStatisticsToggle: Boolean = false,
     val showReadingSpeed: Boolean = false,
     val showReadingTime: Boolean = false,
@@ -1329,6 +1366,8 @@ private fun ReaderSettings.toProfileAppearanceSettings(): ProfileReaderAppearanc
         vnBackgroundEnabled = vnBackgroundEnabled,
         vnBackgroundColor = vnBackgroundColor,
         vnBackgroundImagePath = vnBackgroundImagePath,
+        vnTextBackgroundEnabled = vnTextBackgroundEnabled,
+        vnTextBackgroundColor = vnTextBackgroundColor,
         showStatisticsToggle = showStatisticsToggle,
         showReadingSpeed = showReadingSpeed,
         showReadingTime = showReadingTime,
@@ -1400,6 +1439,8 @@ private fun ReaderSettings.withProfileAppearance(appearance: ProfileReaderAppear
         vnBackgroundEnabled = appearance.vnBackgroundEnabled,
         vnBackgroundColor = appearance.vnBackgroundColor,
         vnBackgroundImagePath = appearance.vnBackgroundImagePath,
+        vnTextBackgroundEnabled = appearance.vnTextBackgroundEnabled,
+        vnTextBackgroundColor = appearance.vnTextBackgroundColor,
         showStatisticsToggle = appearance.showStatisticsToggle,
         showReadingSpeed = appearance.showReadingSpeed,
         showReadingTime = appearance.showReadingTime,

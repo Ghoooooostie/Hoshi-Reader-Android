@@ -93,9 +93,8 @@ class MainActivity : ComponentActivity() {
 
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (readerKeyEventHandler?.invoke(event) == true) {
-            return true
-        }
+        val consumed = readerKeyEventHandler?.invoke(event) == true
+        if (consumed) return true
         return super.dispatchKeyEvent(event)
     }
 

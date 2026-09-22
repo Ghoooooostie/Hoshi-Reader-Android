@@ -44,6 +44,8 @@ data class ReadAloudSettings(
     val pauseForLookup: Boolean = true,
     /** 朗读播放中整页翻译覆盖层显示时自动暂停。 */
     val pauseForPageTranslation: Boolean = true,
+    /** 播放时高亮当前正在朗读的句子；关闭后仍会滚动跟随，只是不显示高亮。 */
+    val highlightWhilePlaying: Boolean = true,
 ) {
     companion object {
         const val DefaultSpeechRate = 1.0f
@@ -92,6 +94,7 @@ private fun Preferences.toReadAloudSettings(): ReadAloudSettings = ReadAloudSett
     startReadingFromLongPress = this[Keys.startReadingFromLongPress] ?: false,
     pauseForLookup = this[Keys.pauseForLookup] ?: true,
     pauseForPageTranslation = this[Keys.pauseForPageTranslation] ?: true,
+    highlightWhilePlaying = this[Keys.highlightWhilePlaying] ?: true,
 )
 
 private fun MutablePreferences.writeReadAloudSettings(settings: ReadAloudSettings) {
@@ -107,6 +110,7 @@ private fun MutablePreferences.writeReadAloudSettings(settings: ReadAloudSetting
     this[Keys.startReadingFromLongPress] = settings.startReadingFromLongPress
     this[Keys.pauseForLookup] = settings.pauseForLookup
     this[Keys.pauseForPageTranslation] = settings.pauseForPageTranslation
+    this[Keys.highlightWhilePlaying] = settings.highlightWhilePlaying
 }
 
 private object Keys {
@@ -122,4 +126,5 @@ private object Keys {
     val startReadingFromLongPress = booleanPreferencesKey("startReadingFromLongPress")
     val pauseForLookup = booleanPreferencesKey("pauseForLookup")
     val pauseForPageTranslation = booleanPreferencesKey("pauseForPageTranslation")
+    val highlightWhilePlaying = booleanPreferencesKey("highlightWhilePlaying")
 }

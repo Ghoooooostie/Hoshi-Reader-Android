@@ -720,6 +720,47 @@ class ReaderSettingsTest {
     }
 
     @Test
+    fun visualNovelTextBackgroundCssIsTransparentWhenDisabledOrOutsideVisualNovel() {
+        val disabled = ReaderSettings(
+            viewMode = ReaderViewMode.VisualNovel,
+            vnTextBackgroundEnabled = false,
+            vnTextBackgroundColor = 0xCC000000,
+        )
+        assertEquals("transparent", disabled.vnTextBackgroundCss(systemDark = false))
+
+        val outsideVisualNovel = ReaderSettings(
+            viewMode = ReaderViewMode.Paginated,
+            vnTextBackgroundEnabled = true,
+            vnTextBackgroundColor = 0xCC000000,
+        )
+        assertEquals("transparent", outsideVisualNovel.vnTextBackgroundCss(systemDark = false))
+    }
+
+    @Test
+    fun visualNovelTextBackgroundUsesConfiguredColorWhenEnabled() {
+        val settings = ReaderSettings(
+            viewMode = ReaderViewMode.VisualNovel,
+            vnTextBackgroundEnabled = true,
+            vnTextBackgroundColor = 0xCC1A2B3C,
+        )
+
+        assertEquals("#1a2b3ccc", settings.vnTextBackgroundCss(systemDark = false).lowercase())
+    }
+
+    @Test
+    fun visualNovelTextBackgroundAutoColorAdaptsToInterfaceBrightness() {
+        val auto = ReaderSettings(
+            theme = ReaderTheme.System,
+            viewMode = ReaderViewMode.VisualNovel,
+            vnTextBackgroundEnabled = true,
+            vnTextBackgroundColor = null,
+        )
+
+        assertEquals(0xB3000000L, auto.vnTextPanelColor(systemDark = true))
+        assertEquals(0xCCFFFFFFL, auto.vnTextPanelColor(systemDark = false))
+    }
+
+    @Test
     fun customReaderCssPreservesConfiguredColorAlpha() {
         val css = ReaderContentStyles.styleTag(
             settings = ReaderSettings(

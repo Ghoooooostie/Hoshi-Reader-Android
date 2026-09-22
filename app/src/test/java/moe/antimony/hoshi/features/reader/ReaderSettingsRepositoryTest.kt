@@ -434,6 +434,8 @@ class ReaderSettingsRepositoryTest {
                     visualNovelMergeCrossScreenSasayakiCues = true,
                     vnBackgroundEnabled = true,
                     vnBackgroundColor = 0xFF112233,
+                    vnTextBackgroundEnabled = true,
+                    vnTextBackgroundColor = 0xFF445566,
                     blurImages = true,
                     statisticsAutostartOnBookOpen = true,
                     statisticsAutostartOnPageTurn = true,
@@ -505,6 +507,8 @@ class ReaderSettingsRepositoryTest {
             assertTrue(saved.visualNovelMergeCrossScreenSasayakiCues)
             assertTrue(saved.vnBackgroundEnabled)
             assertEquals(0xFF112233L, saved.vnBackgroundColor)
+            assertTrue(saved.vnTextBackgroundEnabled)
+            assertEquals(0xFF445566L, saved.vnTextBackgroundColor)
             assertTrue(saved.blurImages)
             assertTrue(saved.statisticsAutostartOnBookOpen)
             assertTrue(saved.statisticsAutostartOnPageTurn)
@@ -586,6 +590,8 @@ class ReaderSettingsRepositoryTest {
                     visualNovelMergeCrossScreenSasayakiCues = true,
                     vnBackgroundEnabled = true,
                     vnBackgroundColor = 0xFF112233,
+                    vnTextBackgroundEnabled = true,
+                    vnTextBackgroundColor = 0xFF778899,
                     volumeKeysTurnPages = true,
                     volumeKeysNavigatePopupTerms = true,
                     lockCurrentOrientation = true,
@@ -608,6 +614,8 @@ class ReaderSettingsRepositoryTest {
             assertTrue(inherited.visualNovelMergeCrossScreenSasayakiCues)
             assertTrue(inherited.vnBackgroundEnabled)
             assertEquals(0xFF112233L, inherited.vnBackgroundColor)
+            assertTrue(inherited.vnTextBackgroundEnabled)
+            assertEquals(0xFF778899L, inherited.vnTextBackgroundColor)
             assertTrue(inherited.volumeKeysTurnPages)
             assertTrue(inherited.volumeKeysNavigatePopupTerms)
             assertTrue(inherited.lockCurrentOrientation)
@@ -648,6 +656,8 @@ class ReaderSettingsRepositoryTest {
             assertTrue(japanese.visualNovelMergeCrossScreenSasayakiCues)
             assertTrue(japanese.vnBackgroundEnabled)
             assertEquals(0xFF112233L, japanese.vnBackgroundColor)
+            assertTrue(japanese.vnTextBackgroundEnabled)
+            assertEquals(0xFF778899L, japanese.vnTextBackgroundColor)
             assertFalse(japanese.volumeKeysTurnPages)
             assertFalse(japanese.volumeKeysNavigatePopupTerms)
             assertFalse(japanese.lockCurrentOrientation)

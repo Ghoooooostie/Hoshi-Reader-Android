@@ -9,7 +9,40 @@
   var ON_LONG_PRESS_MODE = 'onLongPress';
   var READ_ALOUD_CLASS = 'hoshi-read-aloud-active';
   var READ_ALOUD_SENTENCE_CLASS = 'hoshi-read-aloud-sentence';
+  var VN_UNREVEALED_SELECTOR = '[data-hoshi-visual-novel-unrevealed]';
   var displayMode = 'persistent';
+
+  /**
+   * Visual Novel 逐字显示把同一个文本节点拆成「已显示」+「隐藏的剩余部分」
+   * （隐藏 span 用 visibility:hidden 占位）。隐藏部分仍在 DOM 里，若把它也算进
+   * 段落文本 / 参与高亮包裹，屏幕上就会出现重复文字。
+   */
+  function isUnrevealedTextNode(node) {
+    var element = node && node.nodeType === Node.TEXT_NODE ? node.parentNode : node;
+    return !!(element && element.closest && element.closest(VN_UNREVEALED_SELECTOR));
+  }
+
+  /**
+   * 朗读高亮包裹段落文本前，先把 VN 逐字显示补完，保证一个段落只有一份文本节点，
+   * 避免 reveal 的后续 tick 把已被移进高亮 span 的字符再写一遍（表现为重复文字）。
+   */
+  function completePendingVisualNovelReveal(element) {
+    var reader = global.hoshiReader;
+    if (!reader || typeof reader.completeCurrentReveal !== 'function') return;
+    if (!element || !element.querySelector) return;
+    if (!element.querySelector(VN_UNREVEALED_SELECTOR)) return;
+    reader.completeCurrentReveal();
+  }
+
+  /** 把高亮 span 还原成原文本节点，避免反复包裹后残留副本。 */
+  function unwrapElement(element) {
+    var parent = element.parentNode;
+    if (!parent) return;
+    while (element.firstChild) {
+      parent.insertBefore(element.firstChild, element);
+    }
+    parent.removeChild(element);
+  }
 
   function isTargetElement(element) {
     if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
@@ -95,10 +128,23 @@
     return text.length > 0;
   }
 
+  /**
+   * 目标 id 是译文缓存/队列的键（缓存按「章 + id」索引），所以它必须在同一章内
+   * 唯一且稳定。分页/连续模式的元素常驻 DOM，序号 id 天然稳定；VN 每次翻屏都会
+   * 重建当前屏的 clone，序号 id 会被同一章不同屏的段落重复使用，于是双击某句可能
+   * 套出别屏同序号段落的译文。reader 若能用源文档结构位置给出章内稳定 key，就用它。
+   */
+  function stableTargetId(element) {
+    var reader = global.hoshiReader;
+    if (!reader || typeof reader.translationTargetKeyForElement !== 'function') return null;
+    var key = reader.translationTargetKeyForElement(element);
+    return key ? key : null;
+  }
+
   function ensureTargetId(element, index) {
     var current = element.getAttribute(TARGET_ATTRIBUTE);
     if (current) return current;
-    var next = 'hoshi-translation-' + (index + 1);
+    var next = 'hoshi-translation-' + (stableTargetId(element) || (index + 1));
     element.setAttribute(TARGET_ATTRIBUTE, next);
     return next;
   }
@@ -371,11 +417,13 @@
       });
       return true;
     },
-    highlightReadAloudTarget: function(targetId, reveal) {
+    highlightReadAloudTarget: function(targetId, reveal, highlightVisible) {
       this.clearReadAloudHighlight();
       var element = findTargetById(targetId);
       if (!element) return null;
-      element.classList.add(READ_ALOUD_CLASS);
+      if (highlightVisible !== false) {
+        element.classList.add(READ_ALOUD_CLASS);
+      }
       if (reveal) {
         if (global.hoshiReader && typeof global.hoshiReader.scrollToRange === 'function') {
           var range = document.createRange();
@@ -396,7 +444,12 @@
       );
       Array.prototype.forEach.call(
         document.querySelectorAll('.' + READ_ALOUD_SENTENCE_CLASS),
-        function(node) { node.classList.remove(READ_ALOUD_SENTENCE_CLASS); }
+        function(node) {
+          node.classList.remove(READ_ALOUD_SENTENCE_CLASS);
+          // 只去掉 class 会残留包裹用的 span：下一句再包裹时这些 span 内的文本会被
+          // 当成"原文"再次参与匹配，最终表现为段落文字被重复显示。这里直接还原 DOM。
+          unwrapElement(node);
+        }
       );
       return true;
     },
@@ -405,16 +458,21 @@
      * 也跟随变化). Falls back to highlighting the whole paragraph when the sentence text cannot be
      * located in the DOM (e.g. 按页朗读没有分句的段落). Skips ruby annotation text (<rt>/<rp>) when
      * matching the sentence so furigana does not break offset alignment.
+     *
+     * [highlightVisible] false (播放高亮关闭时) 仍会 reveal/滚动跟随，只是不画高亮。
      */
-    highlightReadAloudSentence: function(targetId, sentenceText, reveal) {
+    highlightReadAloudSentence: function(targetId, sentenceText, reveal, highlightVisible) {
       this.clearReadAloudHighlight();
       var element = findTargetById(targetId);
       if (!element) return null;
+      completePendingVisualNovelReveal(element);
       var sentence = (typeof sentenceText === 'string') ? sentenceText : '';
       var range = sentence.length > 0 ? this._findSentenceRange(element, sentence) : null;
-      element.classList.add(READ_ALOUD_CLASS);
-      if (range) {
-        this._wrapRange(range, READ_ALOUD_SENTENCE_CLASS);
+      if (highlightVisible !== false) {
+        element.classList.add(READ_ALOUD_CLASS);
+        if (range) {
+          this._wrapRange(range, READ_ALOUD_SENTENCE_CLASS);
+        }
       }
       if (reveal) {
         var targetRange = range || document.createRange().selectNodeContents(element);
@@ -436,6 +494,7 @@
       var node;
       while ((node = walker.nextNode())) {
         if (node.closest && node.closest('rt, rp')) continue;
+        if (isUnrevealedTextNode(node)) continue;
         var text = node.nodeValue;
         segments.push({ node: node, baseStart: baseText.length, length: text.length });
         baseText += text;
@@ -468,6 +527,7 @@
       while ((node = walker.nextNode())) {
         if (!range.intersectsNode(node)) continue;
         if (node.closest && node.closest('rt, rp')) continue;
+        if (isUnrevealedTextNode(node)) continue;
         var start = (node === range.startContainer) ? range.startOffset : 0;
         var end = (node === range.endContainer) ? range.endOffset : node.nodeValue.length;
         if (start >= end) continue;

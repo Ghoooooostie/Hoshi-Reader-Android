@@ -165,6 +165,37 @@ window.hoshiReader = {
     this.nodeStartOffsets = offsets;
     this.nodeStartRawOffsets = rawOffsets;
   },
+  /**
+   * 译文目标 id 的章内稳定 key。VN 每次翻屏都重建当前屏 clone，元素本身没有跨屏身份，
+   * 因此不能用「屏内序号」发 id（同一章不同屏会撞号，译文缓存随之串台）。这里改用源
+   * 文档结构位置：首个正文文本节点的章内 raw offset + 结构层级 + 标签名，保证同一源
+   * 段落永远同一个 id，不同段落（含 blockquote/p 这类嵌套候选）id 必然不同。
+   */
+  translationTargetKeyForElement: function(element) {
+    if (!element || !element.tagName || !this.nodeStartRawOffsets) return null;
+    var walker = this.createWalker(element);
+    var rawOffset;
+    var node;
+    while ((node = walker.nextNode())) {
+      if (!node.nodeValue) continue;
+      var mapped = this.nodeStartRawOffsets.get(node);
+      if (mapped === undefined) continue;
+      rawOffset = mapped;
+      break;
+    }
+    if (rawOffset === undefined) return null;
+    return 'vn-' + rawOffset + '-' + this.sourceDepthForElement(element) + '-' +
+      String(element.tagName).toLowerCase();
+  },
+  sourceDepthForElement: function(element) {
+    var depth = 0;
+    var current = element;
+    while (current && current !== this.screen) {
+      depth += 1;
+      current = current.parentNode;
+    }
+    return depth;
+  },
   waitForImages: function(scope) {
     var root = scope || this.sourceRoot;
     var images = root && root.querySelectorAll

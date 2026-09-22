@@ -44,24 +44,35 @@ internal object ReaderPageTranslationCommand {
     fun clearTranslations(): String =
         "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.clearTranslations()"
 
-    /** Highlights the reader paragraph currently being spoken and optionally scrolls to it. */
-    fun highlightReadAloudTarget(targetId: String, reveal: Boolean): String =
+    /**
+     * Highlights the reader paragraph currently being spoken and optionally scrolls to it.
+     * When [highlightVisible] is false only the scroll/reveal side effects run, so playback can
+     * follow along without drawing the highlight.
+     */
+    fun highlightReadAloudTarget(
+        targetId: String,
+        reveal: Boolean,
+        highlightVisible: Boolean = true,
+    ): String =
         "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.highlightReadAloudTarget(" +
-            "${readerJavaScriptStringLiteral(targetId)}, $reveal)"
+            "${readerJavaScriptStringLiteral(targetId)}, $reveal, $highlightVisible)"
 
     /**
      * Highlights the specific sentence currently being spoken within its paragraph and scrolls to
      * it (音量键上一句/下一句跳转后让显示的文字也跟随变化). Falls back to the whole paragraph when the
      * sentence text cannot be located in the DOM.
+     *
+     * When [highlightVisible] is false only the scroll/reveal side effects run.
      */
     fun highlightReadAloudSentence(
         targetId: String,
         sentenceText: String?,
         reveal: Boolean,
+        highlightVisible: Boolean = true,
     ): String {
         val escapedSentence = sentenceText?.let { readerJavaScriptStringLiteral(it) } ?: "null"
         return "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.highlightReadAloudSentence(" +
-            "${readerJavaScriptStringLiteral(targetId)}, $escapedSentence, $reveal)"
+            "${readerJavaScriptStringLiteral(targetId)}, $escapedSentence, $reveal, $highlightVisible)"
     }
 
     fun clearReadAloudHighlight(): String =

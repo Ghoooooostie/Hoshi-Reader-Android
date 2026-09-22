@@ -12,6 +12,9 @@ __HOSHI_PARAGRAPH_SPACING_CSS__
     --hoshi-sasayaki-text-color: __HOSHI_SASAYAKI_TEXT_COLOR__;
     --hoshi-sasayaki-background-color: __HOSHI_SASAYAKI_BACKGROUND_COLOR__;
     --hoshi-vn-background-image: none;
+    --hoshi-vn-text-background: transparent;
+    --hoshi-vn-text-padding: 0px;
+    --hoshi-vn-text-radius: 0px;
 }
 html {
     -webkit-line-box-contain: block glyphs replaced;
@@ -148,7 +151,10 @@ html[data-hoshi-reader-eink-mode="true"] .hoshi-read-aloud-sentence {
     align-items: center;
     justify-content: center;
     color: var(--hoshi-text-color);
-    background: var(--hoshi-background-color);
+    /* Transparent so the VN background color/image painted on html, body shows
+       through. Painting an opaque color here used to cover a chosen background
+       image entirely. */
+    background: transparent;
     writing-mode: inherit;
 }
 .hoshi-vn-screen {
@@ -168,9 +174,11 @@ html[data-hoshi-reader-eink-mode="true"] .hoshi-read-aloud-sentence {
     max-width: 100%;
     max-height: 100%;
     color: inherit;
-    background: inherit;
+    background: var(--hoshi-vn-text-background, transparent);
     writing-mode: inherit;
     overflow: hidden;
+    padding: var(--hoshi-vn-text-padding, 0);
+    border-radius: var(--hoshi-vn-text-radius, 0);
 }
 [data-hoshi-visual-novel-unrevealed] {
     visibility: hidden !important;

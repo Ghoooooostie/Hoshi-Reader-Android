@@ -444,7 +444,9 @@
     <string name="reader_visual_novel_click_advance">点击空白处前进</string>
     <string name="reader_visual_novel_merge_cross_screen_sasayaki_cues">字幕文本同屏</string>
     <string name="reader_visual_novel_background">VN 背景</string>
-    <string name="reader_visual_novel_background_color">VN 背景颜色</string>
+    <string name="reader_visual_novel_background_color">VN 页面背景色</string>
+    <string name="reader_visual_novel_text_background">VN 文字底板</string>
+    <string name="reader_visual_novel_text_background_color">VN 文字底板颜色</string>
     <string name="reader_visual_novel_background_image">VN 背景图片</string>
     <string name="reader_visual_novel_background_image_remove">移除 VN 背景图片</string>
     <string name="reader_appearance_chapter_swipe_distance">章节滑动距离</string>
@@ -928,6 +930,8 @@
     <string name="read_aloud_media_button_desc">上一段 | 下一段</string>
     <string name="read_aloud_by_page">按页朗读</string>
     <string name="read_aloud_by_page_desc">及时翻页，翻页时会停顿一下</string>
+    <string name="read_aloud_highlight_while_playing">播放高亮</string>
+    <string name="read_aloud_highlight_while_playing_desc">朗读播放时高亮当前朗读的句子；关闭后仍会滚动跟随，只是不显示高亮</string>
     <string name="read_aloud_start_from_sentence_gesture">从句子手势开始朗读</string>
     <string name="read_aloud_start_from_sentence_gesture_desc">触发句子手势时会同时从此句起按顺序朗读</string>
     <string name="read_aloud_auto_pause_on_lookup">查词时自动暂停</string>

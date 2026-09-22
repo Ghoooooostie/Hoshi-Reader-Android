@@ -260,6 +260,14 @@ fun ReadAloudSettingsSheet(
                     },
                 )
                 ReadAloudToggleRow(
+                    title = stringResource(R.string.read_aloud_highlight_while_playing),
+                    subtitle = stringResource(R.string.read_aloud_highlight_while_playing_desc),
+                    checked = settings.highlightWhilePlaying,
+                    onCheckedChange = { enabled ->
+                        viewModel.updateSettings { it.copy(highlightWhilePlaying = enabled) }
+                    },
+                )
+                ReadAloudToggleRow(
                     title = stringResource(R.string.read_aloud_start_from_sentence_gesture),
                     subtitle = stringResource(R.string.read_aloud_start_from_sentence_gesture_desc),
                     checked = settings.startReadingFromLongPress,

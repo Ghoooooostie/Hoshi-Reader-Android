@@ -10,6 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
@@ -196,6 +197,7 @@ private fun ReaderAppearanceContent(
     var fontVariantMenuExpanded by remember { mutableStateOf(false) }
     var fontToDelete by remember { mutableStateOf<ReaderFontFamily?>(null) }
     var vnBackgroundPickerOpen by remember { mutableStateOf(false) }
+    var vnTextBackgroundPickerOpen by remember { mutableStateOf(false) }
     val fontImporter = rememberLauncherForActivityResult(FileImportContent()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         runCatching {
@@ -631,12 +633,40 @@ private fun ReaderAppearanceContent(
                         ReaderColorPickerDialog(
                             title = stringResource(R.string.reader_visual_novel_background_color),
                             initialColor = settings.vnBackgroundColor,
-                            defaultColor = 0xFF000000,
+                            defaultColor = 0x00000000,
                             onColorChange = { color ->
                                 onSettingsChange { current -> current.copy(vnBackgroundColor = color) }
                                 vnBackgroundPickerOpen = false
                             },
                             onDismiss = { vnBackgroundPickerOpen = false },
+                        )
+                    }
+                    AppearanceDivider(palette)
+                    SwitchRow(
+                        label = stringResource(R.string.reader_visual_novel_text_background),
+                        checked = settings.vnTextBackgroundEnabled,
+                        onCheckedChange = { checked ->
+                            onSettingsChange { current -> current.copy(vnTextBackgroundEnabled = checked) }
+                        },
+                    )
+                    if (settings.vnTextBackgroundEnabled) {
+                        AppearanceDivider(palette)
+                        ReaderColorSettingRow(
+                            label = stringResource(R.string.reader_visual_novel_text_background_color),
+                            color = settings.vnTextPanelColor(isSystemInDarkTheme()),
+                            onClick = { vnTextBackgroundPickerOpen = true },
+                        )
+                    }
+                    if (vnTextBackgroundPickerOpen) {
+                        ReaderColorPickerDialog(
+                            title = stringResource(R.string.reader_visual_novel_text_background_color),
+                            initialColor = settings.vnTextPanelColor(isSystemInDarkTheme()),
+                            defaultColor = settings.vnTextPanelColor(isSystemInDarkTheme()),
+                            onColorChange = { color ->
+                                onSettingsChange { current -> current.copy(vnTextBackgroundColor = color) }
+                                vnTextBackgroundPickerOpen = false
+                            },
+                            onDismiss = { vnTextBackgroundPickerOpen = false },
                         )
                     }
                     AppearanceDivider(palette)

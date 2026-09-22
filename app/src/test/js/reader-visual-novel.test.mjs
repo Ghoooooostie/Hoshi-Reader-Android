@@ -1157,6 +1157,26 @@ test('visual novel exposes the read aloud target contract for the visible screen
     assert.equal(hit.onTranslation, false);
 });
 
+test('visual novel translation target ids stay unique across screens of one chapter', async () => {
+    const loaded = await initializeReader(
+        bodyWith(p('第一段落。'), p('第二段落。'), p('第三段落。')),
+        { mode: 'block', revealSpeed: 0 },
+    );
+    const translation = loaded.window.hoshiReaderPageTranslation;
+    const textsById = new Map();
+    for (let index = 0; index < 3; index += 1) {
+        if (index > 0) loaded.reader.paginate('forward');
+        JSON.parse(translation.collectVisibleTargets()).forEach((target) => {
+            const seen = textsById.get(target.id);
+            // 同一个 id 只能对应同一段原文，否则译文缓存（按章 + id 索引）会串台。
+            if (seen !== undefined) assert.equal(seen, target.text);
+            textsById.set(target.id, target.text);
+        });
+    }
+    // 旧实现每屏都从 hoshi-translation-1 重新编号，三屏会共用同一个 id。
+    assert.equal(new Set(textsById.values()).size, 3);
+});
+
 test('visual novel read aloud highlight targets the cloned screen paragraph', async () => {
     const loaded = await initializeReader(bodyWith(p('家電製品らしきものも見当たらない。')), {
         mode: 'block',
@@ -1169,6 +1189,9 @@ test('visual novel read aloud highlight targets the cloned screen paragraph', as
     assert.equal(translation.highlightReadAloudTarget(targetId, false), true);
     assert.equal(paragraph.classList.contains('hoshi-read-aloud-active'), true);
     assert.equal(translation.clearReadAloudHighlight(), true);
+    assert.equal(paragraph.classList.contains('hoshi-read-aloud-active'), false);
+    // "播放高亮"关闭时仍返回成功，但不给段落加高亮 class。
+    assert.equal(translation.highlightReadAloudTarget(targetId, false, false), true);
     assert.equal(paragraph.classList.contains('hoshi-read-aloud-active'), false);
 });
 
