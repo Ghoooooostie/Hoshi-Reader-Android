@@ -311,7 +311,8 @@ internal class AnkiRepository(
             }
             Triple(sentenceCnRequest.await(), sentenceAnalyzeRequest.await(), wordAnalyzeRequest.await())
         }
-        Log.d(TAG, "mineEntry: AI lookups completed in ${System.currentTimeMillis() - aiStartTime}ms")
+        val aiTime = System.currentTimeMillis() - aiStartTime
+        Log.d(TAG, "mineEntry: AI lookups completed in ${aiTime}ms")
         
         // Media uploads - run cover/sasayaki in parallel, but audio/dictionary sequentially
         // to avoid file write conflicts in cache directory
@@ -365,7 +366,8 @@ internal class AnkiRepository(
             media.filename to result
         }.filterValues { it.isNotBlank() }
         
-        Log.d(TAG, "mineEntry: all media uploads completed in ${System.currentTimeMillis() - mediaStartTime}ms, HTTP requests=$httpCount")
+        val mediaTime = System.currentTimeMillis() - mediaStartTime
+        Log.d(TAG, "mineEntry: all media uploads completed in ${mediaTime}ms, HTTP requests=$httpCount")
         
         val mediaContext = AnkiMiningContext(
             sentence = context.sentence,
@@ -409,7 +411,8 @@ internal class AnkiRepository(
             duplicateScope = settings.duplicateScope,
             checkDuplicatesAcrossAllModels = settings.checkDuplicatesAcrossAllModels,
         )
-        Log.d(TAG, "mineEntry: addNote took ${System.currentTimeMillis() - addNoteStart}ms, result=$added")
+        val addNoteTime = System.currentTimeMillis() - addNoteStart
+        Log.d(TAG, "mineEntry: addNote took ${addNoteTime}ms, result=$added")
         
         if (added) {
             val syncStart = System.currentTimeMillis()
@@ -426,7 +429,9 @@ internal class AnkiRepository(
         }
         
         val totalTime = System.currentTimeMillis() - startTime
-        Log.d(TAG, "mineEntry completed in ${totalTime}ms, success=$added, total HTTP requests=${httpCount + 2}") // +2 for isAvailable and addNote
+        // Warning level on purpose: several devices filter debug logs, and the mine breakdown is
+        // the only way to tell a slow audio source / AI lookup apart from a slow Anki backend.
+        Log.w(TAG, "mineEntry finished in ${totalTime}ms (ai=${aiTime}ms, media=${mediaTime}ms, addNote=${addNoteTime}ms), success=$added")
         
         added
     }
@@ -568,7 +573,7 @@ internal class AnkiRepository(
         )
     }
 
-    private fun addRemoteAudio(url: String, activeBackend: AnkiBackend, backendKind: AnkiBackendKind): String? =
+    private suspend fun addRemoteAudio(url: String, activeBackend: AnkiBackend, backendKind: AnkiBackendKind): String? =
         runCatching {
             val data = readAnkiAudioBytes(
                 url = url,
@@ -582,7 +587,7 @@ internal class AnkiRepository(
             addMediaFile(file.absolutePath, file.name, media.mimeType, activeBackend, backendKind)
         }.getOrNull()
 
-    private fun addDictionaryMedia(media: DictionaryMedia, activeBackend: AnkiBackend, backendKind: AnkiBackendKind): String? =
+    private suspend fun addDictionaryMedia(media: DictionaryMedia, activeBackend: AnkiBackend, backendKind: AnkiBackendKind): String? =
         runCatching {
             val data = loadDictionaryMedia(media) ?: return null
             val file = mediaCacheFile("hoshi_dict_${sha1Hex(data)}.${media.path.substringAfterLast('.', "bin")}")
@@ -592,7 +597,7 @@ internal class AnkiRepository(
         }.onFailure { Log.w(TAG, "Failed to add dictionary media ${media.path}", it) }
             .getOrNull()
 
-    private fun addHashedMediaFile(
+    private suspend fun addHashedMediaFile(
         path: String,
         prefix: String,
         activeBackend: AnkiBackend,

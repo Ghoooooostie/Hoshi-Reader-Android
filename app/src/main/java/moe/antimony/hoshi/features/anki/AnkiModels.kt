@@ -119,6 +119,7 @@ data class AnkiSettings(
 
 const val MaxAnkiCardFormats = 3
 internal const val DefaultAnkiTag = "hoshi"
+internal const val LegacyAnkiCardFormatId = "legacy"
 
 internal fun AnkiSettings.addCardFormat(format: AnkiCardFormat): AnkiSettings =
     if (cardFormats.size >= MaxAnkiCardFormats || cardFormats.any { it.id == format.id }) {
@@ -144,6 +145,33 @@ internal fun AnkiSettings.updateCardFormat(
     return copy(cardFormats = cardFormats.map { format ->
         if (format.id == formatId) transform(format).copy(id = format.id) else format
     })
+}
+
+/**
+ * Card formats the mining/UI code should work with. Settings that were never migrated to
+ * multiple formats still keep the single flat deck/note-type/field mapping, so it is exposed
+ * as one synthetic format instead of an empty list.
+ */
+internal fun AnkiSettings.effectiveCardFormats(): List<AnkiCardFormat> =
+    cardFormats.ifEmpty {
+        listOf(
+            AnkiCardFormat(
+                id = LegacyAnkiCardFormatId,
+                name = "Default",
+                selectedDeckId = selectedDeckId,
+                selectedDeckName = selectedDeckName,
+                selectedNoteTypeId = selectedNoteTypeId,
+                selectedNoteTypeName = selectedNoteTypeName,
+                fieldMappings = fieldMappings,
+                tags = tags,
+            ),
+        )
+    }
+
+/** Falls back to the first format when the requested id is unknown or absent. */
+internal fun AnkiSettings.resolveCardFormat(formatId: String?): AnkiCardFormat? {
+    val formats = effectiveCardFormats()
+    return formats.firstOrNull { it.id == formatId } ?: formats.firstOrNull()
 }
 
 internal fun AnkiSettings.removeCardFormat(formatId: String): AnkiSettings =

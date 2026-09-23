@@ -15,6 +15,7 @@ const KANA_PATTERN = /[\u3040-\u30FF\uFF66-\uFF9F]/;
 const DEFAULT_HARMONIC_RANK = '9999999';
 const SMALL_KANA_SET = new Set('ぁぃぅぇぉゃゅょゎァィゥェォャュョヮ');
 const NUMERIC_TAG = /^\d+$/;
+const MINE_ERROR_RESET_DELAY = 1500;
 // this might not cover every tag
 const POS_TAGS = new Set(['n', 'adj-i', 'adj-na', 'adj-no', 'v1', 'vk', 'vs', 'vs-i', 'vs-s', 'vz', 'vi', 'vt']);
 let audioUrls = {};
@@ -1256,7 +1257,7 @@ async function mineEntry(expression, reading, frequencies, pitches, rules, match
     const pitchAccentGraphs = constructPitchAccentGraphsHtml(pitches, reading || expression);
 
     if (!audioUrls[idx] && window.audioSources?.length && window.needsAudio) {
-        audioUrls[idx] = (await fetchAudioList(idx))[0]?.url || null;
+        audioUrls[idx] = await fetchAudioUrl(expression, reading || expression);
     }
 
     const audio = audioUrls[idx] || '';
@@ -1756,6 +1757,23 @@ async function fetchAudioSources(source, expression, reading) {
     }
 }
 
+// Mining only needs the first audio the configured sources can offer, so it stops at the first
+// source that answers. Waiting for every source (or for the whole candidate list) makes mining
+// pay the timeout of each unreachable source.
+async function fetchAudioUrl(expression, reading) {
+    const sources = window.audioSources;
+    if (!sources?.length) {
+        return null;
+    }
+    for (const source of sources) {
+        const candidates = await fetchAudioSources(source, expression, reading);
+        if (candidates[0]?.url) {
+            return candidates[0].url;
+        }
+    }
+    return null;
+}
+
 async function fetchAudioList(entryIndex) {
     if (audioLists[entryIndex]) {
         return await audioLists[entryIndex];
@@ -1768,15 +1786,20 @@ async function fetchAudioList(entryIndex) {
 
     const cache = audioLists;
     cache[entryIndex] = (async () => {
+        // Sources are independent, so query them together: the candidate menu waits for the
+        // slowest source instead of for the sum of all of them. Order is kept by Promise.all.
+        const perSource = await Promise.all(
+            sources.map((source) => fetchAudioSources(source, entry.expression, entry.reading)),
+        );
         const list = [];
-        for (const source of sources) {
-            const candidates = await fetchAudioSources(source, entry.expression, entry.reading);
+        perSource.forEach((candidates, index) => {
+            const source = sources[index];
             const sourceName = typeof source === 'string' ? 'Audio' : (source.name || 'Audio');
             candidates.forEach(candidate => list.push({
                 name: candidate.name ? `${sourceName}: ${candidate.name}` : sourceName,
                 url: candidate.url,
             }));
-        }
+        });
         return list;
     })();
     return await cache[entryIndex];
@@ -1995,7 +2018,7 @@ async function playEntryAudio(entryIndex, sourceIndex = null) {
     if (sourceIndex !== null) {
         audioUrls[entryIndex] = (await fetchAudioList(entryIndex))[sourceIndex]?.url || null;
     } else if (!audioUrls[entryIndex]) {
-        audioUrls[entryIndex] = (await fetchAudioList(entryIndex))[0]?.url || null;
+        audioUrls[entryIndex] = await fetchAudioUrl(entry.expression, entry.reading || entry.expression);
     }
     if (!audioUrls[entryIndex] || !playWordAudio(audioUrls[entryIndex])) {
         updateButtonSlot(audioSlot, { state: 'error' });
@@ -2035,6 +2058,15 @@ async function mineEntryAtIndex(entryIndex, formatId, buttonsContainer = null) {
     const mined = await mineEntry(expression, reading, frequencies, pitches, rules, matched, entryIndex, lastSelection, formatId);
     if (!mined) {
         updateButtonSlot(mineSlot, { state: 'error', enabled: false });
+        // A failed mine must stay retryable: leaving the button disabled forever turns one
+        // transient failure into a card that can never be added from this popup.
+        setTimeout(() => {
+            const format = formats.find((item) => item.id === formatId);
+            updateButtonSlot(mineSlot, {
+                state: 'default',
+                enabled: Boolean(window.ankiBackendAvailable && (format ? format.isValid !== false : true)),
+            });
+        }, MINE_ERROR_RESET_DELAY);
         return;
     }
     const checkDuplicate = () => refreshAnkiDuplicateStates(entryIndex, buttonsContainer);
@@ -2123,7 +2155,12 @@ async function refreshAnkiDuplicateStates(entryIndex, buttonsContainer) {
         const mineSlot = buttonSlotInContainer(buttonsContainer, 'mine', entryIndex, format.id);
         const isDuplicate = duplicateStateForFormat(states, format.id);
         if (isDuplicate === null) {
-            updateButtonSlot(mineSlot, { state: 'error', enabled: false });
+            // No duplicate information is not a mining failure: keep the button usable so a
+            // failed duplicate lookup cannot silently remove the only way to add the card.
+            updateButtonSlot(mineSlot, {
+                state: 'default',
+                enabled: Boolean(window.ankiBackendAvailable && format.isValid),
+            });
             syncShowNotesButton(buttonsContainer, entryIndex, format, false);
             return;
         }

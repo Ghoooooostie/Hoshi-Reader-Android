@@ -174,6 +174,7 @@ function popupContext({
     getEntry = null,
     lookupRedirect = () => 0,
     sourceHistoryRestored = () => {},
+    mineResult = true,
     fetchImpl = async () => ({ json: async () => ({ type: 'audioSourceList', audioSources: [] }) }),
 } = {}) {
     const documentElement = new FakeElement();
@@ -271,7 +272,7 @@ function popupContext({
                 mineEntry: {
                     postMessage(message) {
                         mineEntryMessages.push(message);
-                        return true;
+                        return mineResult;
                     },
                 },
                 duplicateCheck: {
@@ -1065,6 +1066,106 @@ test('duplicate refresh updates every format and creates or removes show-notes b
     assert.equal(descendants(container).filter((button) => button.dataset.kind === 'notes' && !button.hidden).length, 0);
     assert.deepEqual(notesButtons.map((button) => button.style.display), ['none', 'none', 'none']);
     assert.deepEqual(mineButtons.map((button) => button.disabled), [false, false, false]);
+});
+
+test('duplicate refresh keeps mining enabled when a format has no duplicate state', async () => {
+    const { context } = popupContext({ duplicateStates: { word: true } });
+    context.window.lookupEntries = [{ expression: '猫', reading: 'ねこ', matched: '猫' }];
+    context.window.ankiBackendAvailable = true;
+    context.window.allowDupes = false;
+    context.window.ankiFormats = [
+        { id: 'word', icon: 'square', isValid: true },
+        { id: 'sentence', icon: 'circle', isValid: true },
+    ];
+    const container = new FakeElement();
+    context.appendAnkiFormatButtons(container, 0);
+
+    await context.refreshAnkiDuplicateStates(0, container);
+
+    const mineButtons = descendants(container).filter((button) => button.dataset.kind === 'mine');
+    assert.deepEqual(mineButtons.map((button) => button.dataset.state), ['duplicate', 'default']);
+    assert.deepEqual(mineButtons.map((button) => button.disabled), [true, false]);
+});
+
+test('a failed mine reports the error but leaves the button retryable', async () => {
+    const { context } = popupContext({ mineResult: false });
+    context.window.lookupEntries = [{
+        expression: '猫',
+        reading: 'ねこ',
+        matched: '猫',
+        glossaries: [],
+        frequencies: [],
+        pitches: [],
+        rules: [],
+    }];
+    context.window.ankiBackendAvailable = true;
+    context.window.ankiFormats = [{ id: 'word', icon: 'square', isValid: true }];
+    const container = new FakeElement();
+    context.appendAnkiFormatButtons(container, 0);
+    const mineButton = descendants(container).find((button) => button.dataset.kind === 'mine');
+
+    await context.mineEntryAtIndex(0, 'word', container);
+    assert.equal(mineButton.dataset.state, 'error');
+    assert.equal(mineButton.disabled, true);
+
+    await new Promise((resolve) => setTimeout(resolve, 1600));
+    assert.equal(mineButton.dataset.state, 'default');
+    assert.equal(mineButton.disabled, false);
+});
+
+test('mining stops asking audio sources once one of them answers', async () => {
+    const requestedTargets = [];
+    const { context, mineEntryMessages } = popupContext({
+        fetchImpl: async (requestUrl) => {
+            const target = decodeURIComponent(requestUrl.split('url=')[1]);
+            requestedTargets.push(target);
+            return {
+                json: async () => ({
+                    type: 'audioSourceList',
+                    audioSources: [{ name: 'Voice', url: `${target.split('://')[0]}.mp3` }],
+                }),
+            };
+        },
+    });
+    context.window.audioSources = [
+        { name: 'Local', url: 'local://?term={term}&reading={reading}' },
+        { name: 'Remote', url: 'remote://?term={term}&reading={reading}' },
+    ];
+    context.window.needsAudio = true;
+    context.window.lookupEntries = [{ expression: '猫', reading: 'ねこ', glossaries: [] }];
+
+    await context.mineEntry('猫', 'ねこ', [], [], [], '猫', 0, '', 'format-a');
+
+    assert.equal(mineEntryMessages.at(-1).payload.audio, 'local.mp3');
+    assert.deepEqual(requestedTargets, ['local://?term=%E7%8C%AB&reading=%E3%81%AD%E3%81%93']);
+});
+
+test('mining falls through to the next audio source when the first one has nothing', async () => {
+    const requestedTargets = [];
+    const { context, mineEntryMessages } = popupContext({
+        fetchImpl: async (requestUrl) => {
+            const target = decodeURIComponent(requestUrl.split('url=')[1]);
+            requestedTargets.push(target);
+            const audioSources = target.startsWith('local://')
+                ? []
+                : [{ name: 'Voice', url: 'remote-a.mp3' }];
+            return { json: async () => ({ type: 'audioSourceList', audioSources }) };
+        },
+    });
+    context.window.audioSources = [
+        { name: 'Local', url: 'local://?term={term}&reading={reading}' },
+        { name: 'Remote', url: 'remote://?term={term}&reading={reading}' },
+    ];
+    context.window.needsAudio = true;
+    context.window.lookupEntries = [{ expression: '猫', reading: 'ねこ', glossaries: [] }];
+
+    await context.mineEntry('猫', 'ねこ', [], [], [], '猫', 0, '', 'format-a');
+
+    assert.equal(mineEntryMessages.at(-1).payload.audio, 'remote-a.mp3');
+    assert.deepEqual(requestedTargets, [
+        'local://?term=%E7%8C%AB&reading=%E3%81%AD%E3%81%93',
+        'remote://?term=%E7%8C%AB&reading=%E3%81%AD%E3%81%93',
+    ]);
 });
 
 test('popup language detection works with split selection policy assets', () => {
