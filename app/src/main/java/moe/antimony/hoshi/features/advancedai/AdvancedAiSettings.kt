@@ -42,6 +42,7 @@ internal class AdvancedAiSettingsRepository(
         dataStore.edit { preferences ->
             val next = transform(preferences.toAdvancedAiSettings())
             preferences[KEY_ENABLED] = next.enabled
+            preferences[KEY_ANALYSIS_ENABLED] = next.analysisEnabled
             preferences[KEY_BASE_URL] = next.baseUrl
             preferences[KEY_API_KEY] = next.apiKey
             preferences[KEY_MODEL] = next.model
@@ -56,6 +57,7 @@ internal class AdvancedAiSettingsRepository(
     private fun Preferences.toAdvancedAiSettings(): AdvancedAiSettings =
         AdvancedAiSettings(
             enabled = this[KEY_ENABLED] ?: false,
+            analysisEnabled = this[KEY_ANALYSIS_ENABLED] ?: true,
             baseUrl = this[KEY_BASE_URL].orEmpty(),
             apiKey = this[KEY_API_KEY].orEmpty(),
             model = this[KEY_MODEL].orEmpty(),
@@ -99,6 +101,7 @@ internal class AdvancedAiSettingsRepository(
         )
 
         private val KEY_ENABLED = booleanPreferencesKey("enabled")
+        private val KEY_ANALYSIS_ENABLED = booleanPreferencesKey("analysisEnabled")
         private val KEY_BASE_URL = stringPreferencesKey("baseUrl")
         private val KEY_API_KEY = stringPreferencesKey("apiKey")
         private val KEY_MODEL = stringPreferencesKey("model")

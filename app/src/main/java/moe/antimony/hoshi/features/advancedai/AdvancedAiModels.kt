@@ -3,6 +3,7 @@ package moe.antimony.hoshi.features.advancedai
 /** 高级 AI 的持久化设置。 */
 internal data class AdvancedAiSettings(
     val enabled: Boolean = false,
+    val analysisEnabled: Boolean = true,
     val baseUrl: String = "",
     val apiKey: String = "",
     val model: String = "",
@@ -32,7 +33,11 @@ internal sealed interface AdvancedAiAvailability {
 
 /** 判断词语分析是否可用。 */
 internal fun AdvancedAiSettings.wordAvailability(): AdvancedAiAvailability =
-    availability(prompt = wordPrompt, missingField = AdvancedAiMissingField.WordPrompt)
+    availability(
+        prompt = wordPrompt,
+        missingField = AdvancedAiMissingField.WordPrompt,
+        requiresAnalysis = true,
+    )
 
 /** 判断整句翻译是否可用。 */
 internal fun AdvancedAiSettings.sentenceTranslationAvailability(): AdvancedAiAvailability =
@@ -50,14 +55,20 @@ internal fun AdvancedAiSettings.pageParagraphTranslationAvailability(): Advanced
 
 /** 判断长难句分析是否可用。 */
 internal fun AdvancedAiSettings.sentenceAvailability(): AdvancedAiAvailability =
-    availability(prompt = sentencePrompt, missingField = AdvancedAiMissingField.SentencePrompt)
+    availability(
+        prompt = sentencePrompt,
+        missingField = AdvancedAiMissingField.SentencePrompt,
+        requiresAnalysis = true,
+    )
 
 /** 统一计算当前配置的可用性。 */
 private fun AdvancedAiSettings.availability(
     prompt: String,
     missingField: AdvancedAiMissingField,
+    requiresAnalysis: Boolean = false,
 ): AdvancedAiAvailability {
     if (!enabled) return AdvancedAiAvailability.Disabled
+    if (requiresAnalysis && !analysisEnabled) return AdvancedAiAvailability.Disabled
     if (baseUrl.isBlank()) return AdvancedAiAvailability.MissingConfiguration(AdvancedAiMissingField.BaseUrl)
     if (apiKey.isBlank()) return AdvancedAiAvailability.MissingConfiguration(AdvancedAiMissingField.ApiKey)
     if (model.isBlank()) return AdvancedAiAvailability.MissingConfiguration(AdvancedAiMissingField.Model)

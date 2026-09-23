@@ -136,6 +136,24 @@ fun AdvancedAiSettingsView(
                     GroupDivider()
                     ListItem(
                         colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+                        headlineContent = { Text(stringResource(R.string.advanced_ai_analysis_enable)) },
+                        supportingContent = {
+                            Text(stringResource(R.string.advanced_ai_analysis_enable_supporting))
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = settings.analysisEnabled,
+                                onCheckedChange = { analysisEnabled ->
+                                    scope.launch {
+                                        repository.update { current -> current.copy(analysisEnabled = analysisEnabled) }
+                                    }
+                                },
+                            )
+                        },
+                    )
+                    GroupDivider()
+                    ListItem(
+                        colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
                         headlineContent = { Text(stringResource(R.string.advanced_ai_connection)) },
                         supportingContent = {
                             Text(

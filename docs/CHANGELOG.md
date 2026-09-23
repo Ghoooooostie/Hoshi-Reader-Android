@@ -81,7 +81,10 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 - Add an Advanced AI settings page that can show AI word-in-sentence analysis
   above lookup popup dictionaries, show AI sentence Chinese analysis in Process
   Text lookup, and let Anki templates render `{sentence-cn}` and
-  `{advanced-ai-word}` when configured.
+  `{advanced-ai-word}` when configured. Its new "Enable word and sentence
+  analysis" toggle turns both analysis cards off, including the analysis content
+  Anki cards would generate, while sentence and paragraph translation keep
+  working.
 - Add a Reader Translation (AI) panel with visible-page paragraph translation
   that fills in directly under the source text. Because the sentence gesture now
   only reads aloud, the panel no longer has a "Long press" group: the reader no

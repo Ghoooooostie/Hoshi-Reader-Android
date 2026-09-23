@@ -70,6 +70,49 @@ class AdvancedAiSettingsRepositoryTest {
     }
 
     @Test
+    fun disablingAnalysisDisablesOnlyAnalysisAvailability() = runBlocking {
+        repository().use { handle ->
+            handle.repository.update {
+                it.copy(
+                    enabled = true,
+                    baseUrl = "https://example.invalid/v1",
+                    apiKey = "sk-test",
+                    model = "gpt-test",
+                    analysisEnabled = false,
+                )
+            }
+
+            val saved = handle.repository.settings.first()
+
+            assertTrue(!saved.analysisEnabled)
+            assertTrue(saved.wordAvailability() is AdvancedAiAvailability.Disabled)
+            assertTrue(saved.sentenceAvailability() is AdvancedAiAvailability.Disabled)
+            assertTrue(saved.sentenceTranslationAvailability() is AdvancedAiAvailability.Ready)
+            assertTrue(saved.pageParagraphTranslationAvailability() is AdvancedAiAvailability.Ready)
+        }
+    }
+
+    @Test
+    fun keepsAnalysisEnabledByDefaultWhenConfigured() = runBlocking {
+        repository().use { handle ->
+            handle.repository.update {
+                it.copy(
+                    enabled = true,
+                    baseUrl = "https://example.invalid/v1",
+                    apiKey = "sk-test",
+                    model = "gpt-test",
+                )
+            }
+
+            val saved = handle.repository.settings.first()
+
+            assertTrue(saved.analysisEnabled)
+            assertTrue(saved.wordAvailability() is AdvancedAiAvailability.Ready)
+            assertTrue(saved.sentenceAvailability() is AdvancedAiAvailability.Ready)
+        }
+    }
+
+    @Test
     fun missingWordPromptReportsPromptSpecificAvailability() = runBlocking {
         repository().use { handle ->
             handle.repository.update {

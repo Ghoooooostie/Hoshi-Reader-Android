@@ -565,6 +565,8 @@
     <string name="advanced_ai">高级 AI</string>
     <string name="advanced_ai_subtitle">AI 词语和句子分析</string>
     <string name="advanced_ai_enable">启用高级 AI</string>
+    <string name="advanced_ai_analysis_enable">启用词语分析和长难句分析</string>
+    <string name="advanced_ai_analysis_enable_supporting">关闭后，查词弹窗不再显示词语分析，长难句分析也不再显示，Anki 制卡也不会再生成这两项内容。</string>
     <string name="advanced_ai_connection" comment="Advanced AI settings section label, intentionally matching the Anki connection label.">连接</string>
     <string name="advanced_ai_not_tested">未测试</string>
     <string name="advanced_ai_testing">测试中</string>

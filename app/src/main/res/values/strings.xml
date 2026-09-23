@@ -567,6 +567,8 @@
     <string name="advanced_ai">Advanced AI</string>
     <string name="advanced_ai_subtitle">AI word and sentence analysis</string>
     <string name="advanced_ai_enable">Enable Advanced AI</string>
+    <string name="advanced_ai_analysis_enable">Enable word and sentence analysis</string>
+    <string name="advanced_ai_analysis_enable_supporting">When off, word analysis is no longer shown in lookup popups, sentence analysis is no longer shown in Process Text lookup, and Anki cards no longer generate either.</string>
     <string name="advanced_ai_connection" comment="Advanced AI settings section label, intentionally matching the Anki connection label.">Connection</string>
     <string name="advanced_ai_not_tested">Not tested</string>
     <string name="advanced_ai_testing">Testing</string>
