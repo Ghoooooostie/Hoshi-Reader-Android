@@ -38,7 +38,7 @@ import moe.antimony.hoshi.ui.UiText
 /**
  * Drives sentence-by-sentence read aloud playback for the reader.
  * It owns the playback queue and state only; speech is delegated to a [ReadAloudEngine]
- * chosen from the user's engine preference (system TTS or a downloaded local model).
+ * speaking through the platform text-to-speech engine.
  *
  * Mirrors the media-aware behaviour of legadoT's read-aloud service: it requests audio
  * focus, pauses when headphones are unplugged or a phone call interrupts, and supports a
@@ -50,7 +50,6 @@ class ReadAloudController @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val settingsRepository: ReadAloudSettingsRepository,
     private val systemEngine: SystemReadAloudEngine,
-    private val localEngine: LocalReadAloudEngine,
     @param:ApplicationScope private val applicationScope: CoroutineScope,
 ) : AudioManager.OnAudioFocusChangeListener {
 
@@ -100,7 +99,6 @@ class ReadAloudController @Inject constructor(
     private var sleepTimerJob: Job? = null
 
     init {
-        var prevEngineId: ReadAloudEngineId? = null
         var prevSelectedSystemEngineName: String? = null
         applicationScope.launch {
             settingsRepository.settings.collect { settings ->
@@ -110,17 +108,12 @@ class ReadAloudController @Inject constructor(
                 mediaButtonPerNext = settings.mediaButtonPerNext
                 if (!settings.pauseWhilePhoneCalls) unregisterPhoneStateListener()
                 systemEngine.setSpeechRate(settings.speechRate)
-                localEngine.setSpeechRate(settings.speechRate)
 
-                // 切换引擎（系统/本地，或在系统引擎下切换具体语音）后即时生效：
-                // 正在朗读时用新引擎从当前句重新开始，避免继续用旧引擎读完本章。
-                val engineBackendChanged = settings.engineId != prevEngineId
+                // 切换系统语音后即时生效：正在朗读时用新语音从当前句重新开始，
+                // 避免继续用旧语音读完本章。
                 val systemVoiceChanged = settings.selectedSystemEngineName != prevSelectedSystemEngineName
-                val affectsActive = engineBackendChanged ||
-                    (systemVoiceChanged && settings.engineId == ReadAloudEngineId.System)
-                prevEngineId = settings.engineId
                 prevSelectedSystemEngineName = settings.selectedSystemEngineName
-                if (affectsActive && mutableState.value.isActive && mutableState.value.isPlaying) {
+                if (systemVoiceChanged && mutableState.value.isActive && mutableState.value.isPlaying) {
                     val restartAt = mutableState.value.currentIndex.coerceAtLeast(0)
                     playbackJob?.cancel()
                     activeEngine.stop()
@@ -130,30 +123,16 @@ class ReadAloudController @Inject constructor(
         }
     }
 
-    private suspend fun selectEngine(): ReadAloudEngine {
-        val engineId = settingsRepository.settings.first().engineId
-        activeEngine = if (engineId == ReadAloudEngineId.Local) localEngine else systemEngine
-        return activeEngine
-    }
-
-    /**
-     * Prepares the preferred engine, falling back to the other backend when it cannot be
-     * prepared (e.g. the local model is missing/corrupt). Returns the engine to use, or null
-     * if neither backend is available. Never lets a failed local model crash the app.
-     */
-    private suspend fun prepareEngine(preferred: ReadAloudEngine): ReadAloudEngine? {
-        activeEngine = preferred
-        if (preferred.prepare()) return preferred
-        val fallback = if (preferred.id == ReadAloudEngineId.Local) systemEngine else localEngine
-        activeEngine = fallback
-        if (fallback.prepare()) return fallback
-        val settings = settingsRepository.settings.first()
-        val errorRes = if (settings.engineId == ReadAloudEngineId.Local) {
-            R.string.read_aloud_error_local_model_unavailable
-        } else {
-            R.string.read_aloud_error_japanese_voice_missing
+    /** Returns the engine to speak with, or null when the device cannot speak Japanese. */
+    private suspend fun prepareEngine(): ReadAloudEngine? {
+        activeEngine = systemEngine
+        if (systemEngine.prepare()) return systemEngine
+        update {
+            copy(
+                isPlaying = false,
+                error = UiText.Resource(R.string.read_aloud_error_japanese_voice_missing),
+            )
         }
-        update { copy(isPlaying = false, error = UiText.Resource(errorRes)) }
         return null
     }
 
@@ -460,7 +439,7 @@ class ReadAloudController @Inject constructor(
             }
             registerNoisy()
             if (pauseWhilePhoneCalls) registerPhoneStateListener()
-            val engine = prepareEngine(selectEngine()) ?: run {
+            val engine = prepareEngine() ?: run {
                 releaseAudioFocus()
                 unregisterNoisy()
                 return@launch

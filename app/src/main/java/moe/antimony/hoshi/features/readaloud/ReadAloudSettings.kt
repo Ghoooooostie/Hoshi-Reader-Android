@@ -12,21 +12,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-enum class ReadAloudEngineId(val rawValue: String) {
-    System("system"),
-    Local("local"),
-    ;
-
-    companion object {
-        fun fromRawValue(value: String?): ReadAloudEngineId =
-            entries.firstOrNull { it.rawValue == value } ?: System
-    }
-}
-
 data class ReadAloudSettings(
-    val engineId: ReadAloudEngineId = ReadAloudEngineId.System,
     val speechRate: Float = DefaultSpeechRate,
-    val selectedModelId: String? = null,
     val selectedSystemEngineName: String? = null,
     /** 忽略音频焦点：与其他应用同时播放音频。 */
     val ignoreAudioFocus: Boolean = false,
@@ -82,9 +69,7 @@ class ReadAloudSettingsRepository(
 }
 
 private fun Preferences.toReadAloudSettings(): ReadAloudSettings = ReadAloudSettings(
-    engineId = ReadAloudEngineId.fromRawValue(this[Keys.engine]),
     speechRate = this[Keys.speechRate] ?: ReadAloudSettings.DefaultSpeechRate,
-    selectedModelId = this[Keys.selectedModelId]?.takeIf { it.isNotEmpty() },
     selectedSystemEngineName = this[Keys.selectedSystemEngineName]?.takeIf { it.isNotEmpty() },
     ignoreAudioFocus = this[Keys.ignoreAudioFocus] ?: false,
     pauseWhilePhoneCalls = this[Keys.pauseWhilePhoneCalls] ?: false,
@@ -98,9 +83,7 @@ private fun Preferences.toReadAloudSettings(): ReadAloudSettings = ReadAloudSett
 )
 
 private fun MutablePreferences.writeReadAloudSettings(settings: ReadAloudSettings) {
-    this[Keys.engine] = settings.engineId.rawValue
     this[Keys.speechRate] = settings.speechRate
-    this[Keys.selectedModelId] = settings.selectedModelId ?: ""
     this[Keys.selectedSystemEngineName] = settings.selectedSystemEngineName ?: ""
     this[Keys.ignoreAudioFocus] = settings.ignoreAudioFocus
     this[Keys.pauseWhilePhoneCalls] = settings.pauseWhilePhoneCalls
@@ -114,9 +97,7 @@ private fun MutablePreferences.writeReadAloudSettings(settings: ReadAloudSetting
 }
 
 private object Keys {
-    val engine = stringPreferencesKey("engine")
     val speechRate = floatPreferencesKey("speechRate")
-    val selectedModelId = stringPreferencesKey("selectedModelId")
     val selectedSystemEngineName = stringPreferencesKey("selectedSystemEngineName")
     val ignoreAudioFocus = booleanPreferencesKey("ignoreAudioFocus")
     val pauseWhilePhoneCalls = booleanPreferencesKey("pauseWhilePhoneCalls")

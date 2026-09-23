@@ -9,8 +9,6 @@ import moe.antimony.hoshi.ui.UiText
  * finished playing, and returns false when it was interrupted or could not be played.
  */
 interface ReadAloudEngine {
-    val id: ReadAloudEngineId
-
     /** Prepares the backend for Japanese speech. Returns false when it cannot speak. */
     suspend fun prepare(): Boolean
 

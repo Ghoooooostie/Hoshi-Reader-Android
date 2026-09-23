@@ -909,13 +909,7 @@
     <string name="read_aloud_next_sentence">下一句</string>
     <string name="read_aloud_speech_rate">语速</string>
     <string name="read_aloud_error_japanese_voice_missing">日语语音数据不可用。请在系统文字转语音设置中安装日语语音数据。</string>
-    <string name="read_aloud_error_local_model_unavailable">本地 TTS 模型无法加载，请尝试重新下载模型，或改用系统引擎。</string>
     <string name="read_aloud_engine">引擎</string>
-    <string name="read_aloud_engine_system">系统 TTS</string>
-    <string name="read_aloud_engine_local">本地模型</string>
-    <string name="read_aloud_download">下载</string>
-    <string name="read_aloud_downloading">下载中…</string>
-    <string name="read_aloud_delete">删除</string>
     <string name="read_aloud_playing">正在朗读</string>
     <string name="read_aloud_timer">定时</string>
     <string name="read_aloud_timer_minutes">定时 %1$d 分</string>

@@ -27,8 +27,6 @@ class SystemReadAloudEngine @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val settingsRepository: ReadAloudSettingsRepository,
 ) : ReadAloudEngine {
-    override val id: ReadAloudEngineId = ReadAloudEngineId.System
-
     private var textToSpeech: TextToSpeech? = null
     private var japaneseReady = false
     private var speechRate = ReadAloudSettings.DefaultSpeechRate

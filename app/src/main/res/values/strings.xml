@@ -911,13 +911,7 @@
     <string name="read_aloud_next_sentence">Next sentence</string>
     <string name="read_aloud_speech_rate">Speech rate</string>
     <string name="read_aloud_error_japanese_voice_missing">Japanese speech data is not available. Install Japanese voice data in the system text-to-speech settings.</string>
-    <string name="read_aloud_error_local_model_unavailable">The local TTS model could not be loaded. Try re-downloading the model or use the system engine.</string>
     <string name="read_aloud_engine">Engine</string>
-    <string name="read_aloud_engine_system">System TTS</string>
-    <string name="read_aloud_engine_local">Local model</string>
-    <string name="read_aloud_download">Download</string>
-    <string name="read_aloud_downloading">Downloading…</string>
-    <string name="read_aloud_delete">Delete</string>
     <string name="read_aloud_playing">Reading aloud</string>
     <string name="read_aloud_timer">Timer</string>
     <string name="read_aloud_timer_minutes">Timer %1$d min</string>

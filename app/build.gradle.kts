@@ -165,8 +165,6 @@ dependencies {
     implementation(libs.google.dagger.hilt.android)
     implementation(libs.kotlinx.serialization.json)
     implementation("net.java.dev.jna:jna:${libs.versions.jna.get()}@aar")
-    implementation("org.apache.commons:commons-compress:1.27.1")
-    implementation(files("libs/sherpa-onnx-1.13.8.aar"))
     ksp(libs.androidx.hilt.compiler)
     ksp(libs.google.dagger.hilt.android.compiler)
     testImplementation(libs.junit)

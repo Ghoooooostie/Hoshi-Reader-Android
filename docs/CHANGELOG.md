@@ -25,12 +25,22 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   queued behind the reader WebView's highlight/scroll work, leaving the popup
   frozen for seconds. A blank-area tap now closes an already-open popup directly
   without the probe.
+- Fix Anki mining being slow and sometimes silently doing nothing. Mining no longer
+  waits for every configured audio source before adding a card: it takes the first
+  audio any source offers, and the audio candidate menu now queries all sources at
+  once, so an unreachable audio source no longer adds its timeout to every card.
+  A mine that fails, or a duplicate check that returns no answer, also no longer
+  leaves the mine button permanently disabled: it shows the error and becomes
+  tappable again.
 
 ### Changed
 
 - The long-press lookup popup's advanced AI analysis card now defaults to
   collapsed; tap its header to expand it. This keeps the popup focused on the
   dictionary result on first open.
+- Read Aloud no longer offers the downloadable local model: it speaks through the
+  system text-to-speech engine only, and the Read Aloud settings now go straight to
+  the system TTS voice and speech rate.
 
 ### Added
 
@@ -47,10 +57,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   shows when no image is set), and the two color rows are relabeled "VN Page Background
   Color" and "VN Text Panel" / "VN Text Panel Color" so the whole-page background is
   no longer mistaken for the text panel.
-- Add Read Aloud in the reader menu. It opens a settings popup where you pick the
-  engine (system text-to-speech or a downloaded local model), a specific system TTS
-  voice and the speech rate, then start speaking the Japanese text of the visible
-  page sentence by sentence. While reading, a floating play/pause button stays on
+- Add Read Aloud in the reader menu. It opens a settings popup where you pick a
+  system TTS voice and the speech rate, then start speaking the Japanese text of the
+  visible page sentence by sentence. While reading, a floating play/pause button stays on
   screen; tapping pause reveals previous and next sentence buttons underneath it.
   Read Aloud runs as a foreground media service: it shows a lock-screen / notification
   media control, requests audio focus (and pauses for calls or when headphones are

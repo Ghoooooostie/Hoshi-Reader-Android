@@ -8,19 +8,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -32,7 +25,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -62,9 +54,6 @@ fun ReadAloudSettingsSheet(
 ) {
     val viewModel: ReadAloudViewModel = hiltViewModel()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
-    val availableModels = viewModel.availableModels
-    val installedModels by viewModel.installedModels.collectAsStateWithLifecycle()
-    val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
     var systemEngines by remember { mutableStateOf(emptyList<TextToSpeech.EngineInfo>()) }
     LaunchedEffect(viewModel) {
         systemEngines = viewModel.availableSystemEngines()
@@ -94,110 +83,25 @@ fun ReadAloudSettingsSheet(
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     headlineContent = { Text(stringResource(R.string.read_aloud_engine)) },
                 )
-                ReadAloudEngineOption(
-                    label = stringResource(R.string.read_aloud_engine_system),
-                    selected = settings.engineId == ReadAloudEngineId.System,
-                    onClick = { viewModel.setEngine(ReadAloudEngineId.System) },
-                )
-                ReadAloudEngineOption(
-                    label = stringResource(R.string.read_aloud_engine_local),
-                    selected = settings.engineId == ReadAloudEngineId.Local,
-                    onClick = { viewModel.setEngine(ReadAloudEngineId.Local) },
-                )
-            }
-            if (settings.engineId == ReadAloudEngineId.System) {
-                SettingsCard {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ReadAloudSystemEngineChip(
+                        label = stringResource(R.string.read_aloud_engine_system_default),
+                        selected = settings.selectedSystemEngineName == null,
+                        onClick = { viewModel.setSystemEngine(null) },
+                    )
+                    systemEngines.forEach { engine ->
+                        val label = engine.label?.ifBlank { engine.name } ?: engine.name
                         ReadAloudSystemEngineChip(
-                            label = stringResource(R.string.read_aloud_engine_system_default),
-                            selected = settings.selectedSystemEngineName == null,
-                            onClick = { viewModel.setSystemEngine(null) },
+                            label = label,
+                            selected = settings.selectedSystemEngineName == engine.name,
+                            onClick = { viewModel.setSystemEngine(engine.name) },
                         )
-                        systemEngines.forEach { engine ->
-                            val label = engine.label?.ifBlank { engine.name } ?: engine.name
-                            ReadAloudSystemEngineChip(
-                                label = label,
-                                selected = settings.selectedSystemEngineName == engine.name,
-                                onClick = { viewModel.setSystemEngine(engine.name) },
-                            )
-                        }
-                    }
-                }
-            }
-            if (settings.engineId == ReadAloudEngineId.Local) {
-                SettingsCard {
-                    Column {
-                        installedModels.forEach { model ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(
-                                    selected = model.id == settings.selectedModelId,
-                                    onClick = { viewModel.selectModel(model.id) },
-                                )
-                                Text(
-                                    text = model.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                IconButton(onClick = { viewModel.deleteModel(model) }) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Delete,
-                                        contentDescription = stringResource(R.string.read_aloud_delete),
-                                    )
-                                }
-                            }
-                        }
-                        availableModels
-                            .filter { available -> installedModels.none { it.id == available.id } }
-                            .forEach { model ->
-                                val progress = downloadProgress[model.id]
-                                val downloading = progress != null &&
-                                    progress.stage != ReadAloudModelDownloadStage.Done &&
-                                    progress.stage != ReadAloudModelDownloadStage.Failed
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Text(
-                                        text = model.name,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    if (downloading) {
-                                        if (progress.totalBytes > 0) {
-                                            LinearProgressIndicator(
-                                                progress = {
-                                                    (progress.bytesDownloaded.toFloat() / progress.totalBytes)
-                                                        .coerceIn(0f, 1f)
-                                                },
-                                                modifier = Modifier.weight(1f),
-                                            )
-                                        } else {
-                                            LinearProgressIndicator(modifier = Modifier.weight(1f))
-                                        }
-                                    } else {
-                                        Button(onClick = { viewModel.downloadModel(model) }) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Download,
-                                                contentDescription = null,
-                                            )
-                                            Text(stringResource(R.string.read_aloud_download))
-                                        }
-                                    }
-                                }
-                                Text(
-                                    text = model.description,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(start = 8.dp, bottom = 4.dp),
-                                )
-                            }
                     }
                 }
             }
@@ -346,16 +250,6 @@ private fun ReadAloudToggleRow(
         supportingContent = { Text(subtitle) },
         trailingContent = { Switch(checked = checked, onCheckedChange = onCheckedChange) },
         modifier = Modifier.clickable { onCheckedChange(!checked) },
-    )
-}
-
-@Composable
-private fun ReadAloudEngineOption(label: String, selected: Boolean, onClick: () -> Unit) {
-    ListItem(
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        leadingContent = { RadioButton(selected = selected, onClick = onClick) },
-        headlineContent = { Text(label) },
-        modifier = Modifier.clickable(onClick = onClick),
     )
 }
 
