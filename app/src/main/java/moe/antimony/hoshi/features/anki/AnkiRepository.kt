@@ -313,21 +313,23 @@ internal class AnkiRepository(
         }
         Log.d(TAG, "mineEntry: AI lookups completed in ${System.currentTimeMillis() - aiStartTime}ms")
         
-        // Media uploads - run all independent uploads in parallel
+        // Media uploads - run cover/sasayaki in parallel, but audio/dictionary sequentially
+        // to avoid file write conflicts in cache directory
         val mediaStartTime = System.currentTimeMillis()
+        var httpCount = 0
         
-        val (coverPath, sasayakiAudioPath, audioResult, dictionaryMediaTags) = coroutineScope {
-            // Cover image upload
+        // Cover and sasayaki can run in parallel (different files)
+        val (coverPath, sasayakiAudioPath) = coroutineScope {
             val coverRequest = async {
                 context.coverPath?.takeIf { needsCover }?.let {
                     val start = System.currentTimeMillis()
                     val result = addHashedMediaFile(it, "hoshi_cover", activeBackend, settings.backendKind)
                     Log.d(TAG, "mineEntry: cover upload took ${System.currentTimeMillis() - start}ms, result=${result != null}")
+                    if (result != null) httpCount++
                     result
                 }
             }
             
-            // Sasayaki audio upload
             val sasayakiRequest = async {
                 if (!needsSasayakiAudio) return@async null
                 val sourcePath = context.sasayakiAudioPath?.takeIf { it.isNotBlank() }
@@ -336,46 +338,32 @@ internal class AnkiRepository(
                     val start = System.currentTimeMillis()
                     val result = addHashedMediaFile(it, "hoshi_sasayaki", activeBackend, settings.backendKind)
                     Log.d(TAG, "mineEntry: sasayaki upload took ${System.currentTimeMillis() - start}ms, result=${result != null}")
+                    if (result != null) httpCount++
                     result
                 }
             }
             
-            // Remote/local audio upload
-            val audioRequest = async {
-                payload.audio.takeIf { needsAudio && it.isNotBlank() }
-                    ?.let { 
-                        val start = System.currentTimeMillis()
-                        val result = addRemoteAudio(it, activeBackend, settings.backendKind)
-                        Log.d(TAG, "mineEntry: remote audio upload took ${System.currentTimeMillis() - start}ms, result=${result != null}")
-                        result
-                    }
-                    .orEmpty()
-            }
-            
-            // Dictionary media uploads (parallelize each item)
-            val dictionaryRequest = async {
-                payload.dictionaryMedia.associate { media ->
-                    val start = System.currentTimeMillis()
-                    val result = addDictionaryMedia(media, activeBackend, settings.backendKind).orEmpty()
-                    Log.d(TAG, "mineEntry: dictionary media '${media.filename}' upload took ${System.currentTimeMillis() - start}ms, result=${result.isNotBlank()}")
-                    media.filename to result
-                }.filterValues { it.isNotBlank() }
-            }
-            
-            Quadruple(
-                coverRequest.await(),
-                sasayakiRequest.await(),
-                audioRequest.await(),
-                dictionaryRequest.await()
-            )
+            Pair(coverRequest.await(), sasayakiRequest.await())
         }
         
-        val httpCount = listOfNotNull(
-            coverPath,
-            sasayakiAudioPath,
-            audioResult.takeIf { it.isNotBlank() },
-            *dictionaryMediaTags.values.toTypedArray()
-        ).size
+        // Audio upload (sequential to avoid cache file conflicts)
+        val audioResult = payload.audio.takeIf { needsAudio && it.isNotBlank() }
+            ?.let { 
+                val start = System.currentTimeMillis()
+                val result = addRemoteAudio(it, activeBackend, settings.backendKind)
+                Log.d(TAG, "mineEntry: remote audio upload took ${System.currentTimeMillis() - start}ms, result=${result != null}")
+                if (result != null) httpCount++
+                result
+            }
+        
+        // Dictionary media uploads (sequential to avoid cache file conflicts)
+        val dictionaryMediaTags = payload.dictionaryMedia.associate { media ->
+            val start = System.currentTimeMillis()
+            val result = addDictionaryMedia(media, activeBackend, settings.backendKind).orEmpty()
+            Log.d(TAG, "mineEntry: dictionary media '${media.filename}' upload took ${System.currentTimeMillis() - start}ms, result=${result.isNotBlank()}")
+            if (result.isNotBlank()) httpCount++
+            media.filename to result
+        }.filterValues { it.isNotBlank() }
         
         Log.d(TAG, "mineEntry: all media uploads completed in ${System.currentTimeMillis() - mediaStartTime}ms, HTTP requests=$httpCount")
         
@@ -390,7 +378,7 @@ internal class AnkiRepository(
             wordAnalyze = wordAnalyze,
         )
         
-        val mediaPayload = payload.copy(audio = audioResult)
+        val mediaPayload = payload.copy(audio = audioResult.orEmpty())
         val fields = fieldMappings.mapValues { (_, template) ->
             dictionaryMediaTags.entries.fold(
                 AnkiHandlebarRenderer.render(
