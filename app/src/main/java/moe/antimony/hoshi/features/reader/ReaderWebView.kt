@@ -7,6 +7,7 @@ import android.os.SystemClock
 import android.webkit.WebView
 import android.view.KeyEvent
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -1088,6 +1089,9 @@ fun ReaderWebView(
                         wordAnalyze = popup.state.advancedAiState.wordSuccessContent(),
                     ),
                 ) { mined ->
+                    if (!mined) {
+                        Toast.makeText(context, context.getString(R.string.anki_mining_failed), Toast.LENGTH_SHORT).show()
+                    }
                     replyReaderPopupMessage(message.popupId, messageId, mined.toString())
                 }
             }

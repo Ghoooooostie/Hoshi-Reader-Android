@@ -680,6 +680,7 @@
     <string name="anki_fetch_model_fields_unavailable">无法读取一个或多个 AnkiDroid 笔记类型的字段。</string>
     <string name="anki_fetch_provider_failure">获取牌组和笔记类型时 AnkiDroid 无响应。请打开 AnkiDroid 后重试。</string>
     <string name="anki_fetch_connect_ankiconnect_failed">无法连接 AnkiConnect。请检查 URL 后重试。</string>
+    <string name="anki_mining_failed">制卡失败，请查看日志了解详细原因。</string>
     <string name="anki_fetch_ankiconnect_provider_failure">获取牌组和笔记类型时 AnkiConnect 无响应。</string>
     <string name="anki_fetch_no_ankidroid_decks">未找到 AnkiDroid 牌组。</string>
     <string name="anki_fetch_no_ankiconnect_decks">未找到 AnkiConnect 牌组。</string>

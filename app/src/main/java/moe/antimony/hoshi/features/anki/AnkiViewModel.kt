@@ -1,5 +1,6 @@
 package moe.antimony.hoshi.features.anki
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -93,22 +94,6 @@ data class AnkiUiState(
             )
         }
 }
-
-private fun AnkiSettings.effectiveCardFormats(): List<AnkiCardFormat> =
-    cardFormats.ifEmpty {
-        listOf(
-            AnkiCardFormat(
-                id = "legacy",
-                name = "Default",
-                selectedDeckId = selectedDeckId,
-                selectedDeckName = selectedDeckName,
-                selectedNoteTypeId = selectedNoteTypeId,
-                selectedNoteTypeName = selectedNoteTypeName,
-                fieldMappings = fieldMappings,
-                tags = tags,
-            ),
-        )
-    }
 
 enum class AnkiErrorAction {
     OpenPermissionSettings,
@@ -406,6 +391,8 @@ internal class AnkiViewModel @Inject constructor(
                     noteTypes = _uiState.value.availableNoteTypes,
                     formatId = formatId,
                 )
+            }.onFailure { error ->
+                Log.w(TAG, "mineEntryAsync failed with exception", error)
             }.getOrDefault(false)
             onResult(mined)
         }
@@ -443,3 +430,5 @@ internal class AnkiViewModel @Inject constructor(
         }
     }
 }
+
+private const val TAG = "AnkiViewModel"

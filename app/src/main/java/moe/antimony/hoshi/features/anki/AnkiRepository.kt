@@ -22,13 +22,19 @@ import moe.antimony.hoshi.features.reader.ReaderSelectionData
 import moe.antimony.hoshi.features.reader.ReaderSelectionRect
 import moe.antimony.hoshi.ui.UiText
 import java.io.File
+import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+
+/** Simple 4-tuple for parallel media upload results */
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 @Singleton
 internal class AnkiRepository(
@@ -218,23 +224,57 @@ internal class AnkiRepository(
         decks: List<AnkiDeck>,
         noteTypes: List<AnkiNoteType>,
         formatId: String? = null,
+        resolveSasayakiAudioPath: (suspend () -> String?)? = null,
     ): Boolean = withContext(Dispatchers.IO) {
+        val startTime = System.currentTimeMillis()
+        Log.d(TAG, "mineEntry started for format=$formatId")
+        
         val settings = settings.first()
         val termDictionaries = loadTermDictionaries()
-        val format = settings.resolveAnkiCardFormat(formatId) ?: return@withContext false
-        val activeBackend = activeBackendOrError(settings).getOrElse { return@withContext false }
-        if (!activeBackend.isAvailable()) return@withContext false
+        val format = settings.resolveCardFormat(formatId)
+        if (format == null) {
+            Log.w(TAG, "mineEntry failed: card format not found (formatId=$formatId)")
+            return@withContext false
+        }
+        Log.d(TAG, "mineEntry: resolved format=${format.id}, deck=${format.selectedDeckId}, noteType=${format.selectedNoteTypeId}")
+        
+        val activeBackendResult = activeBackendOrError(settings)
+        val activeBackend = activeBackendResult.getOrElse { error ->
+            Log.w(TAG, "mineEntry failed: backend resolution error", error)
+            return@withContext false
+        }
+        
+        if (!activeBackend.isAvailable()) {
+            Log.w(TAG, "mineEntry failed: backend is not available")
+            return@withContext false
+        }
+        Log.d(TAG, "mineEntry: backend available (${settings.backendKind})")
+        
         val availableDecks = decks.ifEmpty { activeBackend.fetchDecks() }
         val availableNoteTypes = noteTypes.ifEmpty { activeBackend.fetchNoteTypes() }
+        
         val deck = availableDecks.firstOrNull { it.id == format.selectedDeckId }
             ?: format.selectedDeckName?.let { name -> availableDecks.firstOrNull { it.name == name } }
-            ?: return@withContext false
+        if (deck == null) {
+            Log.w(TAG, "mineEntry failed: deck not found (id=${format.selectedDeckId}, name=${format.selectedDeckName})")
+            return@withContext false
+        }
+        Log.d(TAG, "mineEntry: resolved deck=${deck.name}")
+        
         val noteType = availableNoteTypes.firstOrNull { it.id == format.selectedNoteTypeId }
             ?: format.selectedNoteTypeName?.let { name -> availableNoteTypes.firstOrNull { it.name == name } }
-            ?: return@withContext false
+        if (noteType == null) {
+            Log.w(TAG, "mineEntry failed: noteType not found (id=${format.selectedNoteTypeId}, name=${format.selectedNoteTypeName})")
+            return@withContext false
+        }
+        Log.d(TAG, "mineEntry: resolved noteType=${noteType.name}")
+        
         val fieldMappings = format.fieldMappings.activeAnkiFieldMappings(noteType)
-        val payload = runCatching { AnkiMiningPayload.fromJson(rawPayload) }.getOrNull()
+        val payload = runCatching { AnkiMiningPayload.fromJson(rawPayload) }.onFailure { error ->
+            Log.w(TAG, "mineEntry failed: payload JSON parse error", error)
+        }.getOrNull()
             ?: return@withContext false
+        Log.d(TAG, "mineEntry: payload parsed, expression='${payload.expression.take(20)}...'")
         val needsCover = fieldMappings.referencesAnkiHandlebar("{book-cover}")
         val needsSasayakiAudio = fieldMappings.referencesAnkiHandlebar("{sasayaki-audio}")
         val needsAudio = fieldMappings.referencesAnkiHandlebar("{audio}")
@@ -242,43 +282,115 @@ internal class AnkiRepository(
         val needsSentenceAnalyze = fieldMappings.referencesAnkiHandlebar("{sentence-analyze}")
         val needsWordAnalyze = fieldMappings.referencesAnkiHandlebar("{word-analyze}") ||
             fieldMappings.referencesAnkiHandlebar("{advanced-ai-word}")
-        val sentenceCn = if (needsSentenceCn) {
-            context.sentenceCn?.takeIf { it.isNotBlank() } ?: requestSentenceCn(context.sentence)
-        } else {
-            context.sentenceCn
+        Log.d(TAG, "mineEntry: template needs - cover=$needsCover, sasayaki=$needsSasayakiAudio, audio=$needsAudio, sentenceCn=$needsSentenceCn, sentenceAnalyze=$needsSentenceAnalyze, wordAnalyze=$needsWordAnalyze")
+        
+        // The three AI lookups are independent, so run them together: mining should wait for the
+        // slowest lookup instead of the sum of all of them. Each lookup degrades to null on failure.
+        val aiStartTime = System.currentTimeMillis()
+        val (sentenceCn, sentenceAnalyze, wordAnalyze) = coroutineScope {
+            val sentenceCnRequest = async {
+                if (needsSentenceCn) {
+                    context.sentenceCn?.takeIf { it.isNotBlank() } ?: requestSentenceCn(context.sentence)
+                } else {
+                    context.sentenceCn
+                }
+            }
+            val sentenceAnalyzeRequest = async {
+                if (needsSentenceAnalyze) {
+                    context.sentenceAnalyze?.takeIf { it.isNotBlank() } ?: requestSentenceAnalyze(context.sentence)
+                } else {
+                    context.sentenceAnalyze
+                }
+            }
+            val wordAnalyzeRequest = async {
+                if (needsWordAnalyze) {
+                    context.wordAnalyze?.takeIf { it.isNotBlank() } ?: requestWordAnalyze(payload, context)
+                } else {
+                    context.wordAnalyze
+                }
+            }
+            Triple(sentenceCnRequest.await(), sentenceAnalyzeRequest.await(), wordAnalyzeRequest.await())
         }
-        val sentenceAnalyze = if (needsSentenceAnalyze) {
-            context.sentenceAnalyze?.takeIf { it.isNotBlank() } ?: requestSentenceAnalyze(context.sentence)
-        } else {
-            context.sentenceAnalyze
+        Log.d(TAG, "mineEntry: AI lookups completed in ${System.currentTimeMillis() - aiStartTime}ms")
+        
+        // Media uploads - run all independent uploads in parallel
+        val mediaStartTime = System.currentTimeMillis()
+        
+        val (coverPath, sasayakiAudioPath, audioResult, dictionaryMediaTags) = coroutineScope {
+            // Cover image upload
+            val coverRequest = async {
+                context.coverPath?.takeIf { needsCover }?.let {
+                    val start = System.currentTimeMillis()
+                    val result = addHashedMediaFile(it, "hoshi_cover", activeBackend, settings.backendKind)
+                    Log.d(TAG, "mineEntry: cover upload took ${System.currentTimeMillis() - start}ms, result=${result != null}")
+                    result
+                }
+            }
+            
+            // Sasayaki audio upload
+            val sasayakiRequest = async {
+                if (!needsSasayakiAudio) return@async null
+                val sourcePath = context.sasayakiAudioPath?.takeIf { it.isNotBlank() }
+                    ?: resolveSasayakiAudioPath?.invoke()?.takeIf { it.isNotBlank() }
+                sourcePath?.let {
+                    val start = System.currentTimeMillis()
+                    val result = addHashedMediaFile(it, "hoshi_sasayaki", activeBackend, settings.backendKind)
+                    Log.d(TAG, "mineEntry: sasayaki upload took ${System.currentTimeMillis() - start}ms, result=${result != null}")
+                    result
+                }
+            }
+            
+            // Remote/local audio upload
+            val audioRequest = async {
+                payload.audio.takeIf { needsAudio && it.isNotBlank() }
+                    ?.let { 
+                        val start = System.currentTimeMillis()
+                        val result = addRemoteAudio(it, activeBackend, settings.backendKind)
+                        Log.d(TAG, "mineEntry: remote audio upload took ${System.currentTimeMillis() - start}ms, result=${result != null}")
+                        result
+                    }
+                    .orEmpty()
+            }
+            
+            // Dictionary media uploads (parallelize each item)
+            val dictionaryRequest = async {
+                payload.dictionaryMedia.associate { media ->
+                    val start = System.currentTimeMillis()
+                    val result = addDictionaryMedia(media, activeBackend, settings.backendKind).orEmpty()
+                    Log.d(TAG, "mineEntry: dictionary media '${media.filename}' upload took ${System.currentTimeMillis() - start}ms, result=${result.isNotBlank()}")
+                    media.filename to result
+                }.filterValues { it.isNotBlank() }
+            }
+            
+            Quadruple(
+                coverRequest.await(),
+                sasayakiRequest.await(),
+                audioRequest.await(),
+                dictionaryRequest.await()
+            )
         }
-        val wordAnalyze = if (needsWordAnalyze) {
-            context.wordAnalyze?.takeIf { it.isNotBlank() } ?: requestWordAnalyze(payload, context)
-        } else {
-            context.wordAnalyze
-        }
+        
+        val httpCount = listOfNotNull(
+            coverPath,
+            sasayakiAudioPath,
+            audioResult.takeIf { it.isNotBlank() },
+            *dictionaryMediaTags.values.toTypedArray()
+        ).size
+        
+        Log.d(TAG, "mineEntry: all media uploads completed in ${System.currentTimeMillis() - mediaStartTime}ms, HTTP requests=$httpCount")
+        
         val mediaContext = AnkiMiningContext(
             sentence = context.sentence,
             documentTitle = context.documentTitle,
-            coverPath = context.coverPath?.takeIf { needsCover }?.let {
-                addHashedMediaFile(it, "hoshi_cover", activeBackend, settings.backendKind)
-            },
-            sasayakiAudioPath = context.sasayakiAudioPath?.takeIf { needsSasayakiAudio }?.let {
-                addHashedMediaFile(it, "hoshi_sasayaki", activeBackend, settings.backendKind)
-            },
+            coverPath = coverPath,
+            sasayakiAudioPath = sasayakiAudioPath,
             sentenceOffset = context.sentenceOffset,
             sentenceCn = sentenceCn,
             sentenceAnalyze = sentenceAnalyze,
             wordAnalyze = wordAnalyze,
         )
-        val mediaPayload = payload.copy(
-            audio = payload.audio.takeIf { needsAudio && it.isNotBlank() }
-                ?.let { addRemoteAudio(it, activeBackend, settings.backendKind) }
-                .orEmpty(),
-        )
-        val dictionaryMediaTags = payload.dictionaryMedia.associate { media ->
-            media.filename to addDictionaryMedia(media, activeBackend, settings.backendKind).orEmpty()
-        }.filterValues { it.isNotBlank() }
+        
+        val mediaPayload = payload.copy(audio = audioResult)
         val fields = fieldMappings.mapValues { (_, template) ->
             dictionaryMediaTags.entries.fold(
                 AnkiHandlebarRenderer.render(
@@ -291,7 +403,9 @@ internal class AnkiRepository(
             ) { value, (filename, tag) -> value.replace(filename, tag) }
                 .let(::normalizeAnkiDictionaryHtml)
         }.filterValues { it.isNotBlank() }
+        Log.d(TAG, "mineEntry: rendered ${fields.size} fields")
 
+        val addNoteStart = System.currentTimeMillis()
         val added = activeBackend.addNote(
             deck = deck,
             noteType = noteType,
@@ -307,12 +421,25 @@ internal class AnkiRepository(
             duplicateScope = settings.duplicateScope,
             checkDuplicatesAcrossAllModels = settings.checkDuplicatesAcrossAllModels,
         )
+        Log.d(TAG, "mineEntry: addNote took ${System.currentTimeMillis() - addNoteStart}ms, result=$added")
+        
         if (added) {
+            val syncStart = System.currentTimeMillis()
             when (settings.backendKind) {
-                AnkiBackendKind.AnkiConnect -> if (settings.ankiConnectForceSync) activeBackend.sync()
-                AnkiBackendKind.AnkiDroid -> if (settings.ankiDroidForceSync) activeBackend.sync()
+                AnkiBackendKind.AnkiConnect -> if (settings.ankiConnectForceSync) {
+                    activeBackend.sync()
+                    Log.d(TAG, "mineEntry: force sync took ${System.currentTimeMillis() - syncStart}ms")
+                }
+                AnkiBackendKind.AnkiDroid -> if (settings.ankiDroidForceSync) {
+                    activeBackend.sync()
+                    Log.d(TAG, "mineEntry: force sync took ${System.currentTimeMillis() - syncStart}ms")
+                }
             }
         }
+        
+        val totalTime = System.currentTimeMillis() - startTime
+        Log.d(TAG, "mineEntry completed in ${totalTime}ms, success=$added, total HTTP requests=${httpCount + 2}") // +2 for isAvailable and addNote
+        
         added
     }
 
@@ -375,7 +502,7 @@ internal class AnkiRepository(
         if (!activeBackend.isAvailable()) return@withContext emptyMap()
         val availableDecks = decks.ifEmpty { activeBackend.fetchDecks() }
         val availableNoteTypes = noteTypes.ifEmpty { activeBackend.fetchNoteTypes() }
-        settings.cardFormats.associate { format ->
+        settings.effectiveCardFormats().associate { format ->
             val deck = availableDecks.firstOrNull { it.id == format.selectedDeckId }
                 ?: format.selectedDeckName?.let { name -> availableDecks.firstOrNull { it.name == name } }
             val noteType = availableNoteTypes.firstOrNull { it.id == format.selectedNoteTypeId }
@@ -404,7 +531,7 @@ internal class AnkiRepository(
         noteTypes: List<AnkiNoteType>,
     ): Boolean = withContext(Dispatchers.IO) {
         val settings = settings.first()
-        val format = settings.resolveAnkiCardFormat(formatId) ?: return@withContext false
+        val format = settings.resolveCardFormat(formatId) ?: return@withContext false
         val activeBackend = activeBackendOrError(settings).getOrElse { return@withContext false }
         if (!activeBackend.isAvailable()) return@withContext false
         val availableDecks = decks.ifEmpty { activeBackend.fetchDecks() }
@@ -458,7 +585,7 @@ internal class AnkiRepository(
             val data = readAnkiAudioBytes(
                 url = url,
                 readLocalAudio = localAudioRepository::loadAudio,
-                readRemoteAudio = { remoteUrl -> URL(remoteUrl).openStream().use { it.readBytes() } },
+                readRemoteAudio = ::readRemoteAudioBytes,
             )
                 ?: return null
             val media = ankiAudioMediaFile(url, data)
@@ -496,21 +623,56 @@ internal class AnkiRepository(
         backendKind: AnkiBackendKind,
     ): String? {
         val file = File(path).takeIf { it.isFile } ?: return null
-        return runCatching {
-            if (backendKind == AnkiBackendKind.AnkiConnect) {
-                return@runCatching activeBackend.addMediaFromBytes(file.readBytes(), preferredName, mimeType)
+        
+        // Retry up to 2 times for transient network failures
+        var lastError: Throwable? = null
+        for (attempt in 1..2) {
+            val result = runCatching {
+                if (backendKind == AnkiBackendKind.AnkiConnect) {
+                    return@runCatching activeBackend.addMediaFromBytes(file.readBytes(), preferredName, mimeType)
+                }
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                context.grantUriPermission("com.ichi2.anki", uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                activeBackend.addMediaFromUri(uri.toString(), preferredName, mimeType)
             }
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-            context.grantUriPermission("com.ichi2.anki", uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            activeBackend.addMediaFromUri(uri.toString(), preferredName, mimeType)
+            
+            when {
+                result.isSuccess -> return result.getOrNull()
+                attempt < 2 -> {
+                    lastError = result.exceptionOrNull()
+                    Log.w(TAG, "addMediaFile attempt $attempt failed for $preferredName, retrying...", lastError)
+                    Thread.sleep(500L * attempt) // Exponential backoff: 500ms, then 1000ms
+                }
+                else -> {
+                    lastError = result.exceptionOrNull()
+                    Log.w(TAG, "Failed to add Anki media $preferredName after ${attempt} attempts", lastError)
+                }
+            }
         }
-            .onFailure { Log.w(TAG, "Failed to add Anki media $preferredName", it) }
-            .getOrNull()
+        return null
     }
 
     private fun mediaCacheFile(name: String): File {
         val dir = File(context.cacheDir, "anki-media").also { it.mkdirs() }
         return File(dir, name)
+    }
+
+    /**
+     * `HttpURLConnection` has no timeout by default, so an unresponsive audio host would hang the
+     * whole mine (and the popup) instead of failing it.
+     */
+    private fun readRemoteAudioBytes(url: String): ByteArray {
+        val connection = URL(url).openConnection().apply {
+            if (this is HttpURLConnection) {
+                connectTimeout = RemoteAudioConnectTimeoutMillis
+                readTimeout = RemoteAudioReadTimeoutMillis
+            }
+        }
+        return try {
+            connection.inputStream.use { it.readBytes() }
+        } finally {
+            (connection as? HttpURLConnection)?.disconnect()
+        }
     }
 
     private fun activeBackendOrError(settings: AnkiSettings): Result<AnkiBackend> =
@@ -521,20 +683,6 @@ internal class AnkiRepository(
                 ankiConnectBackendFactory(endpoint, settings.ankiConnectApiKey)
             }
         }
-}
-
-private fun AnkiSettings.resolveAnkiCardFormat(formatId: String?): AnkiCardFormat? {
-    if (formatId != null) return cardFormats.firstOrNull { it.id == formatId }
-    return cardFormats.firstOrNull() ?: AnkiCardFormat(
-        id = "legacy",
-        name = "Default",
-        selectedDeckId = selectedDeckId,
-        selectedDeckName = selectedDeckName,
-        selectedNoteTypeId = selectedNoteTypeId,
-        selectedNoteTypeName = selectedNoteTypeName,
-        fieldMappings = fieldMappings,
-        tags = tags,
-    )
 }
 
 internal fun readAnkiAudioBytes(
@@ -585,6 +733,9 @@ private fun sha1Hex(data: ByteArray): String =
     MessageDigest.getInstance("SHA-1").digest(data).joinToString("") { "%02x".format(it) }
 
 private const val TAG = "AnkiRepository"
+
+private const val RemoteAudioConnectTimeoutMillis = 10_000
+private const val RemoteAudioReadTimeoutMillis = 30_000
 
 private fun logAnkiFetchFailure(message: String, error: Throwable) {
     runCatching { Log.w(TAG, message, error) }

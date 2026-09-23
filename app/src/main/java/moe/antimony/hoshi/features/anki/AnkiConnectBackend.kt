@@ -15,9 +15,11 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
 fun interface AnkiConnectTransport {
@@ -148,13 +150,15 @@ class AnkiConnectBackend(
                     )
                 }
             }
+            // AnkiConnect answers with the new note id, or null when the note was not created
+            // (duplicate, or a note the collection refuses). Reporting success there would hide a
+            // card that was never added, so a missing id counts as a failed mine.
             request(
                 "addNote",
                 buildJsonObject {
                     put("note", noteWithTags)
                 },
-            )
-            true
+            )?.jsonPrimitive?.longOrNull != null
         }.getOrDefault(false)
 
     override fun addMediaFromUri(uriString: String, preferredName: String, mimeType: String): String? = null

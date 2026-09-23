@@ -682,6 +682,7 @@
     <string name="anki_fetch_model_fields_unavailable">Unable to read fields for one or more AnkiDroid note types.</string>
     <string name="anki_fetch_provider_failure">AnkiDroid did not respond while fetching decks and note types. Open AnkiDroid and try again.</string>
     <string name="anki_fetch_connect_ankiconnect_failed">Unable to connect to AnkiConnect. Check the URL and try again.</string>
+    <string name="anki_mining_failed">Failed to create card. Check logs for details.</string>
     <string name="anki_fetch_ankiconnect_provider_failure">AnkiConnect did not respond while fetching decks and note types.</string>
     <string name="anki_fetch_no_ankidroid_decks">No AnkiDroid decks were found.</string>
     <string name="anki_fetch_no_ankiconnect_decks">No AnkiConnect decks were found.</string>
