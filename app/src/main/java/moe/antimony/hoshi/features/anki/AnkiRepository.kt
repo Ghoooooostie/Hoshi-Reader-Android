@@ -603,7 +603,7 @@ internal class AnkiRepository(
         return addMediaFile(path, name, mimeTypeForPath(path), activeBackend, backendKind)
     }
 
-    private fun addMediaFile(
+    private suspend fun addMediaFile(
         path: String,
         preferredName: String,
         mimeType: String,
@@ -629,7 +629,7 @@ internal class AnkiRepository(
                 attempt < 2 -> {
                     lastError = result.exceptionOrNull()
                     Log.w(TAG, "addMediaFile attempt $attempt failed for $preferredName, retrying...", lastError)
-                    Thread.sleep(500L * attempt) // Exponential backoff: 500ms, then 1000ms
+                    kotlinx.coroutines.delay(500L * attempt) // Exponential backoff: 500ms, then 1000ms
                 }
                 else -> {
                     lastError = result.exceptionOrNull()
