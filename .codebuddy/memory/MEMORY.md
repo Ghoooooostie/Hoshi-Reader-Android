@@ -54,6 +54,16 @@
 - Steam Deck 闪退：`gui/translatorUI.py` 的 `mousetransparent_check` 被 `@threader` 放子线程却调 Qt GUI API → Xwayland 崩溃；Linux 原生直接 return。
 - Linux 截图 HiDPI：`spectacle -b -o` 输出物理像素、OCR 区域是 Qt 逻辑坐标 → `NativeUtils._grab_with_qscreen` 乘 DPR 裁剪，`gui/rangeselect.py` 转回逻辑坐标。
 
+## 高级 AI（advancedai，本仓库）
+- 能力门控唯一入口是 availability：`AdvancedAiSettings.wordAvailability()/sentenceAvailability()`（两者 `requiresAnalysis = true`）、`sentenceTranslationAvailability()/pageParagraphTranslationAvailability()`（不受 `analysisEnabled` 影响）。所有调用点写法统一为 `as? AdvancedAiAvailability.Ready ?: return` ⇒ 返回 `Disabled` 即「无卡片、无请求」。
+- `analysisEnabled`（DataStore key 同名，默认 true）控制词语分析 + 长难句分析，含制卡时 `{sentence-analyze}`/`{word-analyze}` 的生成；整句/段落翻译不归它管。UI 在「高级 AI 设置」页（`AdvancedAiSettingsView`，连接组之前）。
+- payload 统一 `LookupPopupAdvancedAiState.toPayload`；卡片由 `popup.js` 的 `createAdvancedAiCard` 渲染。
+
+## Anki 制卡（本仓库）
+- 入口 `AnkiRepository.mineEntry(rawPayload, context, decks, noteTypes, formatId): Boolean`，由 `AnkiViewModel.mineEntryAsync` 包装（`runCatching{}.getOrDefault(false)` 吞异常）→ `ReaderWebView` 的 `MineEntry` 分支回 `replyReaderPopupMessage(popupId, messageId, mined.toString())`。
+- 慢的固定来源（按耗时排序）：forceSync（`ankiConnectForceSync`/`ankiDroidForceSync`，每次制卡一次全量同步）> 串行的 AI 请求（`requestSentenceCn` → `requestSentenceAnalyze` → `requestWordAnalyze`，各 30s 超时）> 媒体上传（封面/sasayaki/`addRemoteAudio` 远程下载/`addDictionaryMedia`）> 每次开头的 `isAvailable()` 与制卡后的 `duplicateStates()`（每 format 一次 `canAddNotesWithErrorDetail`）。
+- 失败全是静默的：`mineEntry` 内多处 `return false`；`popup.js` 失败或 `duplicateCheck` 返回 null 时把 mine 按钮设成 `state:'error', enabled:false` 且不再启用 ⇒ 表现为「点了没反应 / 漏记」。
+
 ## Anki（跨项目）
 - launcher 版判别：安装目录含 `uv.exe`/`pyproject.toml`/`.python-version`，且无 `uv.lock`/`.venv`。
 - launcher 版（25.07–25.09.4）无法内置升级到 26.05+ → 必报 `anki-release==26.9.2` 无解（该包从不上传 26.09 系列到 PyPI，最新只到 26.5）。升级只能：卸载 → 清残留安装目录 → 官网/GitHub 重装（`anki-26.09.2-win-x64.msi`），`%APPDATA%\Anki2` 保留但仍建议备份。
