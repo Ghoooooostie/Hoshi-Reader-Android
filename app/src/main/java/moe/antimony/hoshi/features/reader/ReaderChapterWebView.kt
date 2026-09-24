@@ -88,7 +88,8 @@ internal fun ChapterWebView(
     onTextSelected: (ReaderSelectionData, selectionRects: (Int, (List<ReaderSelectionRect>) -> Unit) -> Unit) -> Unit,
     onPageTranslationLongPressed: (ReaderPageTranslationTarget) -> Unit,
     onPageTranslationRevealRequested: (ReaderPageTranslationTarget) -> Unit,
-    onReadAloudStartFromPoint: (Float, Float) -> Unit,
+    onReadAloudStartFromPoint: (Float, Float, Boolean) -> Unit,
+    onSentenceTranslateAtPoint: (Float, Float) -> Unit,
     onClearLookupPopup: () -> Unit,
     onReaderTapOutside: () -> Unit,
     onReaderInteraction: () -> Unit,
@@ -106,6 +107,7 @@ internal fun ChapterWebView(
     val currentOnPageTranslationLongPressed = rememberUpdatedState(onPageTranslationLongPressed)
     val currentOnPageTranslationRevealRequested = rememberUpdatedState(onPageTranslationRevealRequested)
     val currentOnReadAloudStartFromPoint = rememberUpdatedState(onReadAloudStartFromPoint)
+    val currentOnSentenceTranslateAtPoint = rememberUpdatedState(onSentenceTranslateAtPoint)
     val currentOnSaveBookmark = rememberUpdatedState(onSaveBookmark)
     val currentOnDisplayProgress = rememberUpdatedState(onDisplayProgress)
     val currentOnContinuousScrollDisplayProgress = rememberUpdatedState(onContinuousScrollDisplayProgress)
@@ -292,18 +294,22 @@ internal fun ChapterWebView(
                 this.onPageTranslationRevealRequested = { target ->
                     currentOnPageTranslationRevealRequested.value(target)
                 }
-                this.onReadAloudStartFromPoint = { x, y ->
-                    currentOnReadAloudStartFromPoint.value(x, y)
+                this.onReadAloudStartFromPoint = { x, y, translate ->
+                    currentOnReadAloudStartFromPoint.value(x, y, translate)
+                }
+                this.onSentenceTranslateAtPoint = { x, y ->
+                    currentOnSentenceTranslateAtPoint.value(x, y)
                 }
                 this.fullPageTranslationEnabled = currentReaderSettings.value.readerAiFullPageTranslationEnabled
                 this.longPressAction = { currentReaderSettings.value.readerLongPressAction }
                 hideForReaderRestore()
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 setOnLongClickListener {
-                    when (longPressAction()) {
-                        ReaderGestureAction.SentenceAction -> {
+                    val action = longPressAction()
+                    when {
+                        action.isSentenceAction -> {
                             trailingLongPressGestureActive = true
-                            runSentenceAction()
+                            runSentenceAction(action)
                             performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                             true
                         }
@@ -406,7 +412,9 @@ internal fun ChapterWebView(
                                 changed
                             },
                             doubleTapEnabled = readerSettings.readerDoubleTapAction != ReaderGestureAction.None,
-                            onDoubleTap = { x, y -> webView.runSentenceAction(x, y) },
+                            onDoubleTap = { x, y ->
+                                webView.runSentenceAction(currentReaderSettings.value.readerDoubleTapAction, x, y)
+                            },
                             consumeTrailingLongPressGesture = { webView.consumeTrailingLongPressGesture() },
                         ),
                     )
@@ -471,7 +479,11 @@ internal fun ChapterWebView(
                                 shouldIgnoreReaderGestureEvent(event)
 
                             override fun onDoubleTap(x: Float, y: Float) {
-                                webView.runSentenceAction(x, y)
+                                webView.runSentenceAction(
+                                    currentReaderSettings.value.readerDoubleTapAction,
+                                    x,
+                                    y,
+                                )
                             }
 
                             override fun onTap(x: Float, y: Float) {
@@ -690,7 +702,8 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
     var onHighlightCreated: (HighlightColor, String, ReaderHighlightCreationResult) -> Unit = { _, _, _ -> }
     var onPageTranslationLongPressed: (ReaderPageTranslationTarget) -> Unit = {}
     var onPageTranslationRevealRequested: (ReaderPageTranslationTarget) -> Unit = {}
-    var onReadAloudStartFromPoint: (Float, Float) -> Unit = { _, _ -> }
+    var onReadAloudStartFromPoint: (Float, Float, Boolean) -> Unit = { _, _, _ -> }
+    var onSentenceTranslateAtPoint: (Float, Float) -> Unit = { _, _ -> }
     var fullPageTranslationEnabled: Boolean = false
     private var nativeSelectionActionModeActive = false
     private var nativeSelectionActionMode: ActionMode? = null
@@ -698,7 +711,7 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
     private var highlightColorPopup: PopupWindow? = null
     private var lastTouchX = 0f
     private var lastTouchY = 0f
-    var longPressAction: () -> ReaderGestureAction = { ReaderGestureAction.SentenceAction }
+    var longPressAction: () -> ReaderGestureAction = { ReaderGestureAction.SentenceReadAloud }
     var selectionScanLength: Int = 0
     /** 长按手势被消费后，屏蔽同一次手势的 ACTION_UP 触发的单击/翻页，避免覆盖长按建立的选区。 */
     var trailingLongPressGestureActive = false
@@ -836,14 +849,19 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
     }
 
     fun runSentenceAction(
+        action: ReaderGestureAction,
         androidX: Float = lastTouchX,
         androidY: Float = lastTouchY,
     ): Boolean {
         val density = resources.displayMetrics.density
         val x = androidPixelsToCssPixels(androidX, density)
         val y = androidPixelsToCssPixels(androidY, density)
-        // 句子手势只负责朗读：从落点的那一句开始播，不再弹出句子翻译/AI 卡。
-        onReadAloudStartFromPoint(x, y)
+        // 句子手势按设置分发：只翻译时不启动朗读；「朗读并翻译」额外要求本次朗读带译文。
+        if (action == ReaderGestureAction.SentenceTranslate) {
+            onSentenceTranslateAtPoint(x, y)
+        } else {
+            onReadAloudStartFromPoint(x, y, action == ReaderGestureAction.SentenceReadAloudAndTranslate)
+        }
         // 整页翻译开启时保留译文块上的手势（长按译文重翻、长按原文展开译文），
         // 否则「长按显示」模式下译文永远无法展开。
         if (!fullPageTranslationEnabled) return true
@@ -886,7 +904,8 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         onHighlightCreated = { _, _, _ -> }
         onPageTranslationLongPressed = {}
         onPageTranslationRevealRequested = {}
-        onReadAloudStartFromPoint = { _, _ -> }
+        onReadAloudStartFromPoint = { _, _, _ -> }
+        onSentenceTranslateAtPoint = { _, _ -> }
     }
 }
 

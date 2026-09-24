@@ -313,6 +313,8 @@
     <string name="reader_behavior_long_press_action">Long-press</string>
     <string name="reader_gesture_action_none">Off</string>
     <string name="reader_gesture_action_sentence">Read aloud</string>
+    <string name="reader_gesture_action_sentence_translate">Translate</string>
+    <string name="reader_gesture_action_sentence_read_aloud_translate">Read and translate</string>
     <string name="reader_gesture_action_word_selection">Slide to select words</string>
     <string name="reader_statistics_pause">Pause statistics</string>
     <string name="reader_statistics_start">Start statistics</string>

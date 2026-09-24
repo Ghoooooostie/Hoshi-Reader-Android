@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -178,7 +179,9 @@ fun ReaderBehaviorScreen(
 
 private fun ReaderGestureAction.gestureLabelRes(): Int = when (this) {
     ReaderGestureAction.None -> R.string.reader_gesture_action_none
-    ReaderGestureAction.SentenceAction -> R.string.reader_gesture_action_sentence
+    ReaderGestureAction.SentenceReadAloud -> R.string.reader_gesture_action_sentence
+    ReaderGestureAction.SentenceReadAloudAndTranslate -> R.string.reader_gesture_action_sentence_read_aloud_translate
+    ReaderGestureAction.SentenceTranslate -> R.string.reader_gesture_action_sentence_translate
     ReaderGestureAction.WordSelection -> R.string.reader_gesture_action_word_selection
 }
 
@@ -195,12 +198,14 @@ private fun GestureActionRow(
             Text(text = label, style = MaterialTheme.typography.bodyLarge)
         },
         trailingContent = {
-            Row(
+            // 句子手势最多四项，横排放不下时换行，避免挤出列表项。
+            FlowRow(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 options.forEach { action ->
                     val isSelected = action == selected

@@ -115,7 +115,7 @@ data class ReaderSettings(
     /** 译文不透明度（0.3 - 1.0）。 */
     val translationOpacity: Float = ReaderTranslationOpacityDefault,
     val readerDoubleTapAction: ReaderGestureAction = ReaderGestureAction.None,
-    val readerLongPressAction: ReaderGestureAction = ReaderGestureAction.SentenceAction,
+    val readerLongPressAction: ReaderGestureAction = ReaderGestureAction.SentenceReadAloud,
     val visualNovelRevealSpeed: Int = 45,
     val visualNovelScreenMode: VisualNovelScreenMode = VisualNovelScreenMode.Block,
     val visualNovelSentencesPerScreen: Int = 1,
@@ -402,26 +402,50 @@ enum class ReaderViewMode(val rawValue: String) {
  * 阅读器手势触发的行为。
  *
  * - [None]: 该手势不执行句子操作。
- * - [SentenceAction]: 从落点那一句开始朗读。
+ * - [SentenceReadAloud]: 从落点那一句开始朗读。
+ * - [SentenceReadAloudAndTranslate]: 从落点那一句开始朗读，并翻译正在朗读的每一句。
+ * - [SentenceTranslate]: 只翻译落点那一句，不朗读。
  * - [WordSelection]: 选中落点词语查词，长按后可以滑动扩展选区。
  */
 enum class ReaderGestureAction {
     None,
-    SentenceAction,
+    SentenceReadAloud,
+    SentenceReadAloudAndTranslate,
+    SentenceTranslate,
     WordSelection;
+
+    /** 句子手势：需要取落点所在句子，因此长按要消费掉这次手势。 */
+    val isSentenceAction: Boolean
+        get() = this == SentenceReadAloud ||
+            this == SentenceReadAloudAndTranslate ||
+            this == SentenceTranslate
 
     companion object {
         fun fromStorage(
             value: String?,
             fallback: ReaderGestureAction = None,
         ): ReaderGestureAction =
-            entries.firstOrNull { it.name == value } ?: fallback
+            when (value) {
+                // 句子手势只有「朗读」一种时，落点句子操作就叫 SentenceAction。
+                "SentenceAction" -> SentenceReadAloud
+                else -> entries.firstOrNull { it.name == value } ?: fallback
+            }
 
-        /** 长按可选的行为：句子操作，或滑动选词查词。 */
-        fun longPressOptions(): List<ReaderGestureAction> = listOf(SentenceAction, WordSelection)
+        /** 长按可选的行为：三种句子操作，或滑动选词查词。 */
+        fun longPressOptions(): List<ReaderGestureAction> = listOf(
+            SentenceReadAloud,
+            SentenceReadAloudAndTranslate,
+            SentenceTranslate,
+            WordSelection,
+        )
 
-        /** 双击可选的行为：不响应，或句子操作。 */
-        fun doubleTapOptions(): List<ReaderGestureAction> = listOf(None, SentenceAction)
+        /** 双击可选的行为：不响应，或三种句子操作。 */
+        fun doubleTapOptions(): List<ReaderGestureAction> = listOf(
+            None,
+            SentenceReadAloud,
+            SentenceReadAloudAndTranslate,
+            SentenceTranslate,
+        )
     }
 }
 
@@ -557,7 +581,7 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
         ),
         readerLongPressAction = ReaderGestureAction.fromStorage(
             preferences.getString("readerLongPressAction", null),
-            ReaderGestureAction.SentenceAction,
+            ReaderGestureAction.SentenceReadAloud,
         ),
         visualNovelRevealSpeed = preferences.getInt("visualNovelRevealSpeed", 45).coerceVisualNovelRevealSpeed(),
         visualNovelScreenMode = VisualNovelScreenMode.fromStorage(preferences.getString("visualNovelScreenMode", null)),
@@ -872,7 +896,7 @@ class ReaderSettingsRepository(
             readerDoubleTapAction = ReaderGestureAction.fromStorage(this[KEY_READER_DOUBLE_TAP_ACTION]),
             readerLongPressAction = ReaderGestureAction.fromStorage(
                 this[KEY_READER_LONG_PRESS_ACTION],
-                ReaderGestureAction.SentenceAction,
+                ReaderGestureAction.SentenceReadAloud,
             ),
             visualNovelRevealSpeed = (this[KEY_VISUAL_NOVEL_REVEAL_SPEED] ?: 45).coerceVisualNovelRevealSpeed(),
             visualNovelScreenMode = VisualNovelScreenMode.fromStorage(this[KEY_VISUAL_NOVEL_SCREEN_MODE]),

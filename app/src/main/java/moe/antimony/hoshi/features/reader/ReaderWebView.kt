@@ -294,6 +294,9 @@ fun ReaderWebView(
     // 跟读翻译缓存：键是「章 + 段落 id + 句文本」，朗读来回跳句时不必重复请求。
     val readAloudSentenceTranslations = remember { mutableMapOf<String, String>() }
     var readAloudSentenceTranslationJob by remember { mutableStateOf<Job?>(null) }
+    var standaloneSentenceTranslationJob by remember { mutableStateOf<Job?>(null) }
+    /** 本次朗读是否带译文：手势「朗读并翻译」在本次朗读内覆盖朗读设置的「跟读翻译」。 */
+    var readAloudSessionTranslate by remember { mutableStateOf(false) }
     val popupAssets = remember(context) { LookupPopupAssets.load(context) }
     val readerPopupBridgeHolder = remember { ReaderLookupPopupBridgeCallbackHolder() }
     val popupDarkMode = effectiveSettings.usesDarkInterface(systemDarkTheme)
@@ -2060,6 +2063,8 @@ fun ReaderWebView(
         lastReadAloudParagraphId = null
         readAloudSentenceTranslationJob?.cancel()
         readAloudSentenceTranslationJob = null
+        standaloneSentenceTranslationJob?.cancel()
+        standaloneSentenceTranslationJob = null
         readAloudSentenceTranslations.clear()
     }
     LaunchedEffect(
@@ -2098,6 +2103,61 @@ fun ReaderWebView(
         delay(350)
         requestVisibleReaderPageTranslations()
     }
+    fun readAloudSentenceTranslationKey(targetId: String, sentence: String): String =
+        "$currentPageTranslationChapterKey::$targetId::$sentence"
+
+    /**
+     * 翻译手势指定的单独一句并显示。与跟读翻译不同，它不要求朗读仍停在同一句上，
+     * 因此可以在没有朗读时使用（同一段仍然只保留一份译文）。
+     */
+    fun requestStandaloneSentenceTranslation(targetId: String, sentence: String) {
+        val key = readAloudSentenceTranslationKey(targetId, sentence)
+        val cached = readAloudSentenceTranslations[key]
+        if (cached != null) {
+            webView?.evaluateJavascript(
+                ReaderPageTranslationCommand.showReadAloudTranslation(targetId, cached),
+                null,
+            )
+            return
+        }
+        standaloneSentenceTranslationJob?.cancel()
+        standaloneSentenceTranslationJob = scope.launch {
+            val ready = advancedAiSettingsRepository.settings.first()
+                .sentenceTranslationAvailability() as? AdvancedAiAvailability.Ready
+                ?: return@launch
+            val translation = runCatching {
+                withContext(Dispatchers.IO) {
+                    advancedAiClient.translateSentence(ready.settings, sentence)
+                }
+            }.getOrNull()?.takeIf { it.isNotBlank() } ?: return@launch
+            readAloudSentenceTranslations[key] = translation
+            webView?.evaluateJavascript(
+                ReaderPageTranslationCommand.showReadAloudTranslation(targetId, translation),
+                null,
+            )
+        }
+    }
+
+    /** 手势「翻译句子」：只翻译落点那一句，不启动朗读。 */
+    fun translateSentenceAtPoint(x: Float, y: Float) {
+        val currentWebView = webView ?: return
+        currentWebView.evaluateJavascript(
+            ReaderPageTranslationCommand.targetAtPoint(x, y, includeOriginal = true),
+        ) { hitResult ->
+            val hit = ReaderPageTranslationBridgePayload.hitFromJavascriptResult(hitResult)
+                ?: return@evaluateJavascript
+            currentWebView.evaluateJavascript(
+                ReaderSelectionCommand.SelectSentence(x = x, y = y).source,
+            ) { selectionResult ->
+                val selection = ReaderSelectionBridgePayload.fromJson(selectionResult)
+                    ?: return@evaluateJavascript
+                val sentence = selection.sentence?.takeIf { it.isNotBlank() }
+                    ?: return@evaluateJavascript
+                requestStandaloneSentenceTranslation(hit.target.id, sentence)
+            }
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -2111,7 +2171,7 @@ fun ReaderWebView(
                     bottom = contentChromeInsets.bottomDp.dp,
                 ),
         ) {
-            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val viewportHorizontalPadding = maxWidth * effectiveSettings.continuousViewportHorizontalPaddingRatio.toFloat()
                 val viewportVerticalPadding = maxHeight * effectiveSettings.continuousViewportVerticalPaddingRatio.toFloat()
                 val readerLookupPopupViewport = ReaderLookupPopupViewport(
@@ -2187,8 +2247,9 @@ fun ReaderWebView(
                     }
                 }
 
-                // 长按句子启动朗读：从长按落点的那一句开始，按队列顺序往后读（翻页由 queueExhausted 续接）。
-                fun startReadAloudFromLongPressPoint(x: Float, y: Float) {
+                // 长按/双击句子启动朗读：从落点那一句开始，按队列顺序往后读（翻页由 queueExhausted 续接）。
+                // translate 为手势「朗读并翻译」的本次覆盖，朗读停止后即失效。
+                fun startReadAloudFromLongPressPoint(x: Float, y: Float, translate: Boolean) {
                     val currentWebView = webView ?: return
                     currentWebView.evaluateJavascript(
                         ReaderPageTranslationCommand.targetAtPoint(x, y, includeOriginal = true),
@@ -2201,6 +2262,7 @@ fun ReaderWebView(
                             ReaderSelectionCommand.SelectSentence(x = x, y = y).source,
                         ) { selectionResult ->
                             val selection = ReaderSelectionBridgePayload.fromJson(selectionResult)
+                            readAloudSessionTranslate = translate
                             startReadAloudFromPoint(paragraphId, paragraphText, selection)
                         }
                     }
@@ -2273,7 +2335,10 @@ fun ReaderWebView(
                         onTextSelected = handleTextSelected,
                         onPageTranslationLongPressed = handlePageTranslationLongPressed,
                         onPageTranslationRevealRequested = handlePageTranslationRevealRequested,
-                        onReadAloudStartFromPoint = { x, y -> startReadAloudFromLongPressPoint(x, y) },
+                        onReadAloudStartFromPoint = { x, y, translate ->
+                            startReadAloudFromLongPressPoint(x, y, translate)
+                        },
+                        onSentenceTranslateAtPoint = { x, y -> translateSentenceAtPoint(x, y) },
                         onClearLookupPopup = ::closeLookupPopupsAndSelection,
                         onReaderTapOutside = ::handleReaderTapOutside,
                         onReaderInteraction = ::handleReaderInteraction,
@@ -2415,6 +2480,9 @@ fun ReaderWebView(
         LaunchedEffect(readAloudState.isActive) {
             if (readAloudState.isActive) {
                 readAloudContext.startForegroundService(ReadAloudService.startIntent(readAloudContext))
+            } else {
+                // 手势「朗读并翻译」的覆盖只作用于这一次朗读。
+                readAloudSessionTranslate = false
             }
         }
         fun startReadAloudFromCurrentPage() {
@@ -2424,6 +2492,8 @@ fun ReaderWebView(
                 lastReadAloudParagraphId = targets.lastOrNull()?.id
                 // 记录朗读起点，否则关闭后重开会回到第一章。
                 saveCurrentDisplayedPosition()
+                // 面板启动的朗读不带手势覆盖，是否翻译只看「跟读翻译」设置。
+                readAloudSessionTranslate = false
                 readAloudViewModel.start(items, book.title)
             }
         }
@@ -2432,8 +2502,6 @@ fun ReaderWebView(
             readAloudSentenceTranslationJob = null
             webView?.evaluateJavascript(ReaderPageTranslationCommand.clearReadAloudTranslation(), null)
         }
-        fun readAloudSentenceTranslationKey(targetId: String, sentence: String): String =
-            "$currentPageTranslationChapterKey::$targetId::$sentence"
         /** 只写入缓存不显示：给下一句预热，尽量让译文在朗读到之前就绪。 */
         fun prefetchReadAloudSentenceTranslation(targetId: String, sentence: String) {
             val key = readAloudSentenceTranslationKey(targetId, sentence)
@@ -2573,8 +2641,13 @@ fun ReaderWebView(
             }
         }
         // 跟读翻译：朗读到哪一句就翻译哪一句，译文显示在该段落下方（需高级 AI 整句翻译配置）。
-        LaunchedEffect(readAloudState.currentIndex, readAloudSettings.translateCurrentSentence) {
-            if (!readAloudSettings.translateCurrentSentence) {
+        // 手势「朗读并翻译」时，即使设置里的「跟读翻译」关着，本次朗读也带译文。
+        LaunchedEffect(
+            readAloudState.currentIndex,
+            readAloudSettings.translateCurrentSentence,
+            readAloudSessionTranslate,
+        ) {
+            if (!readAloudSettings.translateCurrentSentence && !readAloudSessionTranslate) {
                 clearReadAloudSentenceTranslation()
                 return@LaunchedEffect
             }

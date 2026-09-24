@@ -83,8 +83,11 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   it, then use the system menu to copy, annotate, or look it up. The double-tap action can be set
   to "Read aloud" so you can trigger the sentence gesture with a double-tap instead
   of a long-press. Both default to off / long-press sentence so existing behavior is unchanged
-  until configured. Either gesture now only starts Read Aloud from that sentence and continues
-  through the chapter in order; it no longer opens the sentence translation card, so the
+  until configured.   Either gesture can now be set to "Read aloud", "Translate" (only translate the
+  sentence you pressed, with no speech) or "Read and translate" (read aloud from that
+  sentence and translate each sentence as it is spoken, without changing the
+  "Translate As It Reads" toggle). Either gesture starts Read Aloud from that sentence and
+  continues through the chapter in order; it no longer opens the sentence translation card, so the
   "Read from the sentence gesture" Read Aloud toggle is gone. Translations while listening come
   from the "Translate As It Reads" toggle instead.
 - Add an Advanced AI settings page that can show AI word-in-sentence analysis

@@ -311,6 +311,8 @@
     <string name="reader_behavior_long_press_action">长按</string>
     <string name="reader_gesture_action_none">关闭</string>
     <string name="reader_gesture_action_sentence">朗读</string>
+    <string name="reader_gesture_action_sentence_translate">翻译</string>
+    <string name="reader_gesture_action_sentence_read_aloud_translate">朗读并翻译</string>
     <string name="reader_gesture_action_word_selection">滑动选词查词</string>
     <string name="reader_statistics_pause">暂停统计</string>
     <string name="reader_statistics_start">开始统计</string>
