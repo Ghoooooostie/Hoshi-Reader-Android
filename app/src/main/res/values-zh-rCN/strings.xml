@@ -307,6 +307,12 @@
     <string name="reader_behavior_open_last_read_book_on_launch">启动时打开最近阅读</string>
     <string name="reader_behavior_auto_check_updates">自动检查更新</string>
     <string name="reader_behavior_gestures">手势</string>
+    <string name="reader_auto_play">自动播放</string>
+    <string name="reader_auto_play_help">阅读时自动翻页。分页模式按当前页实际字数换算停留时间；视觉小说按「每屏句数」翻屏；连续模式按固定节奏滚动。</string>
+    <string name="reader_auto_play_speed">自动播放速度</string>
+    <string name="reader_auto_play_speed_slow">慢</string>
+    <string name="reader_auto_play_speed_medium">中</string>
+    <string name="reader_auto_play_speed_fast">快</string>
     <string name="reader_behavior_double_tap_action">双击</string>
     <string name="reader_behavior_long_press_action">长按</string>
     <string name="reader_gesture_action_none">关闭</string>
@@ -910,6 +916,8 @@
     <string name="read_aloud_previous_sentence">上一句</string>
     <string name="read_aloud_next_sentence">下一句</string>
     <string name="read_aloud_speech_rate">语速</string>
+    <string name="read_aloud_sentence_repeat_count">每句重复次数</string>
+    <string name="read_aloud_sentence_repeat_count_value">%1$d 遍</string>
     <string name="read_aloud_error_japanese_voice_missing">日语语音数据不可用。请在系统文字转语音设置中安装日语语音数据。</string>
     <string name="read_aloud_engine">引擎</string>
     <string name="read_aloud_playing">正在朗读</string>

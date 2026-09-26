@@ -134,6 +134,7 @@ enum class ReaderMenuDestination {
     Statistics,
     Sasayaki,
     ReadAloud,
+    AutoPlay,
 }
 
 data class ReaderBottomPlaybackControls(
@@ -350,6 +351,7 @@ fun readerBottomMenuVisualOrder(
     if (showStatistics) add(ReaderMenuDestination.Statistics)
     add(ReaderMenuDestination.GoTo)
     add(ReaderMenuDestination.ReadAloud)
+    add(ReaderMenuDestination.AutoPlay)
     if (showTranslationAi) add(ReaderMenuDestination.TranslationAi)
     add(ReaderMenuDestination.ReadingSettings)
     add(ReaderMenuDestination.Display)
@@ -374,6 +376,18 @@ fun readerReadAloudBottomPlaybackControls(
 ): ReaderBottomPlaybackControls =
     ReaderBottomPlaybackControls(
         visible = isActive,
+        rowHeightDp = metrics.bottomSafeAreaDp,
+        buttonWidthDp = readerSasayakiBottomPlaybackButtonWidthDp(metrics.bottomSafeAreaDp),
+        iconSizeDp = readerSasayakiBottomPlaybackIconSizeDp(metrics.bottomSafeAreaDp),
+        horizontalPaddingDp = 18,
+    )
+
+fun readerAutoPlayBottomPlaybackControls(
+    visible: Boolean,
+    metrics: ReaderBottomChromeMetrics,
+): ReaderBottomPlaybackControls =
+    ReaderBottomPlaybackControls(
+        visible = visible,
         rowHeightDp = metrics.bottomSafeAreaDp,
         buttonWidthDp = readerSasayakiBottomPlaybackButtonWidthDp(metrics.bottomSafeAreaDp),
         iconSizeDp = readerSasayakiBottomPlaybackIconSizeDp(metrics.bottomSafeAreaDp),

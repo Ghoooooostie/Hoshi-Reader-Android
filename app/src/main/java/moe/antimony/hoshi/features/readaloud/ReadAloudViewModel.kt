@@ -51,6 +51,11 @@ class ReadAloudViewModel @Inject constructor(
         controller.continueWith(items)
     }
 
+    /** See [ReadAloudController.retarget]. */
+    fun retarget(items: List<ReadAloudQueueItem>) {
+        controller.retarget(items)
+    }
+
     fun pause() = controller.pause()
 
     fun resume() = controller.resume()
@@ -65,6 +70,12 @@ class ReadAloudViewModel @Inject constructor(
 
     fun setSpeechRate(rate: Float) {
         viewModelScope.launch { controller.setSpeechRate(rate) }
+    }
+
+    fun setSentenceRepeatCount(count: Int) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(sentenceRepeatCount = count) }
+        }
     }
 
     suspend fun availableSystemEngines(): List<TextToSpeech.EngineInfo> = withContext(Dispatchers.IO) {

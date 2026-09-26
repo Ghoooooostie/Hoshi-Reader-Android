@@ -148,6 +148,26 @@ fun ReaderBehaviorScreen(
             }
             item {
                 BehaviorSettingsCard {
+                    BehaviorSwitchRow(
+                        label = stringResource(R.string.reader_auto_play),
+                        checked = settings.autoPlayEnabled,
+                        onCheckedChange = {
+                            onSettingsChange { current -> current.copy(autoPlayEnabled = it) }
+                        },
+                    )
+                    if (settings.autoPlayEnabled) {
+                        BehaviorDivider()
+                        AutoPlaySpeedRow(
+                            selected = settings.autoPlaySpeed,
+                            onSelected = {
+                                onSettingsChange { current -> current.copy(autoPlaySpeed = it) }
+                            },
+                        )
+                    }
+                }
+            }
+            item {
+                BehaviorSettingsCard {
                     Text(
                         text = stringResource(R.string.reader_behavior_gestures),
                         style = MaterialTheme.typography.labelLarge,
@@ -219,6 +239,54 @@ private fun GestureActionRow(
                     ) {
                         Text(
                             text = stringResource(action.gestureLabelRes()),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun AutoPlaySpeedRow(
+    selected: AutoPlaySpeed,
+    onSelected: (AutoPlaySpeed) -> Unit,
+) {
+    ListItem(
+        colors = ListItemDefaults.colors(containerColor = hoshiSurfaces.group),
+        headlineContent = {
+            Text(
+                text = stringResource(R.string.reader_auto_play_speed),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        },
+        trailingContent = {
+            FlowRow(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                AutoPlaySpeed.entries.forEach { speed ->
+                    val isSelected = speed == selected
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                            .clickable { onSelected(speed) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(speed.labelResId),
                             style = MaterialTheme.typography.labelMedium,
                             color = if (isSelected) {
                                 MaterialTheme.colorScheme.onPrimary

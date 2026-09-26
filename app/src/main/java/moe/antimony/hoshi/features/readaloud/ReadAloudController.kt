@@ -35,6 +35,9 @@ import moe.antimony.hoshi.R
 import moe.antimony.hoshi.di.ApplicationScope
 import moe.antimony.hoshi.ui.UiText
 
+/** 同一句重复朗读之间的停顿，避免几遍连在一起听不出重复。 */
+private const val SentenceRepeatPauseMillis = 400L
+
 /**
  * Drives sentence-by-sentence read aloud playback for the reader.
  * It owns the playback queue and state only; speech is delegated to a [ReadAloudEngine]
@@ -66,6 +69,7 @@ class ReadAloudController @Inject constructor(
 
     private var playbackJob: Job? = null
     private var speechRate = ReadAloudSettings.DefaultSpeechRate
+    private var sentenceRepeatCount = ReadAloudSettings.DefaultSentenceRepeatCount
     private var activeEngine: ReadAloudEngine = systemEngine
     private var ignoreAudioFocus = false
     private var pauseWhilePhoneCalls = false
@@ -103,6 +107,7 @@ class ReadAloudController @Inject constructor(
         applicationScope.launch {
             settingsRepository.settings.collect { settings ->
                 speechRate = settings.speechRate
+                sentenceRepeatCount = settings.sentenceRepeatCount
                 ignoreAudioFocus = settings.ignoreAudioFocus
                 pauseWhilePhoneCalls = settings.pauseWhilePhoneCalls
                 mediaButtonPerNext = settings.mediaButtonPerNext
@@ -166,6 +171,24 @@ class ReadAloudController @Inject constructor(
         playbackJob?.cancel()
         mutableState.value = mutableState.value.copy(items = items, currentIndex = -1)
         playFrom(0)
+    }
+
+    /**
+     * Replaces the queue after the reader moved somewhere else (user page turn / 回看).
+     * Keeps the session active, but unlike [continueWith] it does not start speaking when the
+     * session was paused: manual browsing must never resume reading by itself.
+     */
+    fun retarget(items: List<ReadAloudQueueItem>) {
+        if (!mutableState.value.isActive) return
+        if (items.isEmpty()) {
+            stop()
+            return
+        }
+        val wasPlaying = mutableState.value.isPlaying
+        playbackJob?.cancel()
+        activeEngine.stop()
+        update { copy(items = items, currentIndex = -1, isPlaying = false) }
+        if (wasPlaying) playFrom(0)
     }
 
     fun pause(abandonFocus: Boolean = true) {
@@ -448,8 +471,15 @@ class ReadAloudController @Inject constructor(
             var cursor = index
             while (isActive && cursor in mutableState.value.items.indices) {
                 update { copy(currentIndex = cursor, isPlaying = true) }
-                val played = engine.speak(mutableState.value.items[cursor].text)
-                if (!played) return@launch
+                val text = mutableState.value.items[cursor].text
+                val repeatCount = sentenceRepeatCount.coerceAtLeast(1)
+                // 同一段文本按设置重复几遍再进入下一句：两遍之间留一个短暂停顿，
+                // 否则叠在一起听不出"又读了一遍"。
+                for (attempt in 1..repeatCount) {
+                    val played = engine.speak(text)
+                    if (!played) return@launch
+                    if (attempt < repeatCount) delay(SentenceRepeatPauseMillis)
+                }
                 cursor++
             }
             update { copy(isPlaying = false) }

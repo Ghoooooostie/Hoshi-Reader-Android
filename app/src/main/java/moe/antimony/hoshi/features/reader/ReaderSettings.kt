@@ -174,6 +174,8 @@ data class ReaderSettings(
     val keepScreenOnWhileReading: Boolean = false,
     val lockCurrentOrientation: Boolean = false,
     val openLastReadBookOnLaunch: Boolean = false,
+    val autoPlayEnabled: Boolean = false,
+    val autoPlaySpeed: AutoPlaySpeed = AutoPlaySpeed.Medium,
     val displaySettings: AppDisplaySettings? = null,
 ) {
     val continuousMode: Boolean
@@ -395,6 +397,26 @@ enum class ReaderViewMode(val rawValue: String) {
         fun fromStorage(value: String?, legacyContinuousMode: Boolean = false): ReaderViewMode =
             entries.firstOrNull { it.rawValue == value || it.name == value }
                 ?: if (legacyContinuousMode) Continuous else Paginated
+    }
+}
+
+/**
+ * 自动播放速度档位。文字模式（分页/VN）按"字/分钟"把当前页/屏的实际字数换算成停留时间；
+ * 连续模式没有按字数换算的设置，直接用每屏滚动间隔（[continuousScreenIntervalMs]）。
+ */
+enum class AutoPlaySpeed(
+    val rawValue: String,
+    @param:StringRes val labelResId: Int,
+    val charsPerMinute: Int,
+    val continuousScreenIntervalMs: Int,
+) {
+    Slow("slow", R.string.reader_auto_play_speed_slow, 250, 14_000),
+    Medium("medium", R.string.reader_auto_play_speed_medium, 500, 9_000),
+    Fast("fast", R.string.reader_auto_play_speed_fast, 1_000, 5_000);
+
+    companion object {
+        fun fromStorage(value: String?): AutoPlaySpeed =
+            entries.firstOrNull { it.rawValue == value || it.name == value } ?: Medium
     }
 }
 
@@ -657,6 +679,8 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
         keepScreenOnWhileReading = preferences.getBoolean("keepScreenOnWhileReading", false),
         lockCurrentOrientation = preferences.getBoolean("lockCurrentOrientation", false),
         openLastReadBookOnLaunch = preferences.getBoolean("openLastReadBookOnLaunch", false),
+        autoPlayEnabled = preferences.getBoolean("autoPlayEnabled", false),
+        autoPlaySpeed = AutoPlaySpeed.fromStorage(preferences.getString("autoPlaySpeed", null)),
         )
     }
 
@@ -747,6 +771,8 @@ class ReaderSettingsStore(context: Context) : ReaderSettingsLegacySource {
             .putBoolean("keepScreenOnWhileReading", settings.keepScreenOnWhileReading)
             .putBoolean("lockCurrentOrientation", settings.lockCurrentOrientation)
             .putBoolean("openLastReadBookOnLaunch", settings.openLastReadBookOnLaunch)
+            .putBoolean("autoPlayEnabled", settings.autoPlayEnabled)
+            .putString("autoPlaySpeed", settings.autoPlaySpeed.rawValue)
             .apply()
     }
 }
@@ -961,6 +987,8 @@ class ReaderSettingsRepository(
             keepScreenOnWhileReading = this[KEY_KEEP_SCREEN_ON_WHILE_READING] ?: false,
             lockCurrentOrientation = this[KEY_LOCK_CURRENT_ORIENTATION] ?: false,
             openLastReadBookOnLaunch = this[KEY_OPEN_LAST_READ_BOOK_ON_LAUNCH] ?: false,
+            autoPlayEnabled = this[KEY_AUTO_PLAY_ENABLED] ?: false,
+            autoPlaySpeed = AutoPlaySpeed.fromStorage(this[KEY_AUTO_PLAY_SPEED]),
         )
 
     private fun MutablePreferences.writeReaderSettings(settings: ReaderSettings) {
@@ -1052,6 +1080,8 @@ class ReaderSettingsRepository(
         this[KEY_KEEP_SCREEN_ON_WHILE_READING] = settings.keepScreenOnWhileReading
         this[KEY_LOCK_CURRENT_ORIENTATION] = settings.lockCurrentOrientation
         this[KEY_OPEN_LAST_READ_BOOK_ON_LAUNCH] = settings.openLastReadBookOnLaunch
+        this[KEY_AUTO_PLAY_ENABLED] = settings.autoPlayEnabled
+        this[KEY_AUTO_PLAY_SPEED] = settings.autoPlaySpeed.rawValue
     }
 
     private fun MutablePreferences.writeGlobalReaderSettings(settings: ReaderSettings) {
@@ -1071,6 +1101,8 @@ class ReaderSettingsRepository(
         this[KEY_KEEP_SCREEN_ON_WHILE_READING] = settings.keepScreenOnWhileReading
         this[KEY_LOCK_CURRENT_ORIENTATION] = settings.lockCurrentOrientation
         this[KEY_OPEN_LAST_READ_BOOK_ON_LAUNCH] = settings.openLastReadBookOnLaunch
+        this[KEY_AUTO_PLAY_ENABLED] = settings.autoPlayEnabled
+        this[KEY_AUTO_PLAY_SPEED] = settings.autoPlaySpeed.rawValue
     }
 
     private suspend fun profileAppearanceSettingsOrMigrate(globalSettings: ReaderSettings): ProfileReaderAppearanceSettings =
@@ -1198,6 +1230,8 @@ class ReaderSettingsRepository(
         private val KEY_KEEP_SCREEN_ON_WHILE_READING = booleanPreferencesKey("keepScreenOnWhileReading")
         private val KEY_LOCK_CURRENT_ORIENTATION = booleanPreferencesKey("lockCurrentOrientation")
         private val KEY_OPEN_LAST_READ_BOOK_ON_LAUNCH = booleanPreferencesKey("openLastReadBookOnLaunch")
+        private val KEY_AUTO_PLAY_ENABLED = booleanPreferencesKey("autoPlayEnabled")
+        private val KEY_AUTO_PLAY_SPEED = stringPreferencesKey("autoPlaySpeed")
 
         private val json = Json {
             prettyPrint = true

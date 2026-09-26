@@ -217,6 +217,7 @@ fun ReaderWebView(
     }
     val sasayakiMediaStopJson = remember { Json { ignoreUnknownKeys = true } }
     var sasayakiAutoPageJob by remember(book) { mutableStateOf<Job?>(null) }
+    var autoPlayPaused by remember { mutableStateOf(false) }
     val view = LocalView.current
     val systemDarkTheme = isSystemInDarkTheme()
     val clampedInitialIndex = initialChapterIndex.coerceIn(0, book.chapters.lastIndex)
@@ -297,6 +298,9 @@ fun ReaderWebView(
     var standaloneSentenceTranslationJob by remember { mutableStateOf<Job?>(null) }
     /** 本次朗读是否带译文：手势「朗读并翻译」在本次朗读内覆盖朗读设置的「跟读翻译」。 */
     var readAloudSessionTranslate by remember { mutableStateOf(false) }
+    // 用户手动翻页后重建朗读队列的等待任务与其"续播"标记：连续翻页时只保留最后一次。
+    var readAloudRelocationJob by remember(book) { mutableStateOf<Job?>(null) }
+    var readAloudResumesAfterRelocation by remember(book) { mutableStateOf(false) }
     val popupAssets = remember(context) { LookupPopupAssets.load(context) }
     val readerPopupBridgeHolder = remember { ReaderLookupPopupBridgeCallbackHolder() }
     val popupDarkMode = effectiveSettings.usesDarkInterface(systemDarkTheme)
@@ -956,12 +960,49 @@ fun ReaderWebView(
         recordStatisticsAtDisplayedPosition()
         saveReaderPosition(savedPosition)
     }
+    /**
+     * 朗读进行中用户手动翻页/回看时调用：先把当前这句的朗读停下（会话保持），等排版稳定后
+     * 按当前可见内容重建队列，从新位置继续朗读。
+     *
+     * 只处理分页 / VN 模式——连续滚动模式朗读本来就在靠滚动跟随，滚动事件无法区分用户滚动与
+     * 跟随滚动，若在这里重建队列会形成「高亮→滚动→重置队列→再高亮」的死循环。
+     *
+     * 翻页自身（`advanceToNextReadAloudPage`）走的是 paginate + [saveDisplayedProgress]，并不会经过
+     * 这里，所以无需区分"用户翻页"与"朗读自动翻页"。连续快速翻页时只保留最后一次重排。
+     */
+    fun resyncReadAloudWithCurrentPage() {
+        if (effectiveSettings.viewMode == ReaderViewMode.Continuous) return
+        val current = readAloudViewModel.state.value
+        if (!current.isActive) return
+        // 连续翻页时第二页起 state 已是暂停，用上一次的结果记住"本来在朗读"。
+        val resumeAfterRelocation = readAloudResumesAfterRelocation || current.isPlaying
+        readAloudResumesAfterRelocation = resumeAfterRelocation
+        readAloudRelocationJob?.cancel()
+        readAloudViewModel.pause()
+        readAloudRelocationJob = scope.launch {
+            delay(if (readAloudSettings.readAloudByPage) 600L else 250L)
+            collectVisibleReaderPageTranslationTargets { targets ->
+                readAloudResumesAfterRelocation = false
+                val items = readAloudQueueItems(targets, readAloudSettings.readAloudByPage)
+                if (items.isEmpty()) return@collectVisibleReaderPageTranslationTargets
+                lastReadAloudParagraphId = targets.lastOrNull()?.id
+                if (resumeAfterRelocation) {
+                    readAloudViewModel.continueWith(items)
+                } else {
+                    readAloudViewModel.retarget(items)
+                }
+            }
+        }
+    }
+
     fun displayPagedTurnProgress(progress: Double) {
         stateHolder.enterFocusModeForReaderInteraction()
         startStatisticsForProgressChangeIfNeeded()
         stateHolder.recordDisplayedProgress(progress)
         stateHolder.clearForwardHistoryAfterManualMovement()
         recordStatisticsAtDisplayedPosition()
+        // 用户手动翻页/回看后，让朗读重新从新位置继续（见下方函数说明）。
+        resyncReadAloudWithCurrentPage()
     }
     fun displayContinuousScrollProgress(progress: Double, restoreEpoch: Int) {
         startStatisticsForProgressChangeIfNeeded()
@@ -1861,6 +1902,10 @@ fun ReaderWebView(
         keepScreenOnWhileReading = effectiveSettings.keepScreenOnWhileReading,
         sasayakiIsPlaying = sasayakiPlayer?.isPlaying == true,
         sasayakiAutoScroll = sasayakiSettings.autoScroll,
+        autoPlayActive = effectiveSettings.autoPlayEnabled &&
+            !autoPlayPaused &&
+            sasayakiPlayer?.isPlaying != true &&
+            !readAloudState.isPlaying,
     )
     DisposableEffect(context, keepScreenOn) {
         val window = context.findActivity()?.window
@@ -1871,6 +1916,86 @@ fun ReaderWebView(
         }
         onDispose {
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    // 自动播放：开启后按速度档位定时翻页。分页模式按当前页实际字数换算停留时间，
+    // 连续模式按固定节奏滚动，视觉小说按每屏句数翻屏。朗读/有声书播放时由它们驱动翻页，定时循环让位。
+    LaunchedEffect(effectiveSettings.autoPlayEnabled) {
+        if (!effectiveSettings.autoPlayEnabled) autoPlayPaused = false
+    }
+    val autoPlayShouldRun = rememberUpdatedState(
+        effectiveSettings.autoPlayEnabled &&
+            !autoPlayPaused &&
+            sasayakiPlayer?.isPlaying != true &&
+            !readAloudState.isPlaying,
+    )
+    suspend fun autoPlayCurrentPageChars(): Int {
+        val wv = webView ?: return 0
+        return suspendCancellableCoroutine { cont ->
+            wv.evaluateJavascript(
+                "(window.hoshiReader && typeof window.hoshiReader.autoPlayPageCharacterCount === 'function') ? window.hoshiReader.autoPlayPageCharacterCount() : 0",
+            ) { result ->
+                val value = result?.trim()?.trim('"')?.toIntOrNull() ?: 0
+                if (cont.isActive) cont.resume(value)
+            }
+        }
+    }
+    suspend fun computeAutoPlayDwell(): Long {
+        val settings = effectiveSettings
+        val cpm = settings.autoPlaySpeed.charsPerMinute
+        return when (settings.viewMode) {
+            ReaderViewMode.Paginated -> {
+                val chars = autoPlayCurrentPageChars()
+                ((chars.toDouble() / cpm) * 60_000.0).toLong().coerceAtLeast(ReaderAutoPlayMinDwellMillis)
+            }
+            ReaderViewMode.Continuous -> settings.autoPlaySpeed.continuousScreenIntervalMs.toLong()
+            ReaderViewMode.VisualNovel -> {
+                val sentences = settings.visualNovelSentencesPerScreen
+                val perSentenceMillis = (ReaderAutoPlayAvgSentenceChars.toDouble() / cpm) * 60_000.0
+                (sentences * perSentenceMillis).toLong().coerceAtLeast(ReaderAutoPlayMinDwellMillis)
+            }
+        }
+    }
+    // 翻到下一页/屏；返回是否真的前进了。视觉小说需要先 reveal 当前屏再翻到下一屏（两次 paginate），
+    // 这里统一处理，避免「reveal 不前进」被误判成已到末尾。
+    suspend fun autoPlayAdvanceForward(): Boolean {
+        val wv = webView ?: return false
+        return suspendCancellableCoroutine { cont ->
+            val proceed: (String?) -> Unit = { result ->
+                when (ReaderPaginationScripts.navigationResult(result)) {
+                    ReaderNavigationResult.Advanced -> {
+                        wv.evaluateJavascript(ReaderPaginationScripts.progressInvocation()) { progressResult ->
+                            ReaderPaginationScripts.doubleResult(progressResult)?.let { saveDisplayedProgress(it) }
+                            if (cont.isActive) cont.resume(true)
+                        }
+                    }
+                    else -> if (cont.isActive) cont.resume(false)
+                }
+            }
+            wv.evaluateJavascript(ReaderPaginationScripts.paginateInvocation(ReaderNavigationDirection.Forward)) { first ->
+                if (ReaderPaginationScripts.navigationResult(first) == ReaderNavigationResult.Revealed) {
+                    wv.evaluateJavascript(ReaderPaginationScripts.paginateInvocation(ReaderNavigationDirection.Forward), proceed)
+                } else {
+                    proceed(first)
+                }
+            }
+        }
+    }
+    LaunchedEffect(
+        effectiveSettings.autoPlayEnabled,
+        effectiveSettings.autoPlaySpeed,
+        effectiveSettings.viewMode,
+        autoPlayPaused,
+        webView,
+    ) {
+        if (!effectiveSettings.autoPlayEnabled || autoPlayPaused) return@LaunchedEffect
+        if (sasayakiPlayer?.isPlaying == true || readAloudState.isPlaying) return@LaunchedEffect
+        if (webView == null) return@LaunchedEffect
+        while (autoPlayShouldRun.value) {
+            delay(computeAutoPlayDwell())
+            if (!autoPlayShouldRun.value) break
+            if (!autoPlayAdvanceForward()) break
         }
     }
 
@@ -2420,41 +2545,93 @@ fun ReaderWebView(
             isActive = readAloudState.isActive,
             metrics = bottomChromeMetrics,
         )
-        val activePlaybackControls =
-            if (useSasayakiBar) sasayakiBottomPlaybackControls else readAloudBottomPlaybackControls
-        val onSkipBackward: () -> Unit = if (useSasayakiBar) {
-            { performSasayakiBottomSkipAction(sasayakiBottomSkipButtonActions.left) }
-        } else {
-            {
-                // VN 一屏通常只有一句，队列里没有"上一句"：退到上一屏继续读。
-                if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel && readAloudState.currentIndex <= 0) {
-                    skipReadAloudToScreen(ReaderNavigationDirection.Backward)
-                } else {
-                    readAloudViewModel.skipPrevious()
+        val autoPlayBottomControls = readerAutoPlayBottomPlaybackControls(
+            visible = effectiveSettings.autoPlayEnabled &&
+                !sasayakiBottomPlaybackControls.visible &&
+                !readAloudBottomPlaybackControls.visible,
+            metrics = bottomChromeMetrics,
+        )
+        val useAutoPlayBar = autoPlayBottomControls.visible
+        val activePlaybackControls = when {
+            useSasayakiBar -> sasayakiBottomPlaybackControls
+            readAloudBottomPlaybackControls.visible -> readAloudBottomPlaybackControls
+            useAutoPlayBar -> autoPlayBottomControls
+            else -> readAloudBottomPlaybackControls
+        }
+        val onSkipBackward: () -> Unit = when {
+            useSasayakiBar -> {
+                { performSasayakiBottomSkipAction(sasayakiBottomSkipButtonActions.left) }
+            }
+            readAloudBottomPlaybackControls.visible -> {
+                {
+                    // VN 一屏通常只有一句，队列里没有"上一句"：退到上一屏继续读。
+                    if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel && readAloudState.currentIndex <= 0) {
+                        skipReadAloudToScreen(ReaderNavigationDirection.Backward)
+                    } else {
+                        readAloudViewModel.skipPrevious()
+                    }
+                }
+            }
+            useAutoPlayBar -> {
+                { navigateReaderPage(ReaderNavigationDirection.Backward) }
+            }
+            else -> {
+                {
+                    if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel && readAloudState.currentIndex <= 0) {
+                        skipReadAloudToScreen(ReaderNavigationDirection.Backward)
+                    } else {
+                        readAloudViewModel.skipPrevious()
+                    }
                 }
             }
         }
-        val onTogglePlayback: () -> Unit = if (useSasayakiBar) {
-            { sasayakiPlayer?.togglePlayback() }
-        } else {
-            { if (readAloudState.isPlaying) readAloudViewModel.pause() else readAloudViewModel.resume() }
+        val onTogglePlayback: () -> Unit = when {
+            useSasayakiBar -> { { sasayakiPlayer?.togglePlayback() } }
+            readAloudBottomPlaybackControls.visible -> {
+                { if (readAloudState.isPlaying) readAloudViewModel.pause() else readAloudViewModel.resume() }
+            }
+            useAutoPlayBar -> { { autoPlayPaused = !autoPlayPaused } }
+            else -> { { if (readAloudState.isPlaying) readAloudViewModel.pause() else readAloudViewModel.resume() } }
         }
-        val onSkipForward: () -> Unit = if (useSasayakiBar) {
-            { performSasayakiBottomSkipAction(sasayakiBottomSkipButtonActions.right) }
-        } else {
-            {
-                // VN 一屏通常只有一句，队列里没有"下一句"：翻到下一屏继续读。
-                if (
-                    effectiveSettings.viewMode == ReaderViewMode.VisualNovel &&
-                    readAloudState.currentIndex >= readAloudState.items.lastIndex
-                ) {
-                    skipReadAloudToScreen(ReaderNavigationDirection.Forward)
-                } else {
-                    readAloudViewModel.skipNext()
+        val onSkipForward: () -> Unit = when {
+            useSasayakiBar -> {
+                { performSasayakiBottomSkipAction(sasayakiBottomSkipButtonActions.right) }
+            }
+            readAloudBottomPlaybackControls.visible -> {
+                {
+                    // VN 一屏通常只有一句，队列里没有"下一句"：翻到下一屏继续读。
+                    if (
+                        effectiveSettings.viewMode == ReaderViewMode.VisualNovel &&
+                        readAloudState.currentIndex >= readAloudState.items.lastIndex
+                    ) {
+                        skipReadAloudToScreen(ReaderNavigationDirection.Forward)
+                    } else {
+                        readAloudViewModel.skipNext()
+                    }
+                }
+            }
+            useAutoPlayBar -> {
+                { navigateReaderPage(ReaderNavigationDirection.Forward) }
+            }
+            else -> {
+                {
+                    if (
+                        effectiveSettings.viewMode == ReaderViewMode.VisualNovel &&
+                        readAloudState.currentIndex >= readAloudState.items.lastIndex
+                    ) {
+                        skipReadAloudToScreen(ReaderNavigationDirection.Forward)
+                    } else {
+                        readAloudViewModel.skipNext()
+                    }
                 }
             }
         }
-        val playing = if (useSasayakiBar) sasayakiPlayer?.isPlaying == true else readAloudState.isPlaying
+        val playing = when {
+            useSasayakiBar -> sasayakiPlayer?.isPlaying == true
+            readAloudBottomPlaybackControls.visible -> readAloudState.isPlaying
+            useAutoPlayBar -> !autoPlayPaused
+            else -> readAloudState.isPlaying
+        }
         ReaderBottomSafeProgress(
             state = chromeState,
             settings = effectiveSettings,
@@ -2714,6 +2891,8 @@ fun ReaderWebView(
                 null
             },
             onReadAloud = { showReadAloudSettings = true },
+            autoPlayEnabled = effectiveSettings.autoPlayEnabled,
+            onAutoPlay = { onReaderSettingsChange { it.copy(autoPlayEnabled = !it.autoPlayEnabled) } },
             metrics = bottomChromeMetrics,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
@@ -2925,3 +3104,9 @@ private data class SasayakiCueRevealResult(
 
 private fun SasayakiPlaybackData?.hasStoredAudioSource(): Boolean =
     this?.audioUri?.isNotBlank() == true || this?.audioFileName?.isNotBlank() == true
+
+/** 自动播放每页/每屏的最短停留时间，避免档位过快导致翻页看不清。 */
+private const val ReaderAutoPlayMinDwellMillis: Long = 800
+
+/** 视觉小说按句子数换算停留时间时，单个日文句子估算的平均字数。 */
+private const val ReaderAutoPlayAvgSentenceChars: Int = 40

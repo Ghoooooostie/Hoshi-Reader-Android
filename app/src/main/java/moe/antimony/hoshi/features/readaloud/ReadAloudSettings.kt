@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -33,11 +34,16 @@ data class ReadAloudSettings(
     val highlightWhilePlaying: Boolean = true,
     /** 跟读翻译：朗读到哪一句就翻译哪一句，译文显示在原段落下方。 */
     val translateCurrentSentence: Boolean = false,
+    /** 每个朗读单元（一句，或按页朗读时的整页）连续朗读几遍后才进入下一个单元。 */
+    val sentenceRepeatCount: Int = DefaultSentenceRepeatCount,
 ) {
     companion object {
         const val DefaultSpeechRate = 1.0f
         const val MinimumSpeechRate = 0.5f
         const val MaximumSpeechRate = 2.0f
+        const val DefaultSentenceRepeatCount = 1
+        const val MinimumSentenceRepeatCount = 1
+        const val MaximumSentenceRepeatCount = 5
     }
 }
 
@@ -45,6 +51,10 @@ internal fun ReadAloudSettings.normalized(): ReadAloudSettings = copy(
     speechRate = speechRate.coerceIn(
         ReadAloudSettings.MinimumSpeechRate,
         ReadAloudSettings.MaximumSpeechRate,
+    ),
+    sentenceRepeatCount = sentenceRepeatCount.coerceIn(
+        ReadAloudSettings.MinimumSentenceRepeatCount,
+        ReadAloudSettings.MaximumSentenceRepeatCount,
     ),
 )
 
@@ -80,6 +90,7 @@ private fun Preferences.toReadAloudSettings(): ReadAloudSettings = ReadAloudSett
     pauseForPageTranslation = this[Keys.pauseForPageTranslation] ?: true,
     highlightWhilePlaying = this[Keys.highlightWhilePlaying] ?: true,
     translateCurrentSentence = this[Keys.translateCurrentSentence] ?: false,
+    sentenceRepeatCount = this[Keys.sentenceRepeatCount] ?: ReadAloudSettings.DefaultSentenceRepeatCount,
 )
 
 private fun MutablePreferences.writeReadAloudSettings(settings: ReadAloudSettings) {
@@ -94,6 +105,7 @@ private fun MutablePreferences.writeReadAloudSettings(settings: ReadAloudSetting
     this[Keys.pauseForPageTranslation] = settings.pauseForPageTranslation
     this[Keys.highlightWhilePlaying] = settings.highlightWhilePlaying
     this[Keys.translateCurrentSentence] = settings.translateCurrentSentence
+    this[Keys.sentenceRepeatCount] = settings.sentenceRepeatCount
 }
 
 private object Keys {
@@ -108,4 +120,5 @@ private object Keys {
     val pauseForPageTranslation = booleanPreferencesKey("pauseForPageTranslation")
     val highlightWhilePlaying = booleanPreferencesKey("highlightWhilePlaying")
     val translateCurrentSentence = booleanPreferencesKey("translateCurrentSentence")
+    val sentenceRepeatCount = intPreferencesKey("sentenceRepeatCount")
 }

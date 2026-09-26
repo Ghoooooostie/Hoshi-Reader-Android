@@ -90,6 +90,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   continues through the chapter in order; it no longer opens the sentence translation card, so the
   "Read from the sentence gesture" Read Aloud toggle is gone. Translations while listening come
   from the "Translate As It Reads" toggle instead.
+- Add a "Repeat per sentence" setting for Read Aloud: each sentence (or, in Read-by-page
+  mode, each page) is spoken the chosen number of times, with a short pause between
+  repeats, before moving on. It is useful when the speech is too fast to follow.
 - Add an Advanced AI settings page that can show AI word-in-sentence analysis
   above lookup popup dictionaries, show AI sentence Chinese analysis in Process
   Text lookup, and let Anki templates render `{sentence-cn}` and
@@ -183,6 +186,10 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ### Changed
 
+- Read Aloud now follows manual navigation: when you turn or scroll back/forward a page
+  while it is speaking, it stops the current sentence and restarts from the new visible
+  position instead of continuing to read the old content. This covers paginated and
+  Visual Novel modes; continuous scrolling mode already follows the text by scrolling.
 - Apply the selected Recent/Title sort to Google Drive books. Recent uses the
   latest reading or audiobook progress time, falling back to bookdata last access.
 

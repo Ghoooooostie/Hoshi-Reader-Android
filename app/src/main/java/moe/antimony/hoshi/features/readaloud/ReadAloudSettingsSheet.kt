@@ -44,6 +44,7 @@ import moe.antimony.hoshi.features.reader.readerSheetStyle
 import moe.antimony.hoshi.ui.theme.hoshiContainerBorder
 import moe.antimony.hoshi.ui.theme.hoshiSurfaces
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -221,6 +222,27 @@ fun ReadAloudSettingsSheet(
                     )
                     Text(
                         text = String.format(Locale.getDefault(), "%.1fx", settings.speechRate),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    Text(
+                        text = stringResource(R.string.read_aloud_sentence_repeat_count),
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                    Slider(
+                        value = settings.sentenceRepeatCount.toFloat(),
+                        onValueChange = { viewModel.setSentenceRepeatCount(it.roundToInt()) },
+                        valueRange = ReadAloudSettings.MinimumSentenceRepeatCount.toFloat()..
+                            ReadAloudSettings.MaximumSentenceRepeatCount.toFloat(),
+                        steps = ReadAloudSettings.MaximumSentenceRepeatCount -
+                            ReadAloudSettings.MinimumSentenceRepeatCount - 1,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.read_aloud_sentence_repeat_count_value,
+                            settings.sentenceRepeatCount,
+                        ),
                         style = MaterialTheme.typography.labelMedium,
                     )
                     }

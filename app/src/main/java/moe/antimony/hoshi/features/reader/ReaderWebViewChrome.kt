@@ -392,6 +392,8 @@ internal fun BoxScope.ReaderBottomChrome(
     onStatistics: (() -> Unit)?,
     onSasayaki: (() -> Unit)?,
     onReadAloud: () -> Unit,
+    autoPlayEnabled: Boolean,
+    onAutoPlay: () -> Unit,
     metrics: ReaderBottomChromeMetrics,
     modifier: Modifier = Modifier,
 ) {
@@ -424,6 +426,8 @@ internal fun BoxScope.ReaderBottomChrome(
             onStatistics = onStatistics,
             onSasayaki = onSasayaki,
             onReadAloud = onReadAloud,
+            autoPlayEnabled = autoPlayEnabled,
+            onAutoPlay = onAutoPlay,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = metrics.horizontalPaddingDp.dp, bottom = metrics.menuBottomOffsetDp.dp),
@@ -681,6 +685,8 @@ private fun ReaderMenuCard(
     onStatistics: (() -> Unit)?,
     onSasayaki: (() -> Unit)?,
     onReadAloud: () -> Unit,
+    autoPlayEnabled: Boolean,
+    onAutoPlay: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -817,6 +823,21 @@ private fun ReaderMenuCard(
                         metrics = metrics,
                         onClick = onReadAloud,
                     )
+
+                    ReaderMenuDestination.AutoPlay -> ReaderMenuToggleItem(
+                        text = stringResource(R.string.reader_auto_play),
+                        icon = {
+                            Icon(
+                                imageVector = readerBottomMenuIcon(ReaderMenuDestination.AutoPlay),
+                                contentDescription = null,
+                                tint = Color(colors.menuContent),
+                            )
+                        },
+                        checked = autoPlayEnabled,
+                        colors = colors,
+                        metrics = metrics,
+                        onCheckedChange = { onAutoPlay() },
+                    )
                 }
             }
         }
@@ -832,6 +853,7 @@ internal fun readerBottomMenuIcon(destination: ReaderMenuDestination): ImageVect
         ReaderMenuDestination.Statistics -> Icons.AutoMirrored.Rounded.ShowChart
         ReaderMenuDestination.Sasayaki -> Icons.Rounded.GraphicEq
         ReaderMenuDestination.ReadAloud -> Icons.Rounded.PlayArrow
+        ReaderMenuDestination.AutoPlay -> Icons.Rounded.Timer
     }
 
 @Composable
@@ -864,6 +886,62 @@ private fun ReaderMenuItem(
             color = Color(colors.menuContent),
             style = MaterialTheme.typography.titleMedium,
         )
+    }
+}
+
+@Composable
+private fun ReaderMenuToggleItem(
+    text: String,
+    icon: @Composable () -> Unit,
+    checked: Boolean,
+    colors: ReaderChromeColors,
+    metrics: ReaderBottomChromeMetrics,
+    onCheckedChange: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onCheckedChange)
+            .padding(
+                horizontal = metrics.menuItemHorizontalPaddingDp.dp,
+                vertical = metrics.menuItemVerticalPaddingDp.dp,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(metrics.menuItemSpacingDp.dp),
+    ) {
+        Box(
+            modifier = Modifier.size(metrics.menuItemIconBoxSizeDp.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            icon()
+        }
+        Text(
+            text = text,
+            color = Color(colors.menuContent),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f),
+        )
+        Box(
+            modifier = Modifier
+                .size(metrics.menuItemIconBoxSizeDp.dp)
+                .clip(CircleShape)
+                .background(if (checked) Color(colors.menuContent) else Color.Transparent)
+                .border(
+                    width = (metrics.menuItemIconBoxSizeDp / 8).dp.coerceAtLeast(1.dp),
+                    color = Color(colors.menuContent),
+                    shape = CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (checked) {
+                Icon(
+                    imageVector = Icons.Rounded.PlayArrow,
+                    contentDescription = null,
+                    tint = Color(colors.menuContainer),
+                    modifier = Modifier.size((metrics.menuItemIconBoxSizeDp * 0.6f).dp),
+                )
+            }
+        }
     }
 }
 

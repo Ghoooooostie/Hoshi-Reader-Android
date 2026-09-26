@@ -511,6 +511,27 @@ __HOSHI_READER_SASAYAKI_SCRIPT__
     }
     return totalChars > 0 ? exploredChars / totalChars : 0;
   },
+  autoPlayPageCharacterCount: function() {
+    var context = this.getScrollContext();
+    if (context.pageSize <= 0) return 0;
+    var metrics = this.paginationMetrics || this.buildPaginationMetrics();
+    var currentScroll = this.getPagePosition(context);
+    var pageStart = Math.round(currentScroll / context.pageSize) * context.pageSize;
+    var nextPageStart = pageStart + context.pageSize;
+    var charsBeforeThisPage = 0;
+    var charsBeforeNextPage = metrics.totalChars;
+    for (var i = 0; i < metrics.progressStops.length; i++) {
+      var stop = metrics.progressStops[i];
+      if (stop.scroll < pageStart - 1) {
+        charsBeforeThisPage = stop.exploredChars;
+      } else if (stop.scroll < nextPageStart - 1) {
+        charsBeforeNextPage = stop.exploredChars;
+      } else {
+        break;
+      }
+    }
+    return Math.max(0, charsBeforeNextPage - charsBeforeThisPage);
+  },
   restoreProgress: async function(progress) {
     await document.fonts.ready;
     var context = this.getScrollContext();
