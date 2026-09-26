@@ -309,12 +309,7 @@
     <string name="reader_behavior_open_last_read_book_on_launch">Open Last Read Book on Launch</string>
     <string name="reader_behavior_auto_check_updates">Automatically Check for Updates</string>
     <string name="reader_behavior_gestures">Gestures</string>
-    <string name="reader_auto_play">Auto Play</string>
-    <string name="reader_auto_play_help">Automatically turn pages while reading. Paginated mode derives the dwell time from the page\'s character count; Visual Novel advances by the sentences-per-screen setting; Continuous mode scrolls at a fixed pace.</string>
-    <string name="reader_auto_play_speed">Auto Play Speed</string>
-    <string name="reader_auto_play_speed_slow">Slow</string>
-    <string name="reader_auto_play_speed_medium">Medium</string>
-    <string name="reader_auto_play_speed_fast">Fast</string>
+
     <string name="reader_behavior_double_tap_action">Double-tap</string>
     <string name="reader_behavior_long_press_action">Long-press</string>
     <string name="reader_gesture_action_none">Off</string>

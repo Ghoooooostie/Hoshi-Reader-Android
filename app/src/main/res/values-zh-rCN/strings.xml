@@ -307,12 +307,7 @@
     <string name="reader_behavior_open_last_read_book_on_launch">启动时打开最近阅读</string>
     <string name="reader_behavior_auto_check_updates">自动检查更新</string>
     <string name="reader_behavior_gestures">手势</string>
-    <string name="reader_auto_play">自动播放</string>
-    <string name="reader_auto_play_help">阅读时自动翻页。分页模式按当前页实际字数换算停留时间；视觉小说按「每屏句数」翻屏；连续模式按固定节奏滚动。</string>
-    <string name="reader_auto_play_speed">自动播放速度</string>
-    <string name="reader_auto_play_speed_slow">慢</string>
-    <string name="reader_auto_play_speed_medium">中</string>
-    <string name="reader_auto_play_speed_fast">快</string>
+
     <string name="reader_behavior_double_tap_action">双击</string>
     <string name="reader_behavior_long_press_action">长按</string>
     <string name="reader_gesture_action_none">关闭</string>

@@ -217,7 +217,6 @@ fun ReaderWebView(
     }
     val sasayakiMediaStopJson = remember { Json { ignoreUnknownKeys = true } }
     var sasayakiAutoPageJob by remember(book) { mutableStateOf<Job?>(null) }
-    var autoPlayPaused by remember { mutableStateOf(false) }
     val view = LocalView.current
     val systemDarkTheme = isSystemInDarkTheme()
     val clampedInitialIndex = initialChapterIndex.coerceIn(0, book.chapters.lastIndex)
@@ -1902,10 +1901,6 @@ fun ReaderWebView(
         keepScreenOnWhileReading = effectiveSettings.keepScreenOnWhileReading,
         sasayakiIsPlaying = sasayakiPlayer?.isPlaying == true,
         sasayakiAutoScroll = sasayakiSettings.autoScroll,
-        autoPlayActive = effectiveSettings.autoPlayEnabled &&
-            !autoPlayPaused &&
-            sasayakiPlayer?.isPlaying != true &&
-            !readAloudState.isPlaying,
     )
     DisposableEffect(context, keepScreenOn) {
         val window = context.findActivity()?.window
@@ -1916,86 +1911,6 @@ fun ReaderWebView(
         }
         onDispose {
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
-    }
-
-    // 自动播放：开启后按速度档位定时翻页。分页模式按当前页实际字数换算停留时间，
-    // 连续模式按固定节奏滚动，视觉小说按每屏句数翻屏。朗读/有声书播放时由它们驱动翻页，定时循环让位。
-    LaunchedEffect(effectiveSettings.autoPlayEnabled) {
-        if (!effectiveSettings.autoPlayEnabled) autoPlayPaused = false
-    }
-    val autoPlayShouldRun = rememberUpdatedState(
-        effectiveSettings.autoPlayEnabled &&
-            !autoPlayPaused &&
-            sasayakiPlayer?.isPlaying != true &&
-            !readAloudState.isPlaying,
-    )
-    suspend fun autoPlayCurrentPageChars(): Int {
-        val wv = webView ?: return 0
-        return suspendCancellableCoroutine { cont ->
-            wv.evaluateJavascript(
-                "(window.hoshiReader && typeof window.hoshiReader.autoPlayPageCharacterCount === 'function') ? window.hoshiReader.autoPlayPageCharacterCount() : 0",
-            ) { result ->
-                val value = result?.trim()?.trim('"')?.toIntOrNull() ?: 0
-                if (cont.isActive) cont.resume(value)
-            }
-        }
-    }
-    suspend fun computeAutoPlayDwell(): Long {
-        val settings = effectiveSettings
-        val cpm = settings.autoPlaySpeed.charsPerMinute
-        return when (settings.viewMode) {
-            ReaderViewMode.Paginated -> {
-                val chars = autoPlayCurrentPageChars()
-                ((chars.toDouble() / cpm) * 60_000.0).toLong().coerceAtLeast(ReaderAutoPlayMinDwellMillis)
-            }
-            ReaderViewMode.Continuous -> settings.autoPlaySpeed.continuousScreenIntervalMs.toLong()
-            ReaderViewMode.VisualNovel -> {
-                val sentences = settings.visualNovelSentencesPerScreen
-                val perSentenceMillis = (ReaderAutoPlayAvgSentenceChars.toDouble() / cpm) * 60_000.0
-                (sentences * perSentenceMillis).toLong().coerceAtLeast(ReaderAutoPlayMinDwellMillis)
-            }
-        }
-    }
-    // 翻到下一页/屏；返回是否真的前进了。视觉小说需要先 reveal 当前屏再翻到下一屏（两次 paginate），
-    // 这里统一处理，避免「reveal 不前进」被误判成已到末尾。
-    suspend fun autoPlayAdvanceForward(): Boolean {
-        val wv = webView ?: return false
-        return suspendCancellableCoroutine { cont ->
-            val proceed: (String?) -> Unit = { result ->
-                when (ReaderPaginationScripts.navigationResult(result)) {
-                    ReaderNavigationResult.Advanced -> {
-                        wv.evaluateJavascript(ReaderPaginationScripts.progressInvocation()) { progressResult ->
-                            ReaderPaginationScripts.doubleResult(progressResult)?.let { saveDisplayedProgress(it) }
-                            if (cont.isActive) cont.resume(true)
-                        }
-                    }
-                    else -> if (cont.isActive) cont.resume(false)
-                }
-            }
-            wv.evaluateJavascript(ReaderPaginationScripts.paginateInvocation(ReaderNavigationDirection.Forward)) { first ->
-                if (ReaderPaginationScripts.navigationResult(first) == ReaderNavigationResult.Revealed) {
-                    wv.evaluateJavascript(ReaderPaginationScripts.paginateInvocation(ReaderNavigationDirection.Forward), proceed)
-                } else {
-                    proceed(first)
-                }
-            }
-        }
-    }
-    LaunchedEffect(
-        effectiveSettings.autoPlayEnabled,
-        effectiveSettings.autoPlaySpeed,
-        effectiveSettings.viewMode,
-        autoPlayPaused,
-        webView,
-    ) {
-        if (!effectiveSettings.autoPlayEnabled || autoPlayPaused) return@LaunchedEffect
-        if (sasayakiPlayer?.isPlaying == true || readAloudState.isPlaying) return@LaunchedEffect
-        if (webView == null) return@LaunchedEffect
-        while (autoPlayShouldRun.value) {
-            delay(computeAutoPlayDwell())
-            if (!autoPlayShouldRun.value) break
-            if (!autoPlayAdvanceForward()) break
         }
     }
 
@@ -2545,17 +2460,9 @@ fun ReaderWebView(
             isActive = readAloudState.isActive,
             metrics = bottomChromeMetrics,
         )
-        val autoPlayBottomControls = readerAutoPlayBottomPlaybackControls(
-            visible = effectiveSettings.autoPlayEnabled &&
-                !sasayakiBottomPlaybackControls.visible &&
-                !readAloudBottomPlaybackControls.visible,
-            metrics = bottomChromeMetrics,
-        )
-        val useAutoPlayBar = autoPlayBottomControls.visible
         val activePlaybackControls = when {
             useSasayakiBar -> sasayakiBottomPlaybackControls
             readAloudBottomPlaybackControls.visible -> readAloudBottomPlaybackControls
-            useAutoPlayBar -> autoPlayBottomControls
             else -> readAloudBottomPlaybackControls
         }
         val onSkipBackward: () -> Unit = when {
@@ -2572,9 +2479,6 @@ fun ReaderWebView(
                     }
                 }
             }
-            useAutoPlayBar -> {
-                { navigateReaderPage(ReaderNavigationDirection.Backward) }
-            }
             else -> {
                 {
                     if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel && readAloudState.currentIndex <= 0) {
@@ -2590,7 +2494,6 @@ fun ReaderWebView(
             readAloudBottomPlaybackControls.visible -> {
                 { if (readAloudState.isPlaying) readAloudViewModel.pause() else readAloudViewModel.resume() }
             }
-            useAutoPlayBar -> { { autoPlayPaused = !autoPlayPaused } }
             else -> { { if (readAloudState.isPlaying) readAloudViewModel.pause() else readAloudViewModel.resume() } }
         }
         val onSkipForward: () -> Unit = when {
@@ -2610,9 +2513,6 @@ fun ReaderWebView(
                     }
                 }
             }
-            useAutoPlayBar -> {
-                { navigateReaderPage(ReaderNavigationDirection.Forward) }
-            }
             else -> {
                 {
                     if (
@@ -2629,7 +2529,6 @@ fun ReaderWebView(
         val playing = when {
             useSasayakiBar -> sasayakiPlayer?.isPlaying == true
             readAloudBottomPlaybackControls.visible -> readAloudState.isPlaying
-            useAutoPlayBar -> !autoPlayPaused
             else -> readAloudState.isPlaying
         }
         ReaderBottomSafeProgress(
@@ -2891,8 +2790,6 @@ fun ReaderWebView(
                 null
             },
             onReadAloud = { showReadAloudSettings = true },
-            autoPlayEnabled = effectiveSettings.autoPlayEnabled,
-            onAutoPlay = { onReaderSettingsChange { it.copy(autoPlayEnabled = !it.autoPlayEnabled) } },
             metrics = bottomChromeMetrics,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
@@ -3104,9 +3001,3 @@ private data class SasayakiCueRevealResult(
 
 private fun SasayakiPlaybackData?.hasStoredAudioSource(): Boolean =
     this?.audioUri?.isNotBlank() == true || this?.audioFileName?.isNotBlank() == true
-
-/** 自动播放每页/每屏的最短停留时间，避免档位过快导致翻页看不清。 */
-private const val ReaderAutoPlayMinDwellMillis: Long = 800
-
-/** 视觉小说按句子数换算停留时间时，单个日文句子估算的平均字数。 */
-private const val ReaderAutoPlayAvgSentenceChars: Int = 40
