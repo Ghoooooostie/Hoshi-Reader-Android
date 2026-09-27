@@ -16,3 +16,21 @@ local.properties
 .gradle-codex/
 .kotlin/
 /debug/
+
+# Agent investigation scratch artifacts (APKs, screenshots, dumps, logs from device/adb probing)
+.codebuddy/*.apk
+.codebuddy/*.png
+.codebuddy/*.bin
+.codebuddy/*.xml
+.codebuddy/*.log
+
+# Root-level investigation logs and uidumps
+/build_install*.log
+/build_kot*.log
+/build_log.txt
+/crashcheck.log
+/adb_*.log
+/uidump*.xml
+
+# Agent working memory is local per-machine state, not project source
+.codebuddy/memory/
