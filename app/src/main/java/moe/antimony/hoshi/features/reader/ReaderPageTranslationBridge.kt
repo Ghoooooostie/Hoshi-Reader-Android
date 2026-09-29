@@ -77,14 +77,17 @@ internal object ReaderPageTranslationCommand {
 
     /**
      * Shows the translation of the sentence currently being spoken directly under its paragraph
-     * (跟读翻译). Replaces the previous read-aloud translation block so only one follows playback.
+     * (跟读翻译). One block is kept per (targetId, sentence) so a paragraph containing multiple
+     * sentences (e.g. a Visual Novel screen) shows every sentence's translation instead of only
+     * the last one.
      */
     fun showReadAloudTranslation(
         targetId: String,
+        sentence: String,
         translation: String,
     ): String =
         "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.showReadAloudTranslation(" +
-            "${readerJavaScriptStringLiteral(targetId)}, ${readerJavaScriptStringLiteral(translation)})"
+            "${readerJavaScriptStringLiteral(targetId)}, ${readerJavaScriptStringLiteral(sentence)}, ${readerJavaScriptStringLiteral(translation)})"
 
     fun clearReadAloudTranslation(): String =
         "window.hoshiReaderPageTranslation && window.hoshiReaderPageTranslation.clearReadAloudTranslation()"

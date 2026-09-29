@@ -441,6 +441,7 @@ fun DictionarySearchView(
                     }
                 }
             }
+            is ReaderLookupPopupBridgeMessage.PopupFrame -> Unit
             is ReaderLookupPopupBridgeMessage.TextSelected -> {
                 if (message.popupId == DictionarySearchRootPopupId) {
                     val highlightCount = searchViewModel.openRootPopup(message.selection, popupOptions)

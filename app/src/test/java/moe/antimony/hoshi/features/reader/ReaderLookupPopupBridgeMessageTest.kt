@@ -48,6 +48,22 @@ class ReaderLookupPopupBridgeMessageTest {
         )
 
         assertEquals(
+            ReaderLookupPopupBridgeMessage.PopupFrame(
+                popupId = "root",
+                messageId = null,
+                frame = ReaderLookupPopupFrameRect(left = 10.0, top = 20.0, width = 300.0, height = 200.0),
+            ),
+            ReaderLookupPopupBridgeMessage.fromJson(
+                """{"name":"popupFrame","popupId":"root","body":{"left":10,"top":20,"width":300,"height":200}}""",
+            ),
+        )
+        assertNull(
+            ReaderLookupPopupBridgeMessage.fromJson(
+                """{"name":"popupFrame","popupId":"root","body":{"left":10,"top":20,"width":0,"height":200}}""",
+            ),
+        )
+
+        assertEquals(
             ReaderLookupPopupBridgeMessage.PlayWordAudio(
                 popupId = "root",
                 messageId = null,

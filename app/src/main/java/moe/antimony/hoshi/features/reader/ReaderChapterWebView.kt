@@ -98,6 +98,7 @@ internal fun ChapterWebView(
     readerPopupBridgeHolder: ReaderLookupPopupBridgeCallbackHolder,
     readerPopupResourceHandler: ReaderLookupPopupResourceHandler,
     readerPopupFrames: List<ReaderLookupPopupFramePayload>,
+    readerPopupTouchFrames: Map<String, ReaderLookupPopupFrameRect>,
     fontManager: ReaderFontManager,
     systemDark: Boolean,
     onBeforeRestoreVisible: (WebView) -> ReaderRestoreBeforeVisibleAction? = { null },
@@ -119,6 +120,7 @@ internal fun ChapterWebView(
     val currentOnHighlightCreated = rememberUpdatedState(onHighlightCreated)
     val currentReaderPopupResourceHandler = rememberUpdatedState(readerPopupResourceHandler)
     val currentReaderPopupFrames = rememberUpdatedState(readerPopupFrames)
+    val currentReaderPopupTouchFrames = rememberUpdatedState(readerPopupTouchFrames)
     val currentOnNextChapter = rememberUpdatedState(onNextChapter)
     val currentOnPreviousChapter = rememberUpdatedState(onPreviousChapter)
     val currentIsWebViewRestoring = rememberUpdatedState(isWebViewRestoring)
@@ -374,8 +376,19 @@ internal fun ChapterWebView(
                     return true
                 }
                 val density = webView.resources.displayMetrics.density
+                // 优先用 JS 回报的外壳实际 on-screen frame：shell 会被挪开避开译文、
+                // 按内容高度收缩，payload.frame 与实际渲染位置不一致时，旧矩形内的
+                // 点击会被当作弹窗内部吞掉，导致点击空白处无法关闭弹窗。
+                val touchFrames = currentReaderPopupTouchFrames.value
+                val popups = if (touchFrames.isEmpty()) {
+                    currentReaderPopupFrames.value
+                } else {
+                    currentReaderPopupFrames.value.map { payload ->
+                        touchFrames[payload.id]?.let { payload.copy(frame = it) } ?: payload
+                    }
+                }
                 return readerLookupPopupTouchBlocksReaderGesture(
-                    popups = currentReaderPopupFrames.value,
+                    popups = popups,
                     x = androidPixelsToCssPixels(event.x, density).toDouble(),
                     y = androidPixelsToCssPixels(event.y, density).toDouble(),
                 )

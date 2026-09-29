@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import moe.antimony.hoshi.ui.HoshiAlertDialog as AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import android.util.Log
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -117,6 +118,18 @@ import kotlin.math.roundToInt
 
 /** 译文队列按文档顺序推进时，每次至少往后覆盖的段落数（不足一屏时仍按此数前视）。 */
 private const val PAGE_TRANSLATION_DOCUMENT_LOOKAHEAD = 4
+
+/** 重建朗读队列前等待当前句跟读译文的上限，避免 VN 换屏后译文无处安放（漏翻）。 */
+private const val READ_ALOUD_TRANSLATION_AWAIT_MILLIS = 3000L
+
+private const val READ_ALOUD_TRANSLATION_AWAIT_STEP = 50L
+
+/** 朗读自身翻页后，屏蔽"用户翻页"式重排的最长时间（保险丝）与队列装好后的静置时间。 */
+private const val READ_ALOUD_SELF_PAGING_TIMEOUT = 5000L
+
+private const val READ_ALOUD_SELF_PAGING_SETTLE = 400L
+
+
 
 private fun readAloudQueueItems(
     targets: List<ReaderPageTranslationTarget>,
@@ -275,6 +288,7 @@ fun ReaderWebView(
     val lookupPopups = stateHolder.lookupPopups
     val currentPageTranslationChapterKey = "$bookId:${readerPosition.loadPosition.index}"
     var readerPopupHistories by remember { mutableStateOf<Map<String, ReaderPopupHistoryCounts>>(emptyMap()) }
+    var readerPopupTouchFrames by remember { mutableStateOf<Map<String, ReaderLookupPopupFrameRect>>(emptyMap()) }
     var rootSelectionHighlight by remember { mutableStateOf<ReaderRootSelectionHighlight?>(null) }
     var readerPageTranslationJob by remember { mutableStateOf<Job?>(null) }
     val readerPageTranslationRefreshJobs = remember { linkedMapOf<String, Job>() }
@@ -295,8 +309,16 @@ fun ReaderWebView(
     val readAloudSentenceTranslations = remember { mutableMapOf<String, String>() }
     var readAloudSentenceTranslationJob by remember { mutableStateOf<Job?>(null) }
     var standaloneSentenceTranslationJob by remember { mutableStateOf<Job?>(null) }
+    /** 朗读自身正在翻页/翻屏：此时不要把 JS 上报的 progress 当成用户翻页去重排朗读队列。 */
+    val readAloudSelfPaging = remember { mutableStateOf(false) }
+
+    // 跟读译文在途集合：advanceToNextReadAloudPage 翻屏前先等其落定，避免 VN 翻屏 detach 当前屏后
+    // 末句（或任何在途）译文按 targetId 找不到段落元素而建不出译文块（表现为"漏翻、翻回上一屏才显示"）。
+    val pendingReadAloudTranslationTargets = remember { mutableSetOf<String>() }
     /** 本次朗读是否带译文：手势「朗读并翻译」在本次朗读内覆盖朗读设置的「跟读翻译」。 */
     var readAloudSessionTranslate by remember { mutableStateOf(false) }
+    // 跟读译文按「段落 + 句」分别成块（见 reader-translation.js），互不覆盖；
+    // 旧块统一在翻页与停止时清空，这里不再按段落 id 追踪。
     // 用户手动翻页后重建朗读队列的等待任务与其"续播"标记：连续翻页时只保留最后一次。
     var readAloudRelocationJob by remember(book) { mutableStateOf<Job?>(null) }
     var readAloudResumesAfterRelocation by remember(book) { mutableStateOf(false) }
@@ -676,6 +698,7 @@ fun ReaderWebView(
         val activeIds = nextPopups.mapTo(mutableSetOf()) { it.id }
         readerPopupHistories = readerPopupHistories.filterKeys(activeIds::contains)
         popupAiRequestVersions = popupAiRequestVersions.filterKeys(activeIds::contains)
+        readerPopupTouchFrames = readerPopupTouchFrames.filterKeys(activeIds::contains)
         rootSelectionHighlight = rootSelectionHighlight?.takeIf { highlight ->
             highlight.popupId == null || highlight.popupId in activeIds
         }
@@ -960,6 +983,21 @@ fun ReaderWebView(
         saveReaderPosition(savedPosition)
     }
     /**
+     * 等当前朗读那一句还没返回的跟读译文落定。
+     *
+     * VN 每换一屏都会重建并替换整屏 DOM，译文回来时目标段落一旦被 detach 就无处安放
+     * （`showReadAloudTranslation` 找不到元素只能丢弃）= 漏翻。因此任何"重建朗读队列"的
+     * 时机都必须先把它等出来（有上限），再让界面换屏。
+     */
+    suspend fun awaitReadAloudTranslationSettled() {
+        var waited = 0L
+        while (pendingReadAloudTranslationTargets.isNotEmpty() && waited < READ_ALOUD_TRANSLATION_AWAIT_MILLIS) {
+            delay(READ_ALOUD_TRANSLATION_AWAIT_STEP)
+            waited += READ_ALOUD_TRANSLATION_AWAIT_STEP
+        }
+    }
+
+    /**
      * 朗读进行中用户手动翻页/回看时调用：先把当前这句的朗读停下（会话保持），等排版稳定后
      * 按当前可见内容重建队列，从新位置继续朗读。
      *
@@ -973,13 +1011,27 @@ fun ReaderWebView(
         if (effectiveSettings.viewMode == ReaderViewMode.Continuous) return
         val current = readAloudViewModel.state.value
         if (!current.isActive) return
+        // 朗读自己翻的页：JS 翻页同样会上报 progress（VN 尤其如此），若当成"用户翻页"重排，
+        // 就会 pause + 按"还没换完的可见集合"重建队列，表现为来回跳屏重读，并且重排取到空集合时
+        // 直接把朗读停在暂停态（用户看到的"朗读突然停了"）。
+        if (readAloudSelfPaging.value) {
+            Log.w("HoshiRANav", "resync skipped: read aloud is paging itself")
+            return
+        }
+        Log.w("HoshiRANav", "resync fire", Throwable("stack"))
         // 连续翻页时第二页起 state 已是暂停，用上一次的结果记住"本来在朗读"。
-        val resumeAfterRelocation = readAloudResumesAfterRelocation || current.isPlaying
+        // 查词临时暂停（pauseForLookup）也会让 isPlaying=false，但用户意图仍是继续朗读，
+        // 翻页后应恢复，故将其一并视为"本来在朗读"（否则会停在本应继续的会话里）。
+        val resumeAfterRelocation =
+            readAloudResumesAfterRelocation || current.isPlaying || stateHolder.readAloudWasPausedByLookup
         readAloudResumesAfterRelocation = resumeAfterRelocation
         readAloudRelocationJob?.cancel()
         readAloudViewModel.pause()
         readAloudRelocationJob = scope.launch {
             delay(if (readAloudSettings.readAloudByPage) 600L else 250L)
+            // 与 advanceToNextReadAloudPage 一致：重建队列前先把当前句在途的跟读译文等出来，
+            // 否则 VN 换屏 detach 当前屏后译文回来已无处安放（漏翻）。
+            awaitReadAloudTranslationSettled()
             collectVisibleReaderPageTranslationTargets { targets ->
                 readAloudResumesAfterRelocation = false
                 val items = readAloudQueueItems(targets, readAloudSettings.readAloudByPage)
@@ -1091,6 +1143,11 @@ fun ReaderWebView(
             is ReaderLookupPopupBridgeMessage.TapOutside -> {
                 val index = popupIndex(message.popupId).takeIf { it >= 0 } ?: return
                 setLookupPopups(closeChildPopupsAndClearSelection(stateHolder.lookupPopups, index))
+            }
+            is ReaderLookupPopupBridgeMessage.PopupFrame -> {
+                if (popupIndex(message.popupId) >= 0) {
+                    readerPopupTouchFrames = readerPopupTouchFrames + (message.popupId to message.frame)
+                }
             }
             is ReaderLookupPopupBridgeMessage.SwipeDismiss -> {
                 val index = popupIndex(message.popupId).takeIf { it >= 0 } ?: return
@@ -1815,28 +1872,48 @@ fun ReaderWebView(
             readAloudViewModel.pause()
             return
         }
-        currentWebView.evaluateJavascript(
-            ReaderPaginationScripts.paginateInvocation(direction),
-        ) { result ->
-            // 已在章节首/末，无处可跳：保持当前会话，不中断朗读。
-            if (!ReaderPaginationScripts.didScroll(result)) return@evaluateJavascript
-            currentWebView.evaluateJavascript(
-                ReaderPaginationScripts.progressInvocation(),
-            ) { progressResult ->
-                ReaderPaginationScripts.doubleResult(progressResult)?.let { progress ->
-                    saveDisplayedProgress(progress)
-                }
+        // 与 advanceToNextReadAloudPage 一致：朗读自身翻屏期间不被 progress 重排打断。
+        readAloudSelfPaging.value = true
+        scope.launch {
+            delay(READ_ALOUD_SELF_PAGING_TIMEOUT)
+            readAloudSelfPaging.value = false
+        }
+        // VN 当前屏逐字 reveal 未播完时 paginate 会返回 "revealed"（只补 reveal、不翻屏），
+        // 这里补翻一次真正前进，避免跳过动作无效。
+        fun tryPaginate(depth: Int = 0) {
+            if (depth > 3) {
+                readAloudSelfPaging.value = false
+                return@tryPaginate
             }
-            scope.launch {
-                delay(if (readAloudSettings.readAloudByPage) 600L else 250L)
-                collectVisibleReaderPageTranslationTargets { visible ->
-                    val items = readAloudQueueItems(visible, readAloudSettings.readAloudByPage)
-                    if (items.isEmpty()) return@collectVisibleReaderPageTranslationTargets
-                    lastReadAloudParagraphId = visible.lastOrNull()?.id
-                    readAloudViewModel.continueWith(items)
+            currentWebView.evaluateJavascript(
+                ReaderPaginationScripts.paginateInvocation(direction),
+            ) { result ->
+                val nav = ReaderPaginationScripts.navigationResult(result)
+                // 已在章节首/末，无处可跳：保持当前会话，不中断朗读。
+                if (nav == ReaderNavigationResult.Limit) return@evaluateJavascript
+                if (nav == ReaderNavigationResult.Revealed) {
+                    tryPaginate(depth + 1)
+                    return@evaluateJavascript
+                }
+                currentWebView.evaluateJavascript(
+                    ReaderPaginationScripts.progressInvocation(),
+                ) { progressResult ->
+                    ReaderPaginationScripts.doubleResult(progressResult)?.let { progress ->
+                        saveDisplayedProgress(progress)
+                    }
+                }
+                scope.launch {
+                    delay(if (readAloudSettings.readAloudByPage) 600L else 250L)
+                    collectVisibleReaderPageTranslationTargets { visible ->
+                        val items = readAloudQueueItems(visible, readAloudSettings.readAloudByPage)
+                        if (items.isEmpty()) return@collectVisibleReaderPageTranslationTargets
+                        lastReadAloudParagraphId = visible.lastOrNull()?.id
+                        readAloudViewModel.continueWith(items)
+                    }
                 }
             }
         }
+        tryPaginate()
     }
     val currentReaderKeyHandler = rememberUpdatedState<(KeyEvent) -> Boolean> { event ->
         val keyEvent = readerHardwareKeyEventForKeyEvent(
@@ -2106,6 +2183,7 @@ fun ReaderWebView(
         standaloneSentenceTranslationJob?.cancel()
         standaloneSentenceTranslationJob = null
         readAloudSentenceTranslations.clear()
+        pendingReadAloudTranslationTargets.clear()
     }
     LaunchedEffect(
         effectiveSettings.readerAiFullPageTranslationEnabled,
@@ -2143,8 +2221,12 @@ fun ReaderWebView(
         delay(350)
         requestVisibleReaderPageTranslations()
     }
-    fun readAloudSentenceTranslationKey(targetId: String, sentence: String): String =
-        "$currentPageTranslationChapterKey::$targetId::$sentence"
+    fun readAloudSentenceTranslationKey(targetId: String, sentence: String): String {
+        // 归一化句子文本用于缓存 key：去掉首尾空白并把所有连续空白（含换行/全角空格）合并为单个空格，
+        // 避免预取时的文本与朗读实际句因空白差异导致缓存 key 不匹配而漏翻。
+        val normalized = sentence.trim().replace(Regex("[\\s\\u3000]+"), " ")
+        return "$currentPageTranslationChapterKey::$targetId::$normalized"
+    }
 
     /**
      * 翻译手势指定的单独一句并显示。与跟读翻译不同，它不要求朗读仍停在同一句上，
@@ -2155,7 +2237,7 @@ fun ReaderWebView(
         val cached = readAloudSentenceTranslations[key]
         if (cached != null) {
             webView?.evaluateJavascript(
-                ReaderPageTranslationCommand.showReadAloudTranslation(targetId, cached),
+                ReaderPageTranslationCommand.showReadAloudTranslation(targetId, sentence, cached),
                 null,
             )
             return
@@ -2172,7 +2254,7 @@ fun ReaderWebView(
             }.getOrNull()?.takeIf { it.isNotBlank() } ?: return@launch
             readAloudSentenceTranslations[key] = translation
             webView?.evaluateJavascript(
-                ReaderPageTranslationCommand.showReadAloudTranslation(targetId, translation),
+                ReaderPageTranslationCommand.showReadAloudTranslation(targetId, sentence, translation),
                 null,
             )
         }
@@ -2387,6 +2469,7 @@ fun ReaderWebView(
                         readerPopupBridgeHolder = readerPopupBridgeHolder,
                         readerPopupResourceHandler = readerPopupResourceHandler,
                         readerPopupFrames = readerLookupPopupPayloads,
+                        readerPopupTouchFrames = readerPopupTouchFrames,
                         fontManager = fontManager,
                         systemDark = systemDarkTheme,
                         onBeforeRestoreVisible = { restoredWebView ->
@@ -2559,6 +2642,16 @@ fun ReaderWebView(
             } else {
                 // 手势「朗读并翻译」的覆盖只作用于这一次朗读。
                 readAloudSessionTranslate = false
+                // 朗读在句间会有短暂的 inactive 闪断（VN 尤为明显，每句都会重启），
+                // 若立刻清掉会把当前屏已翻好的译文抹掉造成漏翻。延迟清除，期间若重新
+                // 激活（LaunchedEffect 重投）则取消，仅真正停止（持续 inactive）才清。
+                delay(1500)
+                if (!readAloudState.isActive) {
+                    webView?.evaluateJavascript(
+                        ReaderPageTranslationCommand.clearReadAloudTranslation(),
+                        null,
+                    )
+                }
             }
         }
         fun startReadAloudFromCurrentPage() {
@@ -2576,6 +2669,7 @@ fun ReaderWebView(
         fun clearReadAloudSentenceTranslation() {
             readAloudSentenceTranslationJob?.cancel()
             readAloudSentenceTranslationJob = null
+            pendingReadAloudTranslationTargets.clear()
             webView?.evaluateJavascript(ReaderPageTranslationCommand.clearReadAloudTranslation(), null)
         }
         /** 只写入缓存不显示：给下一句预热，尽量让译文在朗读到之前就绪。 */
@@ -2594,7 +2688,13 @@ fun ReaderWebView(
                 readAloudSentenceTranslations[key] = translation
             }
         }
-        /** 翻译当前正在朗读的这一句；AI 返回晚于朗读推进时不覆盖后续句子的译文。 */
+        /**
+         * 翻译当前正在朗读的这一句。朗读推进很快时会连续触发每一句——如果像之前那样在发起
+         * 新句时取消上一句的飞行翻译，任何一句的译文都来不及返回就被 cancel，表现为
+         * "TTS 在朗读但翻译跟不上 / 翻页后第一句没译文 / 回看不更新"。因此这里让每句独立
+         * 发起、互不取消；译文按「段落 + 句」挂载，同一段落（如 VN 一屏）的多句各自成块、
+         * 互不覆盖，返回时由 JS 决定该段落是否仍在页面。
+         */
         fun requestReadAloudSentenceTranslation(
             targetId: String,
             sentence: String,
@@ -2604,33 +2704,51 @@ fun ReaderWebView(
             val key = readAloudSentenceTranslationKey(targetId, sentence)
             val cached = readAloudSentenceTranslations[key]
             if (cached != null) {
+                Log.w("HoshiRAL", "cache hit targetId=$targetId show")
                 webView?.evaluateJavascript(
-                    ReaderPageTranslationCommand.showReadAloudTranslation(targetId, cached),
+                    ReaderPageTranslationCommand.showReadAloudTranslation(targetId, sentence, cached),
                     null,
                 )
-            } else {
-                webView?.evaluateJavascript(ReaderPageTranslationCommand.clearReadAloudTranslation(), null)
-            }
-            readAloudSentenceTranslationJob?.cancel()
-            readAloudSentenceTranslationJob = scope.launch {
-                val ready = advancedAiSettingsRepository.settings.first()
-                    .sentenceTranslationAvailability() as? AdvancedAiAvailability.Ready
-                    ?: return@launch
-                val translation = runCatching {
-                    withContext(Dispatchers.IO) {
-                        advancedAiClient.translateSentence(ready.settings, sentence)
-                    }
-                }.getOrNull()?.takeIf { it.isNotBlank() } ?: return@launch
-                readAloudSentenceTranslations[key] = translation
-                val current = readAloudViewModel.state.value
-                if (current.currentParagraphId == targetId && current.currentSentence == sentence) {
-                    webView?.evaluateJavascript(
-                        ReaderPageTranslationCommand.showReadAloudTranslation(targetId, translation),
-                        null,
-                    )
-                }
                 if (nextTargetId != null && nextSentence != null) {
                     prefetchReadAloudSentenceTranslation(nextTargetId, nextSentence)
+                }
+                return
+            }
+            val startedIndex = readAloudState.currentIndex
+            Log.w("HoshiRAL", "request targetId=$targetId startedIdx=$startedIndex")
+            // 标记在途：advanceToNextReadAloudPage 翻屏前会等其落定，避免 VN 翻屏 detach 丢末句译文。
+            pendingReadAloudTranslationTargets.add(key)
+            scope.launch {
+                try {
+                    val ready = advancedAiSettingsRepository.settings.first()
+                        .sentenceTranslationAvailability() as? AdvancedAiAvailability.Ready
+                    if (ready == null) {
+                        Log.w("HoshiRAL", "AI not ready for sentence translation (sentenceTranslationAvailability != Ready)")
+                        return@launch
+                    }
+                    val translation = runCatching {
+                        withContext(Dispatchers.IO) {
+                            advancedAiClient.translateSentence(ready.settings, sentence)
+                        }
+                    }.getOrNull()?.takeIf { it.isNotBlank() }
+                    if (translation == null) {
+                        Log.w("HoshiRAL", "translateSentence returned null/blank for targetId=$targetId")
+                        return@launch
+                    }
+                    Log.w("HoshiRAL", "translated targetId=$targetId len=${translation.length}")
+                    readAloudSentenceTranslations[key] = translation
+                    // 译文按「段落+句」独立成块、互不覆盖，晚到也只会正确落在对应句子下，
+                    // 不再用滞后阈值丢弃（VN 朗读推进快、译文晚到时该阈值会导致漏翻）。
+                    Log.w("HoshiRAL", "show targetId=$targetId startedIdx=$startedIndex nowIdx=${readAloudState.currentIndex}")
+                    webView?.evaluateJavascript(
+                        ReaderPageTranslationCommand.showReadAloudTranslation(targetId, sentence, translation),
+                        null,
+                    )
+                    if (nextTargetId != null && nextSentence != null) {
+                        prefetchReadAloudSentenceTranslation(nextTargetId, nextSentence)
+                    }
+                } finally {
+                    pendingReadAloudTranslationTargets.remove(key)
                 }
             }
         }
@@ -2643,72 +2761,124 @@ fun ReaderWebView(
                 readAloudViewModel.stop()
                 return
             }
-            currentWebView.evaluateJavascript(
-                ReaderPaginationScripts.paginateInvocation(ReaderNavigationDirection.Forward),
-            ) { result ->
-                if (!ReaderPaginationScripts.didScroll(result)) {
-                    readAloudViewModel.stop()
-                    return@evaluateJavascript
+            scope.launch {
+                // VN 翻屏会把当前屏 detach 出 DOM：若末句（或任何在途）跟读译文在翻屏后才回来，
+                // showReadAloudTranslation 按 targetId 找不到段落元素，译文块建不出来，
+                // 表现为"漏翻、翻回上一屏才显示"。先等当前屏在途译文落定，必要时再停留一下让译文可见。
+                val hadPending = pendingReadAloudTranslationTargets.isNotEmpty()
+                var waited = 0L
+                while (pendingReadAloudTranslationTargets.isNotEmpty() && waited < 3000L) {
+                    delay(50L)
+                    waited += 50L
                 }
-                // 翻页后记录新位置，保证朗读进度持久化（与手动翻页保存走同一套机制）。
-                currentWebView.evaluateJavascript(
-                    ReaderPaginationScripts.progressInvocation(),
-                ) { progressResult ->
-                    ReaderPaginationScripts.doubleResult(progressResult)?.let { progress ->
-                        saveDisplayedProgress(progress)
-                    }
-                }
+                if (hadPending) delay(1200L)
+                // 翻屏期间屏蔽"用户翻页"式的重排：VN 翻屏同样会向 Kotlin 上报 progress，
+                // 若不屏蔽会立刻 pause + 按旧可见集合重建队列，来回跳屏重读。
+                readAloudSelfPaging.value = true
                 scope.launch {
-                    delay(if (readAloudSettings.readAloudByPage) 600L else 250L)
-                    // 一批的规模仍按"当前一屏/一页"估算以保持节奏，但起点固定在
-                    // "上次读到的段落之后"，避免可见集合漂移造成漏句。
-                    collectVisibleReaderPageTranslationTargets { visible ->
-                        val anchor = lastReadAloudParagraphId
-                        if (anchor == null) {
-                            val fallbackItems = readAloudQueueItems(visible, readAloudSettings.readAloudByPage)
-                            if (fallbackItems.isEmpty()) {
-                                readAloudViewModel.stop()
-                            } else {
-                                lastReadAloudParagraphId = visible.lastOrNull()?.id
-                                readAloudViewModel.continueWith(fallbackItems)
-                            }
-                            return@collectVisibleReaderPageTranslationTargets
+                    delay(READ_ALOUD_SELF_PAGING_TIMEOUT)
+                    readAloudSelfPaging.value = false
+                }
+                // 先尝试翻屏；VN 当前屏逐字 reveal 未播完时 paginate 会返回 "revealed"（只补 reveal、不翻屏），
+                // 这里补翻一次真正前进，避免被误判为"到章末"而停掉朗读。
+                fun tryPaginate(depth: Int = 0) {
+                    if (depth > 3) {
+                        readAloudSelfPaging.value = false
+                        readAloudViewModel.stop()
+                        return
+                    }
+                    currentWebView.evaluateJavascript(
+                        ReaderPaginationScripts.paginateInvocation(ReaderNavigationDirection.Forward),
+                    ) { result ->
+                        val nav = ReaderPaginationScripts.navigationResult(result)
+                        Log.w("HoshiRAL", "advance paginate depth=$depth raw=$result nav=$nav")
+                        if (nav == ReaderNavigationResult.Limit) {
+                            Log.w("HoshiRAL", "advance stop: paginate limit")
+                            readAloudSelfPaging.value = false
+                            readAloudViewModel.stop()
+                            return@evaluateJavascript
                         }
-                        collectReaderPageTranslationTargetsAfter(
-                            anchor,
-                            visible.size.coerceAtLeast(1),
-                        ) { targets ->
-                            // 锚点已不在文档中（换章等）时退回可见集合，避免朗读中断。
-                            val batch = targets.ifEmpty { visible }
-                            val items = readAloudQueueItems(batch, readAloudSettings.readAloudByPage)
-                            if (items.isEmpty()) {
-                                readAloudViewModel.stop()
+                        if (nav == ReaderNavigationResult.Revealed) {
+                            tryPaginate(depth + 1)
+                            return@evaluateJavascript
+                        }
+                    // 翻页后记录新位置，保证朗读进度持久化（与手动翻页保存走同一套机制）。
+                    currentWebView.evaluateJavascript(
+                        ReaderPaginationScripts.progressInvocation(),
+                    ) { progressResult ->
+                        ReaderPaginationScripts.doubleResult(progressResult)?.let { progress ->
+                            saveDisplayedProgress(progress)
+                        }
+                    }
+                    scope.launch {
+                        delay(if (readAloudSettings.readAloudByPage) 600L else 250L)
+                        // 一批的规模仍按"当前一屏/一页"估算以保持节奏，但起点固定在
+                        // "上次读到的段落之后"，避免可见集合漂移造成漏句。
+                        collectVisibleReaderPageTranslationTargets { visible ->
+                            fun continueWithTargets(targets: List<ReaderPageTranslationTarget>) {
+                                val items = readAloudQueueItems(targets, readAloudSettings.readAloudByPage)
+                                Log.w("HoshiRAL", "advance targets=${targets.size} items=${items.size} active=${readAloudState.isActive}")
+                                if (items.isEmpty()) {
+                                    Log.w("HoshiRAL", "advance stop: empty queue after page turn")
+                                    readAloudViewModel.stop()
+                                } else {
+                                    lastReadAloudParagraphId = targets.lastOrNull()?.id
+                                    readAloudViewModel.continueWith(items)
+                                }
+                                // 新队列已经装好并继续朗读，稍后再放开"用户翻页"式重排。
+                                scope.launch {
+                                    delay(READ_ALOUD_SELF_PAGING_SETTLE)
+                                    readAloudSelfPaging.value = false
+                                }
+                            }
+                            // VN 一批必须是"当前这一屏"：按文档顺序取锚点之后的段落时，队列会混进尚未渲染
+                            // 的下一屏句子，朗读高亮它们会跟着跳屏，上一屏未返回的译文连同 DOM 一起被丢弃，
+                            // 表现为漏翻，还会来回跳屏重读。
+                            val anchor = if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel) {
+                                null
                             } else {
-                                lastReadAloudParagraphId = batch.lastOrNull()?.id ?: anchor
-                                readAloudViewModel.continueWith(items)
+                                lastReadAloudParagraphId
+                            }
+                            if (anchor == null) {
+                                continueWithTargets(visible)
+                                return@collectVisibleReaderPageTranslationTargets
+                            }
+                            // 一批的规模仍按"当前一屏/一页"估算以保持节奏，但起点固定在
+                            // "上次读到的段落之后"，避免可见集合漂移造成漏句。
+                            collectReaderPageTranslationTargetsAfter(
+                                anchor,
+                                visible.size.coerceAtLeast(1),
+                            ) { targets ->
+                                // 锚点已不在文档中（换章等）时退回可见集合，避免朗读中断。
+                                continueWithTargets(targets.ifEmpty { visible })
                             }
                         }
                     }
                 }
             }
+            tryPaginate()
+            }
         }
         // 朗读位置同步：高亮当前正在朗读的句子并滚动跟随（音量键上一句/下一句跳转后显示也跟随变化）。
-        LaunchedEffect(readAloudState.currentIndex) {
-            val targetId = readAloudState.currentParagraphId
+        //
+        // key 用「当前朗读的段落 + 句子」而不是队列下标：VN 每换一屏都会重建队列并把下标重置为 0，
+        // 用下标做 key 时相邻两屏下标相同会漏掉重投（该屏不换高亮、不请求译文 = 漏翻），
+        // 而重建瞬间下标为 -1 又会命中下面的空分支把整屏已翻好的译文清掉。
+        val readAloudSpokenParagraphId = readAloudState.currentParagraphId
+        val readAloudSpokenSentence = readAloudState.currentSentence
+        LaunchedEffect(readAloudSpokenParagraphId, readAloudSpokenSentence) {
+            val targetId = readAloudSpokenParagraphId
             if (targetId == null) {
+                // 只清高亮；句间/换屏时下标会短暂回到 -1，此时必须保留译文块。
                 webView?.evaluateJavascript(
                     ReaderPageTranslationCommand.clearReadAloudHighlight(),
-                    null,
-                )
-                webView?.evaluateJavascript(
-                    ReaderPageTranslationCommand.clearReadAloudTranslation(),
                     null,
                 )
             } else {
                 webView?.evaluateJavascript(
                     ReaderPageTranslationCommand.highlightReadAloudSentence(
                         targetId = targetId,
-                        sentenceText = readAloudState.currentSentence,
+                        sentenceText = readAloudSpokenSentence,
                         reveal = true,
                         highlightVisible = readAloudSettings.highlightWhilePlaying,
                     ),
@@ -2718,21 +2888,31 @@ fun ReaderWebView(
         }
         // 跟读翻译：朗读到哪一句就翻译哪一句，译文显示在该段落下方（需高级 AI 整句翻译配置）。
         // 手势「朗读并翻译」时，即使设置里的「跟读翻译」关着，本次朗读也带译文。
+        // key 与高亮同步一致，用「段落 + 句子」而不是队列下标（原因见上）。
         LaunchedEffect(
-            readAloudState.currentIndex,
+            readAloudSpokenParagraphId,
+            readAloudSpokenSentence,
             readAloudSettings.translateCurrentSentence,
             readAloudSessionTranslate,
         ) {
-            if (!readAloudSettings.translateCurrentSentence && !readAloudSessionTranslate) {
+            val gatePassed = readAloudSettings.translateCurrentSentence || readAloudSessionTranslate
+            Log.w("HoshiRAL", "effect fire targetId=$readAloudSpokenParagraphId gate=$gatePassed session=$readAloudSessionTranslate setting=${readAloudSettings.translateCurrentSentence}")
+            if (!gatePassed) {
                 clearReadAloudSentenceTranslation()
                 return@LaunchedEffect
             }
-            val targetId = readAloudState.currentParagraphId
-            val sentence = readAloudState.currentSentence
+            val targetId = readAloudSpokenParagraphId
+            val sentence = readAloudSpokenSentence
+            Log.w("HoshiRAL", "effect sentenceLen=${sentence?.length} blank=${sentence.isNullOrBlank()}")
             if (targetId == null || sentence.isNullOrBlank()) {
-                clearReadAloudSentenceTranslation()
+                // 句间/换屏时下标会短暂回到 -1：这里不能清译文，否则 VN 每换一屏都会把
+                // 上一屏已翻好的译文抹掉（表现为漏翻）。译文块只在真正停止朗读时清空。
                 return@LaunchedEffect
             }
+            // 译文按「段落 + 句」分别成块（reader-translation.js 用 targetId#句 做 key），
+            // 互不覆盖；因此这里不再按 currentParagraphId 变化清空——VN 一屏常含多个 <p>，
+            // 可读到同屏下一句时 currentParagraphId 已变，会误把本屏前面的译文整块抹掉（漏翻）。
+            // 旧屏/旧页的译文块统一在翻页（advanceToNextReadAloudPage）与停止时清空。
             val next = readAloudState.items.getOrNull(readAloudState.currentIndex + 1)
             requestReadAloudSentenceTranslation(
                 targetId = targetId,
@@ -2740,6 +2920,8 @@ fun ReaderWebView(
                 nextTargetId = next?.paragraphId,
                 nextSentence = next?.text,
             )
+            // VN 换屏会替换整屏 DOM，读得比 AI 快时译文会无处安放，需要提前预取。
+            // TODO 观测中：确认前视预取是否影响 VN 换屏节奏，暂不启用。
         }
         // 关闭"播放高亮"时立即清掉当前高亮，不必等下一句。
         LaunchedEffect(readAloudSettings.highlightWhilePlaying) {
@@ -2894,6 +3076,18 @@ fun ReaderWebView(
                 text = { Text(stringResource(R.string.statistics_operation_failed)) },
                 confirmButton = {
                     TextButton(onClick = { statisticsLoadFailed = false }) { Text(stringResource(R.string.action_ok)) }
+                },
+            )
+        }
+        // 朗读启动失败（语音引擎初始化失败、音频焦点被拒等）必须让用户看到原因，
+        // 否则表现为"朗读突然停止"却没有任何提示。
+        readAloudState.error?.let { error ->
+            AlertDialog(
+                onDismissRequest = readAloudViewModel::dismissError,
+                title = { Text(stringResource(R.string.dialog_error_title)) },
+                text = { Text(error.resolve(context)) },
+                confirmButton = {
+                    TextButton(onClick = readAloudViewModel::dismissError) { Text(stringResource(R.string.action_ok)) }
                 },
             )
         }

@@ -164,6 +164,15 @@
     return document.querySelector('[' + TARGET_ATTRIBUTE + '="' + targetId + '"]');
   }
 
+  function findReadAloudTranslationByKey(key) {
+    var blocks = document.querySelectorAll('.' + READ_ALOUD_TRANSLATION_CLASS);
+    if (!blocks) return null;
+    for (var i = 0; i < blocks.length; i++) {
+      if (blocks[i].getAttribute(READ_ALOUD_TRANSLATION_ATTRIBUTE) === key) return blocks[i];
+    }
+    return null;
+  }
+
   function findTranslationNode(element, targetId) {
     var next = element.nextElementSibling;
     if (!next) return null;
@@ -426,20 +435,18 @@
     },
     /**
      * 朗读跟读翻译：把"当前正在朗读的这一句"的译文显示在原文段落下方。
-     * 同一段落已有译文块（整页翻译/句子手势）时直接复用，不再另插；
-     * 否则插入独立的跟读块（不同的 data 属性），同一时刻只保留一个，
-     * 朗读推进到下一句时整块替换。
+     * 同一段落可能含多句（如 VN 一屏），译文块按「段落 + 句」唯一键区分、互不覆盖，
+     * 避免朗读推进时前一句译文被后一句顶掉（表现为"漏翻"）。
      */
-    showReadAloudTranslation: function(targetId, translation) {
-      this.clearReadAloudTranslation();
+    showReadAloudTranslation: function(targetId, sentenceText, translation) {
       var element = findTargetById(targetId);
+      console.log('HoshiRAL-JS show targetId=' + targetId + ' element=' + (element ? 'found' : 'NULL'));
       if (!element) return false;
-      // 该段已有译文块（整页翻译/句子手势）时不再另插跟读块，避免同段出现两份译文。
-      var existing = findTranslationNode(element, targetId);
+      var key = targetId + '#' + (sentenceText || '');
+      var existing = findReadAloudTranslationByKey(key);
       if (existing) {
-        if (existing.classList.contains(HIDDEN_CLASS)) {
-          this.revealTranslation(targetId);
-        }
+        existing.textContent = translation || '';
+        existing.classList.remove(HIDDEN_CLASS);
         return true;
       }
       withPreservedReadingPosition(function() {
@@ -447,11 +454,20 @@
         // 带整页译文 class：复用译文样式，并被段落收集逻辑（朗读队列 / 翻译目标）排除。
         // 但不设 data-hoshi-translation-for，整页译文不会改写它。
         block.className = TRANSLATION_CLASS + ' ' + READ_ALOUD_TRANSLATION_CLASS;
-        block.setAttribute(READ_ALOUD_TRANSLATION_ATTRIBUTE, targetId);
+        block.setAttribute(READ_ALOUD_TRANSLATION_ATTRIBUTE, key);
         block.textContent = translation || '';
-        element.insertAdjacentElement('afterend', block);
+        // 按朗读顺序把各句译文块依次挂到该段落之后，保持阅读顺序且不相互覆盖。
+        var prev = element;
+        var next = element.nextElementSibling;
+        while (next && next.classList && next.classList.contains(READ_ALOUD_TRANSLATION_CLASS) &&
+               (next.getAttribute(READ_ALOUD_TRANSLATION_ATTRIBUTE) || '').indexOf(targetId + '#') === 0) {
+          prev = next;
+          next = next.nextElementSibling;
+        }
+        prev.insertAdjacentElement('afterend', block);
         refreshReaderLayout();
       });
+      console.log('HoshiRAL-JS show OK key=' + (targetId + '#' + (sentenceText || '')));
       return true;
     },
     clearReadAloudTranslation: function() {

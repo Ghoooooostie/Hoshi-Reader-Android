@@ -221,6 +221,29 @@
 
     // 内容高度自适应：iframe 上报实际内容高度后，把外壳收缩到内容高度
     // （仍夹在 [0, 弹窗框高度] 内，超出时 iframe 内部滚动）。
+    // 外壳实际 on-screen frame 回报给 native：Kotlin 的手势拦截命中测试依赖它，
+    // 而 shell 会在 adjustedRootPopupFrame 里为避开译文/选区高亮挪位，也会被
+    // applyContentHeight 收缩，与 payload.frame 不一致时会出现点击被吞掉的死区。
+    function postEffectiveFrame(record) {
+        const payload = record?.payload;
+        if (!payload) return;
+        const rect = record.shell.getBoundingClientRect();
+        if (!rect || rect.width <= 0 || rect.height <= 0) return;
+        const frameKey = [rect.left, rect.top, rect.width, rect.height].join(',');
+        if (record.postedFrameKey === frameKey) return;
+        record.postedFrameKey = frameKey;
+        postNative({
+            name: 'popupFrame',
+            popupId: payload.id,
+            body: {
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height,
+            },
+        });
+    }
+
     function applyContentHeight(record, contentHeight) {
         const payload = record.payload;
         if (!payload || record.shell.dataset.popupId === 'dictionary-search-root') return;
@@ -233,6 +256,7 @@
         record.contentHeight = next;
         record.shell.style.height = shellHeight;
         record.iframe.style.height = `${next}px`;
+        postEffectiveFrame(record);
     }
 
     function iframeRenderMessage(payload) {
@@ -394,6 +418,7 @@
         } else if (needsRender && record.loaded) {
             renderIframe(record);
         }
+        postEffectiveFrame(record);
     }
 
     function parkRootRecord(record) {

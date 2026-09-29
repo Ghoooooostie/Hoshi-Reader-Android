@@ -405,6 +405,49 @@ test('root popup shifts above visible translation blocks instead of covering the
     assert.equal(shell.style.top, '18px');
 });
 
+test('popup host reports the effective shell frame to native', () => {
+    const scene = popupHost();
+    const nativeMessages = [];
+    scene.window.HoshiReaderPopup = {
+        postMessage(message) {
+            nativeMessages.push(JSON.parse(message));
+        },
+    };
+    scene.host.renderStack({ popups: [rootPopupPayload()] });
+    const shell = scene.document.getElementById('hoshi-reader-popup-layer').children[0];
+    shell.boundingClientRect = { left: 0, top: 18, width: 80, height: 30 };
+
+    scene.host.renderStack({ popups: [rootPopupPayload()] });
+
+    assert.deepEqual(nativeMessages, [
+        { name: 'popupFrame', popupId: 'root', body: { left: 0, top: 18, width: 80, height: 30 } },
+    ]);
+});
+
+test('content height shrink reports an updated popup frame to native', () => {
+    const scene = popupHost();
+    const nativeMessages = [];
+    scene.window.HoshiReaderPopup = {
+        postMessage(message) {
+            nativeMessages.push(JSON.parse(message));
+        },
+    };
+    scene.host.renderStack({ popups: [rootPopupPayload()] });
+    const shell = scene.document.getElementById('hoshi-reader-popup-layer').children[0];
+    shell.boundingClientRect = { left: 0, top: 0, width: 300, height: 80 };
+
+    scene.dispatchMessage({
+        source: 'hoshi-popup-iframe',
+        name: 'contentHeight',
+        popupId: 'root',
+        body: 80,
+    });
+
+    assert.deepEqual(nativeMessages, [
+        { name: 'popupFrame', popupId: 'root', body: { left: 0, top: 0, width: 300, height: 80 } },
+    ]);
+});
+
 test('root popup shifts below wrapped selection highlights instead of covering later lines', () => {
     const scene = popupHost();
     scene.window.innerHeight = 200;

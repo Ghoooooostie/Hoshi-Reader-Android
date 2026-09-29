@@ -447,6 +447,7 @@ private fun ProcessTextLookupOverlay(
                         setIframePopups(dismissPopupAt(popups, index))
                     }
                 }
+                is ReaderLookupPopupBridgeMessage.PopupFrame -> Unit
                 is ReaderLookupPopupBridgeMessage.TextSelected -> {
                     val index = popupIndex(message.popupId).takeIf { it >= 0 } ?: return
                     val nextPopups = closeChildPopups(popups, index)

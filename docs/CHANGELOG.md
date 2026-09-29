@@ -25,6 +25,11 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   queued behind the reader WebView's highlight/scroll work, leaving the popup
   frozen for seconds. A blank-area tap now closes an already-open popup directly
   without the probe.
+- Fix taps on blank-looking areas next to the lookup popup not closing it: when
+  the popup was shifted to avoid covering AI translation text, or shrunk to its
+  content height, the tap blocker still used the pre-layout popup rectangle, so
+  taps in the mismatched band were swallowed. The popup now reports its on-screen
+  frame back to the reader and taps outside the visible popup dismiss it again.
 - Fix Anki mining being slow and sometimes silently doing nothing. Mining no longer
   waits for every configured audio source before adding a card: it takes the first
   audio any source offers, and the audio candidate menu now queries all sources at
