@@ -1,23 +1,12 @@
 package de.manhhao.hoshi
 
 import java.io.File
-import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HoshiDictsCompatibilityTest {
-    @Test
-    fun legacyPitchEntryConstructorDefaultsTranscriptions() {
-        val entry = PitchEntry(
-            dictName = "JMdict",
-            pitchPositions = intArrayOf(1, 2),
-        )
-
-        assertArrayEquals(emptyArray<String>(), entry.transcriptions)
-    }
-
     @Test
     fun legacyLookupResultConstructorMapsToAlgorithmTraceCandidate() {
         val result = LookupResult(

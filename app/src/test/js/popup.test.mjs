@@ -1284,6 +1284,38 @@ test('popup renders each deinflection trace candidate as its own tag row', () =>
     assert.deepEqual(rows[1].children.map((node) => node.textContent), ['redirect']);
 });
 
+test('popup deinflection tags use localized labels when a translation table is present', () => {
+    const { context } = popupContext();
+    context.window.deinflectionLabels = {
+        passive: { label: '被动', description: '承受他人动作的作用。' },
+        '-た': { label: 'た形（过去／完成）' },
+    };
+
+    const tags = context.createTags({
+        expression: '食べる',
+        reading: 'たべる',
+        deinflectionTraceRows: [
+            [
+                { name: '-た', description: 'Past tense' },
+                { name: 'passive', description: 'Passive voice' },
+                { name: 'polite', description: 'Polite form' },
+            ],
+        ],
+        frequencies: [],
+        pitches: [],
+    });
+
+    const rows = tags.children.filter((node) => String(node.className).split(' ').includes('tag-row'));
+    assert.equal(rows.length, 1);
+    // 有译名的组用译名，没有的组回退到引擎原文；说明同理。
+    assert.deepEqual(rows[0].children.map((node) => node.textContent), ['た形（过去／完成）', '被动', 'polite']);
+    assert.deepEqual(rows[0].children.map((node) => node.dataset.description), [
+        'Past tense',
+        '承受他人动作的作用。',
+        'Polite form',
+    ]);
+});
+
 test('popup transcription entries do not render as Japanese pitch accents', () => {
     const { context } = popupContext();
 

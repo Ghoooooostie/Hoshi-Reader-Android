@@ -188,6 +188,7 @@ private fun ProcessTextLookupOverlay(
     }
     val popupSettings = popups.firstOrNull()?.state
     val noAudioFoundText = stringResource(R.string.audio_no_audio_found)
+    val deinflectionLabelsJson = remember(context) { DeinflectionLabels.javascriptObject(context) }
     val readerPopupIframeDocument = remember(
         popupSettings?.dictionaryStyles,
         popupSettings?.dictionarySettings,
@@ -203,6 +204,7 @@ private fun ProcessTextLookupOverlay(
         ankiUiState.popupSettings,
         fontFaceCss,
         noAudioFoundText,
+        deinflectionLabelsJson,
     ) {
         LookupPopupHtml.renderIframeDocument(
             assets = null,
@@ -221,6 +223,7 @@ private fun ProcessTextLookupOverlay(
             fontFaceCss = fontFaceCss,
             popupScale = readerSettings.popupScale,
             contentLanguageProfile = contentLanguageProfile,
+            deinflectionLabelsJson = deinflectionLabelsJson,
         )
     }
     val currentReaderPopupIframeDocument = rememberUpdatedState(readerPopupIframeDocument)

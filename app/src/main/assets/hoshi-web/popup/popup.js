@@ -1438,11 +1438,25 @@ function createGlossaryTags(tags, className = 'glossary-tags') {
     return el('div', { className }, tags.map(tag => el('span', { className: 'glossary-tag', textContent: tag })));
 }
 
+/**
+ * 词形还原标签的显示层本地化。
+ * 词典引擎给的组名 / 说明是英文原文（passive、causative…），
+ * 有 `window.deinflectionLabels` 查表时替换成当前语言（如「被动」），否则原样显示。
+ */
+function localizeDeinflectionTag(tag) {
+    const localized = window.deinflectionLabels?.[tag.name];
+    return {
+        name: localized?.label || tag.name,
+        description: localized?.description || tag.description,
+    };
+}
+
 function createDeinflectionTag(tag) {
+    const label = localizeDeinflectionTag(tag);
     return el('span', {
         className: 'deinflection-tag',
-        textContent: tag.name,
-        'data-description': tag.description,
+        textContent: label.name,
+        'data-description': label.description,
         onclick() {
             showDescription(this);
         }

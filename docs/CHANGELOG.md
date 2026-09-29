@@ -37,6 +37,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   A mine that fails, or a duplicate check that returns no answer, also no longer
   leaves the mine button permanently disabled: it shows the error and becomes
   tappable again.
+- Fix the lookup popup showing the conjugated form (被动, 使役, た形 …) in English:
+  the Chinese labels for those deinflection tags were never wired into the popup,
+  so Chinese users saw the raw engine names such as `passive` and `causative`.
 
 ### Changed
 

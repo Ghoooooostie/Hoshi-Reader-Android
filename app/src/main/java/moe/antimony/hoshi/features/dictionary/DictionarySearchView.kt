@@ -244,6 +244,7 @@ fun DictionarySearchView(
         )
     }
     val noAudioFoundText = stringResource(R.string.audio_no_audio_found)
+    val deinflectionLabelsJson = remember(context) { DeinflectionLabels.javascriptObject(context) }
     val readerPopupIframeDocument = remember(
         uiState.dictionaryStyles,
         uiState.dictionarySettings,
@@ -260,6 +261,7 @@ fun DictionarySearchView(
         readerSettings.popupScale,
         rootContentLanguageProfile,
         noAudioFoundText,
+        deinflectionLabelsJson,
     ) {
         LookupPopupHtml.renderIframeDocument(
             assets = null,
@@ -278,6 +280,7 @@ fun DictionarySearchView(
             fontFaceCss = fontFaceCss,
             popupScale = readerSettings.popupScale,
             contentLanguageProfile = rootContentLanguageProfile,
+            deinflectionLabelsJson = deinflectionLabelsJson,
         )
     }
     val currentReaderPopupIframeDocument = rememberUpdatedState(readerPopupIframeDocument)

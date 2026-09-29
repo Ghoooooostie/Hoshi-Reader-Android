@@ -84,6 +84,15 @@ class LookupPopupHtmlTest {
     }
 
     @Test
+    fun iframePopupShellInjectsDeinflectionLabelTable() {
+        val html = LookupPopupHtml.renderIframeDocument(
+            deinflectionLabelsJson = """{"passive":{"label":"被动"}}""",
+        )
+
+        assertTrue(html.contains("""window.deinflectionLabels = {"passive":{"label":"被动"}};"""))
+    }
+
+    @Test
     fun iframePopupShellAllowsTwoPointZeroPopupScale() {
         val html = LookupPopupHtml.renderIframeDocument(
             popupScale = 2.0,

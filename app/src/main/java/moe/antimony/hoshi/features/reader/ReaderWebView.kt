@@ -81,6 +81,7 @@ import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.audio.LocalAudioRepository
 import moe.antimony.hoshi.features.audio.WordAudioPlayer
 import moe.antimony.hoshi.features.anki.AnkiViewModel
+import moe.antimony.hoshi.features.dictionary.DeinflectionLabels
 import moe.antimony.hoshi.features.dictionary.DictionaryImageRequestHandler
 import moe.antimony.hoshi.features.dictionary.DictionarySettings
 import moe.antimony.hoshi.features.dictionary.LookupPopupAssets
@@ -328,6 +329,7 @@ fun ReaderWebView(
     val popupContentLanguageProfile = contentLanguageProfile
     val progressDisplay = readerProgressDisplay(contentLanguageProfile)
     val noAudioFoundText = stringResource(R.string.audio_no_audio_found)
+    val deinflectionLabelsJson = remember(context) { DeinflectionLabels.javascriptObject(context) }
     val readerPopupIframeDocument = remember(
         dictionaryStyles,
         dictionarySettings,
@@ -345,6 +347,7 @@ fun ReaderWebView(
         effectiveSettings.popupScale,
         popupContentLanguageProfile,
         noAudioFoundText,
+        deinflectionLabelsJson,
     ) {
         LookupPopupHtml.renderIframeDocument(
             assets = null,
@@ -363,6 +366,7 @@ fun ReaderWebView(
             fontFaceCss = fontManager.popupFontFaceCss(),
             popupScale = effectiveSettings.popupScale,
             contentLanguageProfile = popupContentLanguageProfile,
+            deinflectionLabelsJson = deinflectionLabelsJson,
         )
     }
     val currentReaderPopupIframeDocument = rememberUpdatedState(readerPopupIframeDocument)

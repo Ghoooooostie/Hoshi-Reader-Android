@@ -943,4 +943,9 @@
     <string name="read_aloud_auto_pause_on_page_translation_desc">Pause playback while a page translation overlay is shown during read-aloud</string>
     <string name="read_aloud_system_tts_settings">System TTS settings</string>
     <string name="read_aloud_system_tts_settings_desc">Open the system text-to-speech settings</string>
+
+    <!-- 词形还原（去活用）标签的本地化。默认语言直接使用词典引擎自带的英文原文，
+         因此这里只保留空数组；中文条目见 values-zh-rCN 的同名数组。
+         每项格式为「组名::标签::说明」。 -->
+    <string-array name="deinflection_group_translations" />
 </resources>

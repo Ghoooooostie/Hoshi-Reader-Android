@@ -79,6 +79,8 @@ internal object LookupPopupHtml {
         fontFaceCss: String = "",
         popupScale: Double = 1.0,
         contentLanguageProfile: ContentLanguageProfile = ContentLanguageProfile.Default,
+        // 词形还原（去活用）标签的本地化查表，形如 { "passive": { "label": "被动", ... } }。
+        deinflectionLabelsJson: String = "{}",
     ): String {
         val normalizedSettings = settings.normalized()
         val collapsedDictionaries = dictionaryNamesJson(normalizedSettings.collapsedDictionaries)
@@ -224,6 +226,7 @@ internal object LookupPopupHtml {
                     window.ankiBackendAvailable = ${ankiSettings.isBackendAvailable};
                     window.disableShowNotes = ${ankiSettings.disableShowNotes};
                     window.customCSS = ${JsonPrimitive(normalizedSettings.customCSS)};
+                    window.deinflectionLabels = $deinflectionLabelsJson;
                     window.swipeThreshold = $effectiveSwipeThreshold;
                     window.reducedMotionScrolling = $reducedMotionScrolling;
                     window.reducedMotionScrollScale = $effectiveReducedMotionScrollScale;
