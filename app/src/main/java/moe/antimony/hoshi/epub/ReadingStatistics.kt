@@ -24,10 +24,10 @@ fun List<ReadingStatistics>.deduplicateReadingStatistics(): List<ReadingStatisti
         grouped
     }.values.sortedBy { it.dateKey }
 
-internal val ReadingStatistics.hasActivity: Boolean
+val ReadingStatistics.hasActivity: Boolean
     get() = charactersRead > 0 || readingTime > 0.0
 
-internal fun ReadingStatistics.updated(characters: Int, seconds: Double): ReadingStatistics {
+fun ReadingStatistics.updated(characters: Int, seconds: Double): ReadingStatistics {
     val clampedCharacters = characters.coerceAtLeast(0)
     val clampedSeconds = seconds.coerceAtLeast(0.0)
     val speed = if (clampedSeconds > 0.0) (clampedCharacters.toDouble() / clampedSeconds * 3600.0).toInt() else 0

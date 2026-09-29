@@ -238,7 +238,7 @@ private val epubParserJson = Json {
     ignoreUnknownKeys = true
 }
 
-internal fun BookInfo.matchesChapterShells(chapters: List<EpubChapter>): Boolean {
+fun BookInfo.matchesChapterShells(chapters: List<EpubChapter>): Boolean {
     if (characterCount < 0) return false
     var total = 0
     for ((chapterIndex, chapter) in chapters.withIndex()) {

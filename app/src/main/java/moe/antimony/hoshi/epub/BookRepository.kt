@@ -33,7 +33,7 @@ class BookRepository private constructor(
     private val fileDataSource: BookFileDataSource,
     private val sidecarDataSource: BookSidecarDataSource,
     private val clock: BookClock,
-    internal val statisticsStore: BookStatisticsStore,
+    val statisticsStore: BookStatisticsStore,
 ) : ReaderRouteBookRepository, SasayakiSidecarRepository {
     @Inject
     constructor(
@@ -529,7 +529,7 @@ class BookImportDataSource(
         }
     }
 
-    internal suspend fun importBook(displayName: String, input: InputStream): File = withContext(ioDispatcher) {
+    suspend fun importBook(displayName: String, input: InputStream): File = withContext(ioDispatcher) {
         val fallbackTitle = displayName
             .substringBeforeLast('.', missingDelimiterValue = displayName)
             .takeIf { it.isNotBlank() }
@@ -739,5 +739,5 @@ private fun String.coverExtension(): String = when (lowercase()) {
     else -> "jpg"
 }
 
-internal fun String.isUuidString(): Boolean =
+fun String.isUuidString(): Boolean =
     runCatching { UUID.fromString(this) }.isSuccess

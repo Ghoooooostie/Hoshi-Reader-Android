@@ -1,6 +1,6 @@
 package moe.antimony.hoshi.epub
 
-internal fun String.filteredReaderText(): String {
+fun String.filteredReaderText(): String {
     val text = visibleReaderText()
     return buildString {
         text.codePoints().forEach { codePoint ->
@@ -11,7 +11,7 @@ internal fun String.filteredReaderText(): String {
     }
 }
 
-internal fun String.visibleReaderText(): String {
+fun String.visibleReaderText(): String {
     var text = Regex("(?s)<body.*?</body>").find(this)?.value ?: this
     text = text.replace(Regex("(?s)<(rt|rp)[^>]*>.*?</\\1>"), "")
     text = text.replace(Regex("(?s)<(script|style)[^>]*>.*?</\\1>"), "")
@@ -24,7 +24,7 @@ internal fun String.visibleReaderText(): String {
         .replace("&gt;", ">")
 }
 
-internal fun Int.isReaderMatchableCodePoint(): Boolean =
+fun Int.isReaderMatchableCodePoint(): Boolean =
     when (this) {
         in '0'.code..'9'.code,
         in 'A'.code..'Z'.code,

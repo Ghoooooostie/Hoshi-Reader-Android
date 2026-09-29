@@ -15,7 +15,7 @@ private val readerBodyOpeningTagRegex = Regex("""<body\b[^>]*>""", setOf(RegexOp
 private val readerGalleryExtensions = setOf("jpg", "jpeg", "png")
 private const val CURRENT_READER_FACTS_VERSION = 3
 
-internal fun buildBookInfo(
+fun buildBookInfo(
     chapters: List<EpubChapter>,
     toc: List<EpubTocItem> = emptyList(),
     rootDirectory: File? = null,
@@ -52,7 +52,7 @@ internal fun buildBookInfo(
     )
 }
 
-internal fun BookInfo.matchesReaderFacts(
+fun BookInfo.matchesReaderFacts(
     chapters: List<EpubChapter>,
     toc: List<EpubTocItem>,
 ): Boolean {

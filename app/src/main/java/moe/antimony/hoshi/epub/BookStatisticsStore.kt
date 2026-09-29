@@ -17,9 +17,9 @@ import kotlinx.serialization.json.Json
 import moe.antimony.hoshi.di.FilesDir
 import moe.antimony.hoshi.di.IoDispatcher
 
-internal const val STATISTICS_ARCHIVE_DIRECTORY = "statistics_archive"
+const val STATISTICS_ARCHIVE_DIRECTORY = "statistics_archive"
 
-internal data class StoredBookStatistics(
+data class StoredBookStatistics(
     val folder: String,
     val metadata: BookMetadata,
     val isArchived: Boolean,
@@ -27,7 +27,7 @@ internal data class StoredBookStatistics(
     val statistics: List<ReadingStatistics>,
 )
 
-internal data class StoredStatisticsSnapshot(
+data class StoredStatisticsSnapshot(
     val books: List<StoredBookStatistics>,
     val corruptBookIds: Set<String>,
 )
@@ -72,7 +72,7 @@ class BookStatisticsStore @Inject constructor(
         writeStatistics(bookRoot, (readStatistics(bookRoot).orEmpty() + accepted).deduplicateReadingStatistics())
     }
 
-    internal suspend fun archiveAndDelete(bookRoot: File, delete: suspend () -> Unit) = locked {
+    suspend fun archiveAndDelete(bookRoot: File, delete: suspend () -> Unit) = locked {
         require(bookRoot.canonicalFile.parentFile == booksDirectory.canonicalFile && bookRoot.name != STATISTICS_ARCHIVE_DIRECTORY) {
             "Unsafe book directory."
         }
@@ -108,7 +108,7 @@ class BookStatisticsStore @Inject constructor(
         removeArchive(archived)
     }
 
-    internal suspend fun loadSnapshot(): StoredStatisticsSnapshot = locked {
+    suspend fun loadSnapshot(): StoredStatisticsSnapshot = locked {
         val corrupt = linkedSetOf<String>()
         val activeRoots = booksDirectory.listFiles().orEmpty()
             .filter { it.isDirectory && !it.name.startsWith('.') && it.name != STATISTICS_ARCHIVE_DIRECTORY }
@@ -131,7 +131,7 @@ class BookStatisticsStore @Inject constructor(
         StoredStatisticsSnapshot(books, corrupt)
     }
 
-    internal suspend fun loadBook(folder: String): StoredBookStatistics? = locked {
+    suspend fun loadBook(folder: String): StoredBookStatistics? = locked {
         val active = activeRoot(folder)
         val archived = archiveRoot(folder)
         val root = active.takeIf { it.isDirectory } ?: archived.takeIf { it.isDirectory } ?: return@locked null

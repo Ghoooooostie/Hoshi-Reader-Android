@@ -3,22 +3,22 @@ package moe.antimony.hoshi.epub
 import java.security.MessageDigest
 import java.text.Normalizer
 
-internal const val MAX_PATH_COMPONENT_UTF8_BYTES = 255
-internal const val MAX_BOOK_STORAGE_BASENAME_UTF8_BYTES = MAX_PATH_COMPONENT_UTF8_BYTES - ".epub".length
+const val MAX_PATH_COMPONENT_UTF8_BYTES = 255
+const val MAX_BOOK_STORAGE_BASENAME_UTF8_BYTES = MAX_PATH_COMPONENT_UTF8_BYTES - ".epub".length
 
-internal fun String.toImportedBookStorageName(): String =
+fun String.toImportedBookStorageName(): String =
     sanitizeImportedBookTitle()
         .fitBookStorageName()
 
-internal fun String.normalizedBookFolder(): String = Normalizer.normalize(this, Normalizer.Form.NFC)
+fun String.normalizedBookFolder(): String = Normalizer.normalize(this, Normalizer.Form.NFC)
 
-internal fun String.fitBookStorageName(): String {
+fun String.fitBookStorageName(): String {
     val normalized = normalizedBookFolder()
     return (if (normalized == STATISTICS_ARCHIVE_DIRECTORY) "$normalized-${normalized.sha256Hex().take(HASH_HEX_LENGTH)}" else normalized)
         .fitUtf8PathComponent(MAX_BOOK_STORAGE_BASENAME_UTF8_BYTES)
 }
 
-internal fun String.fitUtf8PathComponent(maxUtf8Bytes: Int): String {
+fun String.fitUtf8PathComponent(maxUtf8Bytes: Int): String {
     require(maxUtf8Bytes > HASH_SUFFIX_UTF8_BYTES) { "UTF-8 path component budget is too small." }
     if (toByteArray(Charsets.UTF_8).size <= maxUtf8Bytes) return this
 
@@ -55,7 +55,7 @@ private const val HASH_HEX_LENGTH = 16
 private const val HASH_SUFFIX_UTF8_BYTES = HASH_HEX_LENGTH + 1
 
 /** A pre-archive Android version could import this exact title as a regular book. */
-internal fun migrateReservedStatisticsBook(booksDirectory: java.io.File) = synchronized(reservedBookMigrationLock) {
+fun migrateReservedStatisticsBook(booksDirectory: java.io.File) = synchronized(reservedBookMigrationLock) {
     val legacy = booksDirectory.resolve(STATISTICS_ARCHIVE_DIRECTORY)
     if (!legacy.resolve("metadata.json").isFile && !legacy.resolve("statistics_archive.epub").isFile && !legacy.resolve("META-INF/container.xml").isFile) return@synchronized
     val destination = booksDirectory.resolve(STATISTICS_ARCHIVE_DIRECTORY.toImportedBookStorageName())
