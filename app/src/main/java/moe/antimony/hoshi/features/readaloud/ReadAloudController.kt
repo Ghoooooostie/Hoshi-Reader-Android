@@ -38,6 +38,9 @@ import moe.antimony.hoshi.ui.UiText
 /** 同一句重复朗读之间的停顿，避免几遍连在一起听不出重复。 */
 private const val SentenceRepeatPauseMillis = 400L
 
+/** TTS 引擎首次准备失败后的重试间隔（引擎服务重启后通常很快可用）。 */
+private const val EnginePrepareRetryDelayMillis = 900L
+
 /**
  * Drives sentence-by-sentence read aloud playback for the reader.
  * It owns the playback queue and state only; speech is delegated to a [ReadAloudEngine]
@@ -131,6 +134,10 @@ class ReadAloudController @Inject constructor(
     /** Returns the engine to speak with, or null when the device cannot speak Japanese. */
     private suspend fun prepareEngine(): ReadAloudEngine? {
         activeEngine = systemEngine
+        if (systemEngine.prepare()) return systemEngine
+        // 第三方 TTS 引擎（如 MultiTTS）服务被系统回收重启时，第一次连接可能失败。
+        // 稍等再试一次，避免把一次瞬时失败变成"朗读突然停止"。
+        delay(EnginePrepareRetryDelayMillis)
         if (systemEngine.prepare()) return systemEngine
         update {
             copy(
@@ -477,7 +484,13 @@ class ReadAloudController @Inject constructor(
                 // 否则叠在一起听不出"又读了一遍"。
                 for (attempt in 1..repeatCount) {
                     val played = engine.speak(text)
-                    if (!played) return@launch
+                    if (!played) {
+                        // 引擎中断/失败（第三方 TTS 服务被回收、朗读被系统打断等）：不能把状态留在
+                        // "播放中"，否则界面一直显示暂停图标却没有任何声音与推进，用户看到的就是
+                        // "朗读突然停止"。置为暂停，用户可继续朗读。
+                        update { copy(isPlaying = false) }
+                        return@launch
+                    }
                     if (attempt < repeatCount) delay(SentenceRepeatPauseMillis)
                 }
                 cursor++
