@@ -3,7 +3,7 @@ package moe.antimony.hoshi.features.sasayaki
 import java.io.ByteArrayOutputStream
 import java.io.File
 
-internal object AacAdtsCueAudioRewriter {
+object AacAdtsCueAudioRewriter {
     fun rewrite(input: File, output: File): Boolean = runCatching {
         val bytes = input.readBytes()
         val moov = boxes(bytes, 0, bytes.size).firstOrNull { it.type == "moov" }

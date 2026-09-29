@@ -49,6 +49,7 @@ import moe.antimony.hoshi.features.reader.ReaderAppearanceScreen
 import moe.antimony.hoshi.features.reader.ReaderBehaviorScreen
 import moe.antimony.hoshi.features.reader.ReaderFontManager
 import moe.antimony.hoshi.features.reader.ReaderSettings
+import moe.antimony.hoshi.features.playback.PlaybackLifecycleGate
 import moe.antimony.hoshi.features.profiles.ProfilesView
 import moe.antimony.hoshi.features.sasayaki.SasayakiSettings
 import moe.antimony.hoshi.features.settings.AdvancedSettingsView
@@ -80,6 +81,7 @@ fun AppShell(
     readerSettings: ReaderSettings,
     onReaderSettingsChange: ((ReaderSettings) -> ReaderSettings) -> Unit,
     onReaderKeyEventHandlerChange: (((KeyEvent) -> Boolean)?) -> Unit = {},
+    playbackLifecycleGate: PlaybackLifecycleGate,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -89,6 +91,9 @@ fun AppShell(
     val launchRouteStateHolder = remember { AppLaunchRouteStateHolder() }
     val pendingImportRouteCoordinator = remember { PendingImportRouteCoordinator() }
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.Books) }
+    LaunchedEffect(selectedTab) {
+        playbackLifecycleGate.setInSettings(selectedTab == MainTab.Settings)
+    }
     val booksBackStack = rememberNavBackStack(AppRoute.BooksRoute)
     val dictionaryBackStack = rememberNavBackStack(AppRoute.DictionaryRoute)
     val statisticsBackStack = rememberNavBackStack(AppRoute.StatisticsRoute)

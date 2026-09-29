@@ -3,7 +3,7 @@ package moe.antimony.hoshi.features.sasayaki
 import androidx.annotation.StringRes
 import moe.antimony.hoshi.R
 
-internal enum class SasayakiColorRow(
+enum class SasayakiColorRow(
     @get:StringRes val labelRes: Int,
     val defaultColor: Long,
 ) {

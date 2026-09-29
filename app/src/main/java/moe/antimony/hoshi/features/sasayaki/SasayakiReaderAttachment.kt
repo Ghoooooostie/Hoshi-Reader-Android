@@ -2,7 +2,7 @@ package moe.antimony.hoshi.features.sasayaki
 
 import moe.antimony.hoshi.epub.SasayakiMatch
 
-internal class SasayakiReaderAttachment {
+class SasayakiReaderAttachment {
     private var getCurrentChapterIndex: (() -> Int)? = null
     private var onCue: ((SasayakiMatch, Boolean, SasayakiCueRevealSource) -> Unit)? = null
     private var onClearCue: (() -> Unit)? = null

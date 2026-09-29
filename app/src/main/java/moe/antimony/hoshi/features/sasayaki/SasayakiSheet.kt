@@ -90,14 +90,14 @@ import moe.antimony.hoshi.ui.HoshiBlockingProgressOverlay
 import moe.antimony.hoshi.ui.asString
 import moe.antimony.hoshi.ui.rememberInitiallyCenteredLazyListState
 
-internal val SasayakiSpeedSliderRange = 0.5f..3.0f
-internal const val SasayakiSpeedSliderSteps = 49
-internal const val SasayakiAudiobookCoverWidthDp = 68
-internal const val SasayakiAudiobookCoverHeightDp = 68
-internal val SasayakiSheetTabRole = Role.Tab
+val SasayakiSpeedSliderRange = 0.5f..3.0f
+const val SasayakiSpeedSliderSteps = 49
+const val SasayakiAudiobookCoverWidthDp = 68
+const val SasayakiAudiobookCoverHeightDp = 68
+val SasayakiSheetTabRole = Role.Tab
 
 @Composable
-internal fun SasayakiSheet(
+fun SasayakiSheet(
     player: SasayakiPlayer,
     audioRepository: SasayakiAudioRepository,
     settings: SasayakiSettings,
@@ -645,7 +645,7 @@ private fun SasayakiChaptersTab(
     }
 }
 
-internal fun sasayakiCurrentChapterListIndex(
+fun sasayakiCurrentChapterListIndex(
     chapters: List<SasayakiAudiobookChapter>,
     currentChapter: SasayakiAudiobookChapter?,
 ): Int? = currentChapter?.let { current ->
@@ -867,7 +867,7 @@ private fun SliderRow(
 }
 
 @Composable
-internal fun SasayakiResourceCard(content: @Composable () -> Unit) {
+fun SasayakiResourceCard(content: @Composable () -> Unit) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -886,7 +886,7 @@ internal fun SasayakiResourceCard(content: @Composable () -> Unit) {
 }
 
 @Composable
-internal fun SasayakiInlineActionRow(
+fun SasayakiInlineActionRow(
     label: String,
     value: String,
     action: String,
@@ -993,24 +993,24 @@ private fun formatDuration(seconds: Double): String {
     }
 }
 
-internal data class SasayakiChapterRowInfo(
+data class SasayakiChapterRowInfo(
     val title: String?,
     val startSeconds: Double,
 )
 
-internal fun sasayakiChapterRowInfo(chapter: SasayakiAudiobookChapter): SasayakiChapterRowInfo =
+fun sasayakiChapterRowInfo(chapter: SasayakiAudiobookChapter): SasayakiChapterRowInfo =
     SasayakiChapterRowInfo(
         title = chapter.title.trim().takeIf { it.isNotBlank() },
         startSeconds = chapter.startSeconds,
     )
 
-internal fun formatSasayakiChapterRowTime(seconds: Double): String =
+fun formatSasayakiChapterRowTime(seconds: Double): String =
     formatDuration(seconds)
 
 private fun Double.nonNegativeFiniteSeconds(): Double =
     if (isFinite()) coerceAtLeast(0.0) else 0.0
 
-internal fun sasayakiPlaybackDuration(
+fun sasayakiPlaybackDuration(
     playerDuration: Double,
     inspectedDuration: Double?,
 ): Double =
@@ -1018,13 +1018,13 @@ internal fun sasayakiPlaybackDuration(
         ?: inspectedDuration?.nonNegativeFiniteSeconds()?.takeIf { it > 0.0 }
         ?: 0.0
 
-internal data class SasayakiPlaybackHeaderInfo(
+data class SasayakiPlaybackHeaderInfo(
     val title: String,
     val artist: String?,
     val chapterTitle: String?,
 )
 
-internal fun sasayakiPlaybackHeaderInfo(
+fun sasayakiPlaybackHeaderInfo(
     playback: SasayakiPlaybackData,
     metadata: SasayakiAudiobookMetadata,
     fallbackBookTitle: String,

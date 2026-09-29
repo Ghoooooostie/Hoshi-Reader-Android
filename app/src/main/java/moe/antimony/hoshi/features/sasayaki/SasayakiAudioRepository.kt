@@ -34,7 +34,7 @@ class SasayakiAudioRepository(private val bookRoot: File) {
         return audioFile(playback)?.let { SasayakiPlaybackSource.PrivateFile(it) }
     }
 
-    internal fun inspectAudiobook(
+    fun inspectAudiobook(
         playback: SasayakiPlaybackData,
         context: Context,
     ): SasayakiAudiobookInfo =
@@ -46,7 +46,7 @@ class SasayakiAudioRepository(private val bookRoot: File) {
             readPlatformInfo = { source -> AndroidSasayakiAudiobookMetadataReader.readInfo(context, source) },
         )
 
-    internal fun inspectAudiobook(
+    fun inspectAudiobook(
         playback: SasayakiPlaybackData,
         openExternalAudio: (String) -> SeekableByteChannel? = { null },
         readPlatformInfo: (SasayakiPlaybackSource) -> SasayakiAudiobookPlatformInfo = {
@@ -162,7 +162,7 @@ class SasayakiAudioRepository(private val bookRoot: File) {
         bookRoot.resolve("Sasayaki").also { it.mkdirs() }
 }
 
-internal data class SasayakiAudiobookMetadata(
+data class SasayakiAudiobookMetadata(
     val title: String? = null,
     val artist: String? = null,
     val albumArtist: String? = null,

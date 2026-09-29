@@ -7,13 +7,13 @@ import moe.antimony.hoshi.epub.EpubBookParser
 import moe.antimony.hoshi.epub.SasayakiMatchData
 import moe.antimony.hoshi.epub.SasayakiSidecarRepository
 
-internal enum class SasayakiSheetTab(@param:StringRes val labelRes: Int) {
+enum class SasayakiSheetTab(@param:StringRes val labelRes: Int) {
     Resources(R.string.sasayaki_tab_resources),
     Chapters(R.string.sasayaki_tab_chapters),
     Settings(R.string.sasayaki_tab_settings),
 }
 
-internal fun sasayakiDefaultSheetTab(
+fun sasayakiDefaultSheetTab(
     hasAudio: Boolean,
     hasChapters: Boolean,
 ): SasayakiSheetTab =
@@ -23,19 +23,19 @@ internal fun sasayakiDefaultSheetTab(
         SasayakiSheetTab.Resources
     }
 
-internal fun sasayakiShouldShowPlaybackHeader(hasAudio: Boolean): Boolean =
+fun sasayakiShouldShowPlaybackHeader(hasAudio: Boolean): Boolean =
     hasAudio
 
-internal data class SasayakiMatchDependencies(
+data class SasayakiMatchDependencies(
     val bookEntry: BookEntry,
     val bookRepository: SasayakiSidecarRepository,
     val epubBookParser: EpubBookParser,
 )
 
-internal fun sasayakiSubtitleMatchSummary(matchData: SasayakiMatchData?): String? =
+fun sasayakiSubtitleMatchSummary(matchData: SasayakiMatchData?): String? =
     matchData?.matchRateText()
 
-internal data class SasayakiSubtitleMatchUiState(
+data class SasayakiSubtitleMatchUiState(
     val selectedFileName: String? = null,
     val isMatching: Boolean = false,
     val errorMessage: String? = null,
@@ -58,7 +58,7 @@ internal data class SasayakiSubtitleMatchUiState(
         copy(isMatching = false, errorMessage = errorMessage)
 }
 
-internal data class SasayakiSubtitleSelectionTransition(
+data class SasayakiSubtitleSelectionTransition(
     val state: SasayakiSubtitleMatchUiState,
     val shouldStartMatching: Boolean,
 )

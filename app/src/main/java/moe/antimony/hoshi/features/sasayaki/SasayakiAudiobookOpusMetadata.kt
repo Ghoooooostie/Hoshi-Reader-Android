@@ -9,13 +9,13 @@ import java.nio.file.Files
 import java.util.Base64
 import java.util.Locale
 
-internal data class SasayakiAudiobookOpusInfo(
+data class SasayakiAudiobookOpusInfo(
     val metadata: SasayakiAudiobookMetadata = SasayakiAudiobookMetadata.Empty,
     val chapters: List<SasayakiAudiobookChapter> = emptyList(),
     val durationSeconds: Double? = null,
 )
 
-internal object SasayakiAudiobookOpusMetadata {
+object SasayakiAudiobookOpusMetadata {
     fun parse(file: File): SasayakiAudiobookOpusInfo? =
         try {
             if (!file.isFile) return null

@@ -13,7 +13,7 @@ class SasayakiPlayer private constructor(
     private val releaseController: () -> Unit = controller::release,
     private val stopPlaybackController: () -> Unit = controller::release,
 ) {
-    internal constructor(
+    constructor(
         bookId: String,
         bookRoot: File,
         playbackRepository: SasayakiPlaybackRepository,

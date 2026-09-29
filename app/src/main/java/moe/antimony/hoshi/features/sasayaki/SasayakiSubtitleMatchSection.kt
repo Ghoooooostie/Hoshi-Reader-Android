@@ -34,7 +34,7 @@ import moe.antimony.hoshi.importing.localizedImportMessage
 import moe.antimony.hoshi.importing.validateImportFile
 
 @Composable
-internal fun SasayakiSubtitleMatchSection(
+fun SasayakiSubtitleMatchSection(
     dependencies: SasayakiMatchDependencies?,
     currentMatchData: SasayakiMatchData?,
     onMatchUpdated: (SasayakiMatchData) -> Unit,

@@ -27,6 +27,7 @@ import moe.antimony.hoshi.features.dictionary.PendingDictionaryLookupRequest
 import moe.antimony.hoshi.features.reader.usesDarkInterface
 import moe.antimony.hoshi.features.reader.usesDarkSystemBarIcons
 import moe.antimony.hoshi.features.sasayaki.SasayakiPlaybackReturnAction
+import moe.antimony.hoshi.features.playback.PlaybackLifecycleGate
 import moe.antimony.hoshi.features.sasayaki.SasayakiPlaybackReturnBookIdExtra
 import moe.antimony.hoshi.features.update.DownloadedUpdatePrompt
 import moe.antimony.hoshi.navigation.AppShell
@@ -35,6 +36,7 @@ import moe.antimony.hoshi.ui.theme.HoshiReaderTheme
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject internal lateinit var uiDependencies: HoshiUiDependencies
+    @Inject internal lateinit var playbackLifecycleGate: PlaybackLifecycleGate
 
     private var pendingImportUri by mutableStateOf<Uri?>(null)
     private var pendingSasayakiReaderBookId by mutableStateOf<String?>(null)
@@ -83,7 +85,8 @@ class MainActivity : ComponentActivity() {
                         onReaderSettingsChange = settingsViewModel::update,
                         onReaderKeyEventHandlerChange = { handler ->
                             readerKeyEventHandler = handler
-                        }
+                        },
+                        playbackLifecycleGate = playbackLifecycleGate
                     )
                     DownloadedUpdatePrompt()
                 }

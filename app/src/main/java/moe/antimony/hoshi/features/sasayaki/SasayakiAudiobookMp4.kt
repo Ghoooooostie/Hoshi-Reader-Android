@@ -5,13 +5,13 @@ import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
 import java.nio.file.Files
 
-internal data class SasayakiAudiobookMp4Info(
+data class SasayakiAudiobookMp4Info(
     val metadata: SasayakiAudiobookMetadata = SasayakiAudiobookMetadata.Empty,
     val chapters: List<SasayakiAudiobookChapter> = emptyList(),
     val durationSeconds: Double? = null,
 )
 
-internal object SasayakiAudiobookMp4 {
+object SasayakiAudiobookMp4 {
     fun parse(file: File): SasayakiAudiobookMp4Info? =
         try {
             if (!file.isFile) return null

@@ -34,10 +34,10 @@ import moe.antimony.hoshi.epub.SasayakiPlaybackData
 import java.io.File
 import java.util.concurrent.Executor
 
-internal const val SasayakiPlaybackReturnAction = "moe.antimony.hoshi.action.RETURN_TO_SASAYAKI_READER"
-internal const val SasayakiPlaybackReturnBookIdExtra = "moe.antimony.hoshi.extra.SASAYAKI_BOOK_ID"
+const val SasayakiPlaybackReturnAction = "moe.antimony.hoshi.action.RETURN_TO_SASAYAKI_READER"
+const val SasayakiPlaybackReturnBookIdExtra = "moe.antimony.hoshi.extra.SASAYAKI_BOOK_ID"
 
-internal data class SasayakiPlaybackRuntimeLoadRequest(
+data class SasayakiPlaybackRuntimeLoadRequest(
     val bookId: String,
     val bookRoot: File,
     val playbackRepository: SasayakiPlaybackRepository,
@@ -47,7 +47,7 @@ internal data class SasayakiPlaybackRuntimeLoadRequest(
     val initialPlayback: SasayakiPlaybackData?,
 )
 
-internal interface SasayakiPlaybackRuntime {
+interface SasayakiPlaybackRuntime {
     fun load(
         request: SasayakiPlaybackRuntimeLoadRequest,
         getCurrentChapterIndex: () -> Int,
@@ -61,7 +61,7 @@ internal interface SasayakiPlaybackRuntime {
 
 @OptIn(UnstableApi::class)
 @Singleton
-internal class SasayakiPlaybackServiceRuntime @Inject constructor(
+class SasayakiPlaybackServiceRuntime @Inject constructor(
     @ApplicationContext context: Context,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
@@ -213,6 +213,25 @@ internal class SasayakiPlaybackServiceRuntime @Inject constructor(
         return true
     }
 
+    /**
+     * Pauses the active Sasayaki playback when the app leaves the foreground or the user opens an
+     * in-app settings screen. Idempotent: does nothing when nothing is playing.
+     */
+    fun pauseActivePlayback() {
+        activeController?.takeIf { it.isPlaying }?.pausePlayback(restoreTemporaryPosition = true)
+    }
+
+    /**
+     * Resumes the active Sasayaki playback that was paused by [pauseActivePlayback]. Only starts
+     * when a controller exists and it is not already playing, so it is safe to call unconditionally.
+     */
+    fun resumeActivePlayback() {
+        activeController?.takeIf { !it.isPlaying }?.togglePlayback()
+    }
+
+    val isActivePlaybackPlaying: Boolean
+        get() = activeController?.isPlaying == true
+
     fun nextFromSession() {
         activeController?.nextCue()
     }
@@ -250,7 +269,7 @@ internal class SasayakiPlaybackServiceRuntime @Inject constructor(
         }
     }
 
-    internal fun releasePlaybackServiceConnection() {
+    fun releasePlaybackServiceConnection() {
         playbackServiceConnection?.let(MediaController::releaseFuture)
         playbackServiceConnection = null
     }
@@ -357,7 +376,7 @@ private class SasayakiServiceSessionPlayer(
     }
 }
 
-internal data class SasayakiServiceMediaButtonSpec(
+data class SasayakiServiceMediaButtonSpec(
     val icon: Int,
     val displayNameResId: Int,
     val slot: Int,
@@ -365,7 +384,7 @@ internal data class SasayakiServiceMediaButtonSpec(
 )
 
 @OptIn(UnstableApi::class)
-internal fun sasayakiServiceMediaButtonSpecs(): List<SasayakiServiceMediaButtonSpec> =
+fun sasayakiServiceMediaButtonSpecs(): List<SasayakiServiceMediaButtonSpec> =
     listOf(
         SasayakiServiceMediaButtonSpec(
             icon = CommandButton.ICON_REWIND,
@@ -382,7 +401,7 @@ internal fun sasayakiServiceMediaButtonSpecs(): List<SasayakiServiceMediaButtonS
     )
 
 @OptIn(UnstableApi::class)
-internal fun sasayakiServiceMediaButtons(context: Context): List<CommandButton> =
+fun sasayakiServiceMediaButtons(context: Context): List<CommandButton> =
     sasayakiServiceMediaButtonSpecs().map { spec ->
         CommandButton.Builder(spec.icon)
             .setDisplayName(context.getString(spec.displayNameResId))
@@ -391,7 +410,7 @@ internal fun sasayakiServiceMediaButtons(context: Context): List<CommandButton> 
             .build()
     }
 
-internal fun sasayakiPlaybackReturnActivityFlags(): Int =
+fun sasayakiPlaybackReturnActivityFlags(): Int =
     Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
 
 private fun sasayakiPlaybackReturnPendingIntent(context: Context, bookId: String?): PendingIntent {

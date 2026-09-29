@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 @OptIn(UnstableApi::class)
-internal class SasayakiCueAudioExporter(
+class SasayakiCueAudioExporter(
     context: Context,
     private val outputRoot: File = File(context.applicationContext.cacheDir, "anki-media/sasayaki"),
     private val timeoutMs: Long = ExportTimeoutMs,

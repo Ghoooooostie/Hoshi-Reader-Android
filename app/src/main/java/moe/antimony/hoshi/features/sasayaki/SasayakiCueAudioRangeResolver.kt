@@ -5,12 +5,12 @@ import moe.antimony.hoshi.epub.SasayakiMatchData
 import moe.antimony.hoshi.epub.filteredReaderText
 import kotlin.math.max
 
-internal data class SasayakiCueAudioRange(
+data class SasayakiCueAudioRange(
     val startTime: Double,
     val endTime: Double,
 )
 
-internal object SasayakiCueAudioRangeResolver {
+object SasayakiCueAudioRangeResolver {
     fun resolve(
         matchData: SasayakiMatchData?,
         cue: SasayakiMatch,

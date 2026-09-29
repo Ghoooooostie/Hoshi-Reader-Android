@@ -27,7 +27,7 @@ interface SasayakiPlaybackEngine {
     fun release()
 }
 
-internal interface Media3SasayakiPlayerHandle {
+interface Media3SasayakiPlayerHandle {
     val player: Player
     val durationMs: Int
     val currentPositionMs: Int
@@ -46,7 +46,7 @@ internal interface Media3SasayakiPlayerHandle {
     fun release()
 }
 
-internal class ExoPlayerSasayakiPlayerHandle(
+class ExoPlayerSasayakiPlayerHandle(
     private val exoPlayer: ExoPlayer,
 ) : Media3SasayakiPlayerHandle {
     override val player: Player
@@ -176,7 +176,7 @@ class Media3SasayakiPlaybackEngine private constructor(
     companion object {
         private const val NoOpSeekToleranceMs = 1L
 
-        internal fun prepare(
+        fun prepare(
             player: Media3SasayakiPlayerHandle,
             mediaItem: MediaItem,
             startPositionMs: Int,
@@ -251,13 +251,13 @@ private fun media3DurationMs(player: Player): Int {
     return duration.takeUnless { it == C.TIME_UNSET }?.toInt() ?: 0
 }
 
-internal fun sasayakiMedia3AudioAttributes(): AudioAttributes =
+fun sasayakiMedia3AudioAttributes(): AudioAttributes =
     AudioAttributes.Builder()
         .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
         .setUsage(C.USAGE_MEDIA)
         .build()
 
-internal fun sasayakiMediaMetadata(
+fun sasayakiMediaMetadata(
     title: String?,
     artworkFile: File?,
 ): MediaMetadata {
@@ -269,7 +269,7 @@ internal fun sasayakiMediaMetadata(
     return metadata.build()
 }
 
-internal fun sasayakiMediaItem(
+fun sasayakiMediaItem(
     source: SasayakiPlaybackSource,
     title: String?,
     artworkFile: File?,

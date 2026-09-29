@@ -4,14 +4,14 @@ import java.io.File
 import java.nio.channels.SeekableByteChannel
 import java.nio.file.Files
 
-internal data class SasayakiAudiobookChapter(
+data class SasayakiAudiobookChapter(
     val index: Int,
     val title: String,
     val startSeconds: Double,
     val endSeconds: Double?,
 )
 
-internal object SasayakiAudiobookChapters {
+object SasayakiAudiobookChapters {
     fun parse(file: File): List<SasayakiAudiobookChapter> {
         try {
             if (!file.isFile) return emptyList()

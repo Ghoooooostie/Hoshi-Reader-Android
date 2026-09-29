@@ -34,7 +34,7 @@ fun interface SasayakiPlaybackPreparer {
     ): SasayakiPreparedPlayback
 }
 
-internal class ServiceOwnedSasayakiPlaybackPreparer(
+class ServiceOwnedSasayakiPlaybackPreparer(
     private val playerProvider: () -> Media3SasayakiPlayerHandle,
 ) : SasayakiPlaybackPreparer {
     override fun prepare(

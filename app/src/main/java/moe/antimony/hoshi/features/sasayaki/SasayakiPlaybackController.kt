@@ -13,7 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import moe.antimony.hoshi.ui.UiText
 import java.io.File
 
-internal interface SasayakiPlaybackControllerContract {
+interface SasayakiPlaybackControllerContract {
     val playback: SasayakiPlaybackData
     val currentTime: Double
     val duration: Double
@@ -47,7 +47,7 @@ internal interface SasayakiPlaybackControllerContract {
     fun release()
 }
 
-internal class SasayakiPlaybackController(
+class SasayakiPlaybackController(
     context: Context,
     bookRoot: File,
     playbackRepository: SasayakiPlaybackRepository,
@@ -407,7 +407,7 @@ internal class SasayakiPlaybackController(
         )
     }
 
-    internal fun restoreAudio(): Boolean {
+    fun restoreAudio(): Boolean {
         val result = runCatching {
             audioRestore.restore(
                 playback = playback,
@@ -526,7 +526,7 @@ internal class SasayakiPlaybackController(
     }
 }
 
-internal class SasayakiDeferredPlaybackCommand {
+class SasayakiDeferredPlaybackCommand {
     private var pending = false
 
     fun run(

@@ -19,17 +19,17 @@ import com.google.common.collect.ImmutableList
 import moe.antimony.hoshi.R
 import androidx.media3.session.R as Media3R
 
-internal const val SasayakiPlaybackNotificationId = 1001
-internal const val SasayakiPlaybackNotificationChannelId = "hoshi_sasayaki_playback"
+const val SasayakiPlaybackNotificationId = 1001
+const val SasayakiPlaybackNotificationChannelId = "hoshi_sasayaki_playback"
 
-internal data class SasayakiPlaybackNotificationActionSpec(
+data class SasayakiPlaybackNotificationActionSpec(
     val playerCommand: Int,
     val iconResId: Int,
     val titleResId: Int,
 )
 
 @OptIn(UnstableApi::class)
-internal fun sasayakiPlaybackNotificationActionSpecs(
+fun sasayakiPlaybackNotificationActionSpecs(
     isPlaying: Boolean,
 ): List<SasayakiPlaybackNotificationActionSpec> =
     listOf(
@@ -55,7 +55,7 @@ internal fun sasayakiPlaybackNotificationActionSpecs(
     )
 
 @OptIn(UnstableApi::class)
-internal class SasayakiPlaybackNotificationProvider(
+class SasayakiPlaybackNotificationProvider(
     private val context: Context,
     private val contentIntent: () -> PendingIntent,
     private val isPlaybackOngoing: () -> Boolean = { false },

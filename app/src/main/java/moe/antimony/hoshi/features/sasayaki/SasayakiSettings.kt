@@ -231,5 +231,5 @@ class SasayakiSettingsRepository(
     }
 }
 
-internal fun Color.toSasayakiColorLong(): Long =
+fun Color.toSasayakiColorLong(): Long =
     toArgb().toLong() and 0xFFFFFFFF

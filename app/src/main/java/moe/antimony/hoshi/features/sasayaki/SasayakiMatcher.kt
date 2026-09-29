@@ -477,7 +477,7 @@ object SasayakiMatcher {
     }
 }
 
-internal fun String.codePointsArray(): IntArray =
+fun String.codePointsArray(): IntArray =
     codePoints().toArray()
 
 private fun String?.hasManifestProperty(property: String): Boolean =

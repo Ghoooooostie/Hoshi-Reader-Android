@@ -12,7 +12,7 @@ import javax.inject.Inject
 @OptIn(UnstableApi::class)
 @AndroidEntryPoint
 class SasayakiPlaybackService : MediaSessionService() {
-    @Inject internal lateinit var runtime: SasayakiPlaybackServiceRuntime
+    @Inject lateinit var runtime: SasayakiPlaybackServiceRuntime
     private lateinit var notificationProvider: SasayakiPlaybackNotificationProvider
 
     override fun onCreate() {
@@ -51,23 +51,23 @@ class SasayakiPlaybackService : MediaSessionService() {
     }
 
     companion object {
-        internal const val SessionId = "hoshi-sasayaki-playback"
+        const val SessionId = "hoshi-sasayaki-playback"
     }
 }
 
-internal fun sasayakiShouldStopPlaybackOnTaskRemoved(
+fun sasayakiShouldStopPlaybackOnTaskRemoved(
     isForegroundPlaybackRequested: Boolean,
 ): Boolean =
     !isForegroundPlaybackRequested
 
-internal fun sasayakiShouldRunPlaybackServiceInForeground(player: Player): Boolean =
+fun sasayakiShouldRunPlaybackServiceInForeground(player: Player): Boolean =
     sasayakiShouldRunPlaybackServiceInForeground(
         foregroundPlaybackRequested = false,
         playWhenReady = player.playWhenReady,
         playbackState = player.playbackState,
     )
 
-internal fun sasayakiShouldRunPlaybackServiceInForeground(
+fun sasayakiShouldRunPlaybackServiceInForeground(
     foregroundPlaybackRequested: Boolean,
     playWhenReady: Boolean,
     playbackState: Int,

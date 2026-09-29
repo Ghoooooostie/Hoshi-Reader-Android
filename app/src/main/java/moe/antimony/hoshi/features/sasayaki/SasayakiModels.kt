@@ -17,7 +17,7 @@ data class SasayakiCueRange(
     val length: Int,
 )
 
-internal fun SasayakiMatchData.matchRateText(): String {
+fun SasayakiMatchData.matchRateText(): String {
     val matched = matches.size
     val total = matched + unmatched
     val percentage = if (total > 0) matched.toDouble() / total.toDouble() * 100.0 else 0.0
