@@ -34,3 +34,6 @@ local.properties
 
 # Agent working memory is local per-machine state, not project source
 .codebuddy/memory/
+
+# Agent scratch working directory
+.codebuddy/tmp/
