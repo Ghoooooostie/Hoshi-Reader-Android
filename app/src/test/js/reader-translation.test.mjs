@@ -365,7 +365,7 @@ test('read-aloud translation shows the spoken sentence under its paragraph', () 
     addParagraph(body, '第一段原文');
     const targets = JSON.parse(api.collectVisibleTargets());
 
-    assert.equal(api.showReadAloudTranslation(targets[0].id, '第一句译文'), true);
+    assert.equal(api.showReadAloudTranslation(targets[0].id, '第一句原文', '第一句译文'), true);
 
     const block = body.querySelector('.hoshi-read-aloud-translation');
     assert.ok(block);
@@ -374,20 +374,28 @@ test('read-aloud translation shows the spoken sentence under its paragraph', () 
     assert.equal(block.getAttribute('data-hoshi-read-aloud-translation-for'), targets[0].id);
 });
 
-test('read-aloud translation keeps a single block that follows playback', () => {
+test('read-aloud translation merges sentence translations into one block per paragraph', () => {
     const { body, api } = createTranslationEnvironment();
     addParagraph(body, '第一段原文');
     addParagraph(body, '第二段原文');
     const targets = JSON.parse(api.collectVisibleTargets());
 
-    api.showReadAloudTranslation(targets[0].id, '第一句译文');
-    api.showReadAloudTranslation(targets[1].id, '第二句译文');
+    // 同段多句：译文按朗读顺序追加进同一块，不拆成多行。
+    api.showReadAloudTranslation(targets[0].id, '第一句原文', '嗯？');
+    api.showReadAloudTranslation(targets[0].id, '第二句原文', '二十四吗？');
+    api.showReadAloudTranslation(targets[1].id, '第三句原文', '是啊');
 
-    assert.equal(body.querySelectorAll('.hoshi-read-aloud-translation').length, 1);
-    const block = body.querySelector('.hoshi-read-aloud-translation');
-    assert.equal(block.textContent, '第二句译文');
-    // 跟读块挂在"当前正在朗读的段落"后面（此处是第二个段落）。
-    assert.equal(body.children.indexOf(block), 2);
+    const blocks = body.querySelectorAll('.hoshi-read-aloud-translation');
+    assert.equal(blocks.length, 2);
+    assert.equal(blocks[0].getAttribute('data-hoshi-read-aloud-translation-for'), targets[0].id);
+    assert.equal(blocks[0].textContent, '嗯？二十四吗？');
+    assert.equal(blocks[1].getAttribute('data-hoshi-read-aloud-translation-for'), targets[1].id);
+    assert.equal(blocks[1].textContent, '是啊');
+
+    // 回跳重读同一句时只更新该句位置，不重复追加。
+    api.showReadAloudTranslation(targets[0].id, '第一句原文', '嗯？');
+    assert.equal(body.querySelectorAll('.hoshi-read-aloud-translation')[0].textContent, '嗯？二十四吗？');
+
     assert.equal(api.clearReadAloudTranslation(), true);
     assert.equal(body.querySelectorAll('.hoshi-read-aloud-translation').length, 0);
 });
@@ -398,7 +406,7 @@ test('read-aloud translation is not collected as a paragraph target', () => {
     addParagraph(body, '第二段原文');
     const targets = JSON.parse(api.collectVisibleTargets());
 
-    api.showReadAloudTranslation(targets[0].id, '第一句译文');
+    api.showReadAloudTranslation(targets[0].id, '第一句原文', '第一句译文');
 
     const after = JSON.parse(api.collectVisibleTargets());
     assert.deepEqual(after.map(target => target.text), ['第一段原文', '第二段原文']);
@@ -413,7 +421,7 @@ test('page translation replaces the read-aloud translation block for the same pa
     const paragraph = addParagraph(body, '第一段原文');
     const targets = JSON.parse(api.collectVisibleTargets());
 
-    api.showReadAloudTranslation(targets[0].id, '第一句译文');
+    api.showReadAloudTranslation(targets[0].id, '第一句原文', '第一句译文');
     api.applyTranslation(targets[0].id, '整段译文');
 
     // 显式给出该段译文时移除跟读块，一段只保留一份译文。
@@ -428,7 +436,7 @@ test('read-aloud translation reuses an existing paragraph translation instead of
     const targets = JSON.parse(api.collectVisibleTargets());
 
     api.applyTranslation(targets[0].id, '整段译文');
-    api.showReadAloudTranslation(targets[0].id, '第一句译文');
+    api.showReadAloudTranslation(targets[0].id, '第一句原文', '第一句译文');
 
     assert.equal(body.querySelectorAll('.hoshi-read-aloud-translation').length, 0);
     assert.equal(body.querySelectorAll('.hoshi-reader-translation').length, 1);
@@ -444,7 +452,7 @@ test('read-aloud translation reveals a hidden paragraph translation on the same 
     api.applyTranslation(targets[0].id, '整段译文');
     assert.equal(body.querySelector('.hoshi-reader-translation').classList.contains('hoshi-reader-translation-hidden'), true);
 
-    api.showReadAloudTranslation(targets[0].id, '第一句译文');
+    api.showReadAloudTranslation(targets[0].id, '第一句原文', '第一句译文');
 
     const block = body.querySelector('.hoshi-reader-translation');
     assert.equal(body.querySelectorAll('.hoshi-reader-translation').length, 1);

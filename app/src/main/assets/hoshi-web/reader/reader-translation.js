@@ -173,6 +173,14 @@
     return null;
   }
 
+  // 跟读译文块按段落唯一（targetId -> 已收到译文的句子状态），
+  // 同段多句的译文按朗读顺序追加进同一块，避免一段译文被拆成多行。
+  var readAloudTranslationState = {};
+
+  function readAloudTranslationMergedText(state) {
+    return state.order.map(function(key) { return state.byKey[key] || ''; }).join('');
+  }
+
   function findTranslationNode(element, targetId) {
     var next = element.nextElementSibling;
     if (!next) return null;
@@ -378,6 +386,7 @@
         document.querySelectorAll('[' + READ_ALOUD_TRANSLATION_ATTRIBUTE + '="' + targetId + '"]'),
         function(node) { node.remove(); }
       );
+      delete readAloudTranslationState[targetId];
       var block = findTranslationNode(element, targetId);
       withPreservedReadingPosition(function() {
         if (!block) {
@@ -435,18 +444,39 @@
     },
     /**
      * 朗读跟读翻译：把"当前正在朗读的这一句"的译文显示在原文段落下方。
-     * 同一段落可能含多句（如 VN 一屏），译文块按「段落 + 句」唯一键区分、互不覆盖，
-     * 避免朗读推进时前一句译文被后一句顶掉（表现为"漏翻"）。
+     * 一段只保留一个译文块：同段多句的译文按朗读顺序追加进同一块，
+     * 不再每句各挂一块（表现为一段译文被拆成多行）。重复收到同一句
+     * （重试/回跳）时只更新该句位置，不重复追加。
      */
     showReadAloudTranslation: function(targetId, sentenceText, translation) {
       var element = findTargetById(targetId);
       console.log('HoshiRAL-JS show targetId=' + targetId + ' element=' + (element ? 'found' : 'NULL'));
       if (!element) return false;
-      var key = targetId + '#' + (sentenceText || '');
-      var existing = findReadAloudTranslationByKey(key);
+      // 该段已有整页译文块：直接展开复用，不再另起一块（一段只有一份译文）。
+      var pageBlock = findTranslationNode(element, targetId);
+      if (pageBlock) {
+        withPreservedReadingPosition(function() {
+          pageBlock.classList.remove(HIDDEN_CLASS);
+          pageBlock.classList.add(REVEALED_CLASS);
+          refreshReaderLayout();
+        });
+        return true;
+      }
+      var state = readAloudTranslationState[targetId] ||
+        (readAloudTranslationState[targetId] = { order: [], byKey: {} });
+      var sentenceKey = sentenceText || '';
+      if (!Object.prototype.hasOwnProperty.call(state.byKey, sentenceKey)) {
+        state.order.push(sentenceKey);
+      }
+      state.byKey[sentenceKey] = translation || '';
+      var merged = readAloudTranslationMergedText(state);
+      var existing = findReadAloudTranslationByKey(targetId);
       if (existing) {
-        existing.textContent = translation || '';
-        existing.classList.remove(HIDDEN_CLASS);
+        withPreservedReadingPosition(function() {
+          existing.textContent = merged;
+          existing.classList.remove(HIDDEN_CLASS);
+        });
+        console.log('HoshiRAL-JS show OK targetId=' + targetId);
         return true;
       }
       withPreservedReadingPosition(function() {
@@ -454,20 +484,12 @@
         // 带整页译文 class：复用译文样式，并被段落收集逻辑（朗读队列 / 翻译目标）排除。
         // 但不设 data-hoshi-translation-for，整页译文不会改写它。
         block.className = TRANSLATION_CLASS + ' ' + READ_ALOUD_TRANSLATION_CLASS;
-        block.setAttribute(READ_ALOUD_TRANSLATION_ATTRIBUTE, key);
-        block.textContent = translation || '';
-        // 按朗读顺序把各句译文块依次挂到该段落之后，保持阅读顺序且不相互覆盖。
-        var prev = element;
-        var next = element.nextElementSibling;
-        while (next && next.classList && next.classList.contains(READ_ALOUD_TRANSLATION_CLASS) &&
-               (next.getAttribute(READ_ALOUD_TRANSLATION_ATTRIBUTE) || '').indexOf(targetId + '#') === 0) {
-          prev = next;
-          next = next.nextElementSibling;
-        }
-        prev.insertAdjacentElement('afterend', block);
+        block.setAttribute(READ_ALOUD_TRANSLATION_ATTRIBUTE, targetId);
+        block.textContent = merged;
+        element.insertAdjacentElement('afterend', block);
         refreshReaderLayout();
       });
-      console.log('HoshiRAL-JS show OK key=' + (targetId + '#' + (sentenceText || '')));
+      console.log('HoshiRAL-JS show OK targetId=' + targetId);
       return true;
     },
     clearReadAloudTranslation: function() {
@@ -477,6 +499,7 @@
         Array.prototype.forEach.call(blocks, function(node) { node.remove(); });
         refreshReaderLayout();
       });
+      readAloudTranslationState = {};
       return true;
     },
     highlightReadAloudTarget: function(targetId, reveal, highlightVisible) {

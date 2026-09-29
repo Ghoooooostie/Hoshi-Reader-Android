@@ -80,7 +80,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   A new “Translate As It Reads” toggle translates the sentence being spoken as
   playback reaches it (跟读翻译): the translation appears under that paragraph and
   moves along with playback instead of translating the whole page, the next sentence
-  is prepared in advance, and sentences already translated are reused. It needs
+  is prepared in advance, and sentences already translated are reused. Translations
+  of multiple sentences in the same paragraph are merged into a single block instead
+  of one line per sentence. It needs
   Advanced AI sentence translation to be configured.
 - Add configurable reader gestures in Settings > Behavior. The long-press action can be set to
   "Read aloud" (the previous default) or "Slide to select words": the latter keeps
