@@ -1,6 +1,9 @@
 package moe.antimony.hoshi.features.dictionary
 
 internal object DictionaryDragReorder {
+    /** Maximum slot moves applied for a single drag delta before waiting for the next event. */
+    const val MaxStepsPerUpdate = 8
+
     data class RowBounds(
         val index: Int,
         val top: Float,

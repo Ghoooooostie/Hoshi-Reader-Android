@@ -247,6 +247,7 @@
     <string name="dictionary_custom_css_reset_title">Reset Custom CSS?</string>
     <string name="dictionary_custom_css_reset_message">This will clear your custom CSS.</string>
     <string name="dictionary_import_action">Import Dictionary</string>
+    <string name="dictionary_pin_action">Pin to Top</string>
     <string name="dictionary_delete_action">Delete Dictionary</string>
     <string name="dictionary_reorder_action">Reorder Dictionary</string>
     <string name="dictionary_settings_lookup">Lookup</string>

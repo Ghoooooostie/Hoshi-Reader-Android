@@ -70,6 +70,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.DataObject
+import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.TextFields
@@ -294,18 +295,22 @@ fun DictionaryView(
     }
 
     fun updateDrag(delta: Float) {
-        val fileName = draggedFileName ?: return
-        val workingDictionaries = dragWorkingDictionaries ?: return
-        val fromIndex = workingDictionaries.indexOfFirst { it.path.name == fileName }
-        if (fromIndex !in workingDictionaries.indices) return
+        val draggedName = draggedFileName ?: return
         dragOffsetY += delta
-        val toIndex = dragTargetIndex
-        if (toIndex in workingDictionaries.indices && toIndex != fromIndex) {
+        // A quick swipe can cross several rows within one gesture event. Keep swapping until
+        // the preview order is stable, otherwise the row visibly lags behind the finger.
+        repeat(DictionaryDragReorder.MaxStepsPerUpdate) {
+            val workingDictionaries = dragWorkingDictionaries ?: return
+            val fromIndex = workingDictionaries.indexOfFirst { it.path.name == draggedName }
+            if (fromIndex !in workingDictionaries.indices) return
+            val toIndex = dragTargetIndex
+            if (toIndex !in workingDictionaries.indices || toIndex == fromIndex) return
             val itemSize = listState.layoutInfo.visibleItemsInfo
                 .firstOrNull { it.index == dictionaryStartGlobalIndex + fromIndex }
                 ?.size
                 ?.toFloat()
                 ?: dragStartHeight
+            if (itemSize <= 0f) return
             dragWorkingDictionaries = DictionaryDragReorder.previewOrder(
                 items = workingDictionaries,
                 fromIndex = fromIndex,
@@ -652,8 +657,14 @@ fun DictionaryView(
                         val isDragging = draggedFileName == dictionary.path.name
                         val reorderModifier = if (isDragging) {
                             Modifier.graphicsLayer { translationY = dragOffsetY }
-                        } else {
+                        } else if (draggedFileName == null) {
                             Modifier.animateItem()
+                        } else {
+                            // While reordering, rows must sit in their exact slot positions.
+                            // targetIndex() hit-tests against LazyList layout offsets, and an
+                            // in-flight animateItem() placement would report transient offsets,
+                            // triggering cascading wrong swaps.
+                            Modifier
                         }
                         DictionaryRow(
                             dictionary = dictionary,
@@ -661,6 +672,17 @@ fun DictionaryView(
                             onDelete = {
                                 revealedFileName = null
                                 dictionaryViewModel.deleteDictionary(dictionary)
+                            },
+                            onPin = {
+                                // Pin to the top: every newly pinned dictionary becomes the first
+                                // entry and pushes the previously pinned ones down by one.
+                                val target = currentDictionaries.indexOfFirst {
+                                    it.path.name == dictionary.path.name
+                                }
+                                if (target > 0) {
+                                    dictionaryViewModel.moveDictionary(target, 0)
+                                }
+                                revealedFileName = null
                             },
                             isRevealed = revealedFileName == dictionary.path.name,
                             onRevealChange = { revealed ->
@@ -858,6 +880,7 @@ private fun DictionaryRow(
     dictionary: DictionaryInfo,
     onEnabledChange: (Boolean) -> Unit,
     onDelete: () -> Unit,
+    onPin: () -> Unit,
     isRevealed: Boolean,
     onRevealChange: (Boolean) -> Unit,
     enabled: Boolean,
@@ -870,7 +893,8 @@ private fun DictionaryRow(
     val colorScheme = MaterialTheme.colorScheme
     val density = LocalDensity.current
     val actionWidth = 84.dp
-    val actionWidthPx = with(density) { actionWidth.toPx() }
+    val actionSpacing = 8.dp
+    val actionWidthPx = with(density) { (actionWidth * 2 + actionSpacing).toPx() }
     val anchors = remember(actionWidthPx) {
         DraggableAnchors {
             DictionarySwipeRevealValue.Covered at 0f
@@ -905,15 +929,48 @@ private fun DictionaryRow(
     Box(modifier = modifier) {
         Row(
             modifier = Modifier.matchParentSize(),
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.spacedBy(actionSpacing, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
                 modifier = Modifier
                     .width(actionWidth)
                     .fillMaxHeight()
+                    .clickable(enabled = enabled) { onPin() },
+                shape = RoundedCornerShape(
+                    topStart = 20.dp,
+                    bottomStart = 20.dp,
+                    topEnd = 4.dp,
+                    bottomEnd = 4.dp,
+                ),
+                color = colorScheme.primaryContainer,
+                border = hoshiContainerBorder(),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.ArrowUpward,
+                        contentDescription = stringResource(R.string.dictionary_pin_action),
+                        tint = colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+            Surface(
+                modifier = Modifier
+                    .width(actionWidth)
+                    .fillMaxHeight()
                     .clickable(enabled = enabled) { onDelete() },
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(
+                    topStart = 4.dp,
+                    bottomStart = 4.dp,
+                    topEnd = 20.dp,
+                    bottomEnd = 20.dp,
+                ),
                 color = colorScheme.error,
                 border = hoshiContainerBorder(),
             ) {
@@ -1015,7 +1072,7 @@ private fun DictionaryDragHandle(modifier: Modifier = Modifier) {
     val reorderDescription = stringResource(R.string.dictionary_reorder_action)
     Box(
         modifier = modifier
-            .width(32.dp)
+            .width(48.dp)
             .height(56.dp)
             .semantics { contentDescription = reorderDescription },
         contentAlignment = Alignment.Center,
