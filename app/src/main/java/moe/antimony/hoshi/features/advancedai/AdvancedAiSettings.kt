@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import moe.antimony.hoshi.R
+import moe.antimony.hoshi.features.translation.TranslationProvider
 
 private val Context.advancedAiDataStore by preferencesDataStore(name = AdvancedAiSettingsRepository.DataStoreName)
 
@@ -50,6 +51,7 @@ internal class AdvancedAiSettingsRepository(
             preferences[KEY_SENTENCE_TRANSLATION_PROMPT] = next.sentenceTranslationPrompt
             preferences[KEY_PAGE_PARAGRAPH_TRANSLATION_PROMPT] = next.pageParagraphTranslationPrompt
             preferences[KEY_SENTENCE_PROMPT] = next.sentencePrompt
+            preferences[KEY_TRANSLATION_PROVIDER] = next.translationProviderId
         }
     }
 
@@ -73,6 +75,7 @@ internal class AdvancedAiSettingsRepository(
                 legacyPageParagraphTranslationPrompts,
             ),
             sentencePrompt = this[KEY_SENTENCE_PROMPT] ?: defaultSentencePrompt,
+            translationProviderId = this[KEY_TRANSLATION_PROVIDER] ?: TranslationProvider.DEFAULT_ID,
         )
 
     /** 仅在仍是历史默认文案时替换成当前默认值，保留用户自定义内容。 */
@@ -109,5 +112,6 @@ internal class AdvancedAiSettingsRepository(
         private val KEY_SENTENCE_TRANSLATION_PROMPT = stringPreferencesKey("sentenceTranslationPrompt")
         private val KEY_PAGE_PARAGRAPH_TRANSLATION_PROMPT = stringPreferencesKey("pageParagraphTranslationPrompt")
         private val KEY_SENTENCE_PROMPT = stringPreferencesKey("sentencePrompt")
+        private val KEY_TRANSLATION_PROVIDER = stringPreferencesKey("translationProvider")
     }
 }

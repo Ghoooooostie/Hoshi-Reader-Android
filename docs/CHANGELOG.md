@@ -6,6 +6,15 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 
 ## [Unreleased]
 
+### Added
+
+- Add selectable translation sources for Reader translation (full page,
+  sentence gesture, and read-aloud follow translation). Besides the Advanced AI
+  backend, key-free web sources are now available: Microsoft, Bing, Google,
+  ModernMt, QQ TransSmart, QQ IMT, Alibaba, Youdao, Caiyun, Translate.com,
+  Yandex, Volcengine, and Papago. The source can be switched from the reader
+  translation sheet and needs no API key.
+
 ### Fixed
 
 - Fix the in-chapter reading progress freezing in paginated mode: turning pages no

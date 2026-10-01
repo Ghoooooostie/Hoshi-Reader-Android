@@ -1,6 +1,7 @@
 package moe.antimony.hoshi.features.reader
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -11,12 +12,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -32,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import moe.antimony.hoshi.R
+import moe.antimony.hoshi.features.translation.TranslationProvider
 import moe.antimony.hoshi.ui.theme.LocalHoshiEInkMode
 import kotlin.math.roundToInt
 
@@ -39,6 +44,8 @@ import kotlin.math.roundToInt
 internal fun ReaderTranslationAiSheet(
     settings: ReaderSettings,
     fullPageTranslationSupported: Boolean,
+    translationProvider: TranslationProvider,
+    onTranslationProviderChange: (TranslationProvider) -> Unit,
     availabilityHint: String?,
     onSettingsChange: (ReaderSettings) -> Unit,
     onDismiss: () -> Unit,
@@ -62,6 +69,36 @@ internal fun ReaderTranslationAiSheet(
                     .padding(PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp)),
                 verticalArrangement = Arrangement.spacedBy(metrics.appearanceSectionSpacingDp.dp),
             ) {
+                TranslationAiSection(
+                    title = stringResource(R.string.reader_translation_ai_provider_section),
+                    palette = palette,
+                ) {
+                    val providerOptions = translationProviderOptions()
+                    var providerDialogOpen by remember { mutableStateOf(false) }
+                    TranslationAiProviderRow(
+                        label = stringResource(R.string.reader_translation_ai_provider_current),
+                        currentLabel = providerOptions
+                            .firstOrNull { it.first == translationProvider }?.second.orEmpty(),
+                        onClick = { providerDialogOpen = true },
+                    )
+                    TranslationAiSupportingText(
+                        text = stringResource(R.string.reader_translation_ai_provider_supporting),
+                        modifier = Modifier.padding(
+                            horizontal = 14.dp,
+                            vertical = metrics.appearanceRowVerticalPaddingDp.dp,
+                        ),
+                    )
+                    if (providerDialogOpen) {
+                        TranslationProviderPickerDialog(
+                            selectedProvider = translationProvider,
+                            onSelect = { provider ->
+                                providerDialogOpen = false
+                                onTranslationProviderChange(provider)
+                            },
+                            onDismiss = { providerDialogOpen = false },
+                        )
+                    }
+                }
                 TranslationAiSection(
                     title = stringResource(R.string.reader_translation_ai_page_section),
                     palette = palette,
@@ -187,6 +224,99 @@ private fun TranslationAiSection(
             Column(content = content)
         }
     }
+}
+
+@Composable
+private fun translationProviderOptions(): List<Pair<TranslationProvider, String>> = listOf(
+    TranslationProvider.Ai to stringResource(R.string.translation_provider_ai),
+    TranslationProvider.Microsoft to stringResource(R.string.translation_provider_microsoft),
+    TranslationProvider.Bing to stringResource(R.string.translation_provider_bing),
+    TranslationProvider.Google to stringResource(R.string.translation_provider_google),
+    TranslationProvider.ModernMt to stringResource(R.string.translation_provider_modernmt),
+    TranslationProvider.QqTransmart to stringResource(R.string.translation_provider_qq_transmart),
+    TranslationProvider.Ali to stringResource(R.string.translation_provider_ali),
+    TranslationProvider.Youdao to stringResource(R.string.translation_provider_youdao),
+    TranslationProvider.Caiyun to stringResource(R.string.translation_provider_caiyun),
+    TranslationProvider.TranslateCom to stringResource(R.string.translation_provider_translate_com),
+    TranslationProvider.Yandex to stringResource(R.string.translation_provider_yandex),
+    TranslationProvider.QqImt to stringResource(R.string.translation_provider_qq_imt),
+    TranslationProvider.Huoshan to stringResource(R.string.translation_provider_huoshan),
+    TranslationProvider.Papago to stringResource(R.string.translation_provider_papago),
+)
+
+@Composable
+private fun TranslationAiProviderRow(
+    label: String,
+    currentLabel: String,
+    onClick: () -> Unit,
+) {
+    val metrics = readerSheetDensityMetrics()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = metrics.appearanceRowVerticalPaddingDp.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = currentLabel,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun TranslationProviderPickerDialog(
+    selectedProvider: TranslationProvider,
+    onSelect: (TranslationProvider) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val options = translationProviderOptions()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.reader_translation_ai_provider_pick_title)) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                options.forEach { (provider, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(provider) }
+                            .padding(vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                        RadioButton(
+                            selected = provider == selectedProvider,
+                            onClick = { onSelect(provider) },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.reader_translation_ai_provider_done))
+            }
+        },
+    )
 }
 
 @Composable

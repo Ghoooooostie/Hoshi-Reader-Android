@@ -52,7 +52,9 @@ refactor goals belong in `docs/ARCHITECTURE_REFACTORING.md`.
 - `features/advancedai` owns Advanced AI settings persistence, OpenAI-compatible
   word and sentence analysis requests, popup AI render state, and the shared
   content plumbing used by Reader lookup, Process Text lookup, and Anki field
-  rendering.
+  rendering. Its settings also persist the Reader translation source selection
+  (`translationProviderId`), which chooses between the Advanced AI backend and
+  the key-free web translators in `features/translation`.
 - Profiles are Hilt-backed app-wide state. `ProfileRepository` stores profile
   metadata under app-specific files, exposes active profile state through
   `StateFlow`, and controls the effective content language for Reader,
@@ -314,8 +316,11 @@ refactor goals belong in `docs/ARCHITECTURE_REFACTORING.md`.
   parameters, asset loading, dynamic configuration fill-in, and WebView bridge
   invocation.
 - Reader sentence translation/analysis cards and full-page visible-paragraph
-  translation are driven from Kotlin through the shared Advanced AI sentence
-  endpoints, while `reader-translation.js` applies inline translation blocks in
+  translation are driven from Kotlin through the configured translation source:
+  the shared Advanced AI sentence endpoints, or the key-free web translators in
+  `features/translation` (each one is a faithful port of a LunaTranslator free
+  translator, fixed to simplified Chinese output with auto-detected source
+  language), while `reader-translation.js` applies inline translation blocks in
   paginated and continuous WebView modes without letting translated text feed
   back into Reader progress or selection semantics.
 - Reader and lookup popup text selection use shared selection plumbing. Language

@@ -1,5 +1,7 @@
 package moe.antimony.hoshi.features.advancedai
 
+import moe.antimony.hoshi.features.translation.TranslationProvider
+
 /** 高级 AI 的持久化设置。 */
 internal data class AdvancedAiSettings(
     val enabled: Boolean = false,
@@ -11,6 +13,8 @@ internal data class AdvancedAiSettings(
     val sentenceTranslationPrompt: String,
     val pageParagraphTranslationPrompt: String,
     val sentencePrompt: String,
+    /** 阅读器翻译源：AI 或免 key web 翻译接口（见 features/translation）。 */
+    val translationProviderId: String = TranslationProvider.DEFAULT_ID,
 )
 
 /** 高级 AI 缺失的必要配置。 */

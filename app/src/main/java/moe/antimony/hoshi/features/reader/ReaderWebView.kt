@@ -69,6 +69,7 @@ import moe.antimony.hoshi.epub.SasayakiMatchData
 import moe.antimony.hoshi.epub.SasayakiPlaybackData
 import moe.antimony.hoshi.features.advancedai.AdvancedAiAvailability
 import moe.antimony.hoshi.features.advancedai.AdvancedAiCardKind
+import moe.antimony.hoshi.features.advancedai.AdvancedAiSettings
 import moe.antimony.hoshi.features.advancedai.LookupPopupAdvancedAiState
 import moe.antimony.hoshi.features.advancedai.pageParagraphTranslationAvailability
 import moe.antimony.hoshi.features.advancedai.sentenceTranslationAvailability
@@ -98,6 +99,8 @@ import moe.antimony.hoshi.features.dictionary.withLookupPopupVisualOptions
 import moe.antimony.hoshi.features.display.DisplaySettingsSheet
 import moe.antimony.hoshi.features.sasayaki.BookSasayakiPlaybackRepository
 import moe.antimony.hoshi.features.sasayaki.SasayakiAudioRepository
+import moe.antimony.hoshi.features.translation.FreeWebTranslationCatalog
+import moe.antimony.hoshi.features.translation.TranslationProvider
 import moe.antimony.hoshi.features.sasayaki.SasayakiAudiobookInfo
 import moe.antimony.hoshi.features.sasayaki.SasayakiCueRange
 import moe.antimony.hoshi.features.readaloud.ReadAloudQueueItem
@@ -251,6 +254,7 @@ fun ReaderWebView(
     var audioSettings by remember { mutableStateOf(AudioSettings()) }
     var dictionaryStyles by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var pageTranslationAvailabilityHint by remember { mutableStateOf<String?>(null) }
+    var advancedAiSettingsState by remember { mutableStateOf<AdvancedAiSettings?>(null) }
     LaunchedEffect(dictionarySettingsRepository) {
         dictionarySettingsRepository.settings.collect { settings ->
             dictionarySettings = settings
@@ -272,7 +276,13 @@ fun ReaderWebView(
     val pageTranslationUnavailableHint = stringResource(moe.antimony.hoshi.R.string.reader_translation_ai_unavailable_hint)
     LaunchedEffect(advancedAiSettingsRepository, pageTranslationUnavailableHint) {
         advancedAiSettingsRepository.settings.collect { settings ->
-            pageTranslationAvailabilityHint = if (settings.pageParagraphTranslationAvailability() is AdvancedAiAvailability.Ready) {
+            advancedAiSettingsState = settings
+            // 免 key web 翻译源不需要高级 AI 配置，未配置 AI 时也不算不可用。
+            val provider = TranslationProvider.fromId(settings.translationProviderId)
+            pageTranslationAvailabilityHint = if (
+                provider != TranslationProvider.Ai ||
+                settings.pageParagraphTranslationAvailability() is AdvancedAiAvailability.Ready
+            ) {
                 null
             } else {
                 pageTranslationUnavailableHint
@@ -770,23 +780,31 @@ fun ReaderWebView(
     fun pumpReaderPageTranslationQueue(chapterKey: String = currentPageTranslationChapterKey) {
         if (readerPageTranslationJob != null) return
         readerPageTranslationJob = scope.launch {
-            val ready = advancedAiSettingsRepository.settings.first().pageParagraphTranslationAvailability()
+            val settings = advancedAiSettingsRepository.settings.first()
+            val provider = TranslationProvider.fromId(settings.translationProviderId)
+            val aiReady = settings.pageParagraphTranslationAvailability()
                 as? AdvancedAiAvailability.Ready
-                ?: run {
-                    readerPageTranslationJob = null
-                    return@launch
-                }
+            if (provider == TranslationProvider.Ai && aiReady == null) {
+                readerPageTranslationJob = null
+                return@launch
+            }
             while (true) {
                 val next = pageTranslationCoordinator.pollNext(chapterKey) ?: break
                 val result = runCatching {
                     withContext(Dispatchers.IO) {
-                        advancedAiClient.translatePageParagraph(ready.settings, next.text)
+                        if (provider == TranslationProvider.Ai) {
+                            advancedAiClient.translatePageParagraph(aiReady!!.settings, next.text)
+                        } else {
+                            FreeWebTranslationCatalog.translate(provider, next.text)
+                        }
                     }
                 }
                 result.onSuccess { translation ->
                     // AI 偶尔把段落原样返回成日文（未翻译）。开启兜底时检测日文假名占比，
                     // 过高则用强约束提示词把原文段落重新翻译成中文，覆盖缓存与显示。
+                    // 免 key web 翻译源本身就固定输出中文，不走该兜底。
                     val finalTranslation = if (
+                        provider == TranslationProvider.Ai &&
                         effectiveSettings.readerAiTranslationFallbackEnabled &&
                         moe.antimony.hoshi.features.advancedai.isMostlyJapanese(
                             translation,
@@ -795,7 +813,7 @@ fun ReaderWebView(
                     ) {
                         runCatching {
                             withContext(Dispatchers.IO) {
-                                advancedAiClient.retranslateParagraphToChinese(ready.settings, next.text)
+                                advancedAiClient.retranslateParagraphToChinese(aiReady!!.settings, next.text)
                             }
                         }.getOrDefault(translation)
                     } else {
@@ -854,12 +872,18 @@ fun ReaderWebView(
         val requestKey = "$chapterKey:${target.id}"
         readerPageTranslationRefreshJobs.remove(requestKey)?.cancel()
         val refreshJob = scope.launch {
-            val ready = advancedAiSettingsRepository.settings.first().pageParagraphTranslationAvailability()
+            val settings = advancedAiSettingsRepository.settings.first()
+            val provider = TranslationProvider.fromId(settings.translationProviderId)
+            val aiReady = settings.pageParagraphTranslationAvailability()
                 as? AdvancedAiAvailability.Ready
-                ?: return@launch
+            if (provider == TranslationProvider.Ai && aiReady == null) return@launch
             runCatching {
                 withContext(Dispatchers.IO) {
-                    advancedAiClient.translatePageParagraph(ready.settings, target.text)
+                    if (provider == TranslationProvider.Ai) {
+                        advancedAiClient.translatePageParagraph(aiReady!!.settings, target.text)
+                    } else {
+                        FreeWebTranslationCatalog.translate(provider, target.text)
+                    }
                 }
             }.onSuccess { translation ->
                 pageTranslationCoordinator.cacheTranslation(chapterKey, target.id, translation)
@@ -2233,6 +2257,32 @@ fun ReaderWebView(
     }
 
     /**
+     * 按当前翻译源翻译一段文本。AI 源走高级 AI 配置（不可用时返回 null）；
+     * 免 key web 源固定输出简体中文，无需任何配置。不可用或失败都返回 null。
+     */
+    suspend fun requestConfiguredTranslation(text: String, paragraphMode: Boolean): String? {
+        val settings = advancedAiSettingsRepository.settings.first()
+        val provider = TranslationProvider.fromId(settings.translationProviderId)
+        return if (provider == TranslationProvider.Ai) {
+            val availability = if (paragraphMode) {
+                settings.pageParagraphTranslationAvailability()
+            } else {
+                settings.sentenceTranslationAvailability()
+            }
+            val ready = availability as? AdvancedAiAvailability.Ready ?: return null
+            if (paragraphMode) {
+                advancedAiClient.translatePageParagraph(ready.settings, text)
+            } else {
+                advancedAiClient.translateSentence(ready.settings, text)
+            }
+        } else {
+            withContext(Dispatchers.IO) {
+                runCatching { FreeWebTranslationCatalog.translate(provider, text) }.getOrNull()
+            }
+        }
+    }
+
+    /**
      * 翻译手势指定的单独一句并显示。与跟读翻译不同，它不要求朗读仍停在同一句上，
      * 因此可以在没有朗读时使用（同一段仍然只保留一份译文）。
      */
@@ -2248,14 +2298,8 @@ fun ReaderWebView(
         }
         standaloneSentenceTranslationJob?.cancel()
         standaloneSentenceTranslationJob = scope.launch {
-            val ready = advancedAiSettingsRepository.settings.first()
-                .sentenceTranslationAvailability() as? AdvancedAiAvailability.Ready
-                ?: return@launch
-            val translation = runCatching {
-                withContext(Dispatchers.IO) {
-                    advancedAiClient.translateSentence(ready.settings, sentence)
-                }
-            }.getOrNull()?.takeIf { it.isNotBlank() } ?: return@launch
+            val translation = requestConfiguredTranslation(sentence, paragraphMode = false)
+                ?.takeIf { it.isNotBlank() } ?: return@launch
             readAloudSentenceTranslations[key] = translation
             webView?.evaluateJavascript(
                 ReaderPageTranslationCommand.showReadAloudTranslation(targetId, sentence, translation),
@@ -2681,14 +2725,8 @@ fun ReaderWebView(
             val key = readAloudSentenceTranslationKey(targetId, sentence)
             if (readAloudSentenceTranslations.containsKey(key)) return
             scope.launch {
-                val ready = advancedAiSettingsRepository.settings.first()
-                    .sentenceTranslationAvailability() as? AdvancedAiAvailability.Ready
-                    ?: return@launch
-                val translation = runCatching {
-                    withContext(Dispatchers.IO) {
-                        advancedAiClient.translateSentence(ready.settings, sentence)
-                    }
-                }.getOrNull()?.takeIf { it.isNotBlank() } ?: return@launch
+                val translation = requestConfiguredTranslation(sentence, paragraphMode = false)
+                    ?.takeIf { it.isNotBlank() } ?: return@launch
                 readAloudSentenceTranslations[key] = translation
             }
         }
@@ -2724,17 +2762,8 @@ fun ReaderWebView(
             pendingReadAloudTranslationTargets.add(key)
             scope.launch {
                 try {
-                    val ready = advancedAiSettingsRepository.settings.first()
-                        .sentenceTranslationAvailability() as? AdvancedAiAvailability.Ready
-                    if (ready == null) {
-                        Log.w("HoshiRAL", "AI not ready for sentence translation (sentenceTranslationAvailability != Ready)")
-                        return@launch
-                    }
-                    val translation = runCatching {
-                        withContext(Dispatchers.IO) {
-                            advancedAiClient.translateSentence(ready.settings, sentence)
-                        }
-                    }.getOrNull()?.takeIf { it.isNotBlank() }
+                    val translation = requestConfiguredTranslation(sentence, paragraphMode = false)
+                        ?.takeIf { it.isNotBlank() }
                     if (translation == null) {
                         Log.w("HoshiRAL", "translateSentence returned null/blank for targetId=$targetId")
                         return@launch
@@ -2983,6 +3012,14 @@ fun ReaderWebView(
             ReaderTranslationAiSheet(
                 settings = effectiveSettings,
                 fullPageTranslationSupported = effectiveSettings.viewMode != ReaderViewMode.VisualNovel,
+                translationProvider = TranslationProvider.fromId(advancedAiSettingsState?.translationProviderId),
+                onTranslationProviderChange = { provider ->
+                    scope.launch {
+                        advancedAiSettingsRepository.update { current ->
+                            current.copy(translationProviderId = provider.id)
+                        }
+                    }
+                },
                 availabilityHint = pageTranslationAvailabilityHint,
                 onSettingsChange = { settings ->
                     stateHolder.applySettings(settings)
