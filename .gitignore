@@ -28,6 +28,7 @@ local.properties
 /build_install*.log
 /build_kot*.log
 /build_log.txt
+/build_debug.log
 /crashcheck.log
 /adb_*.log
 /uidump*.xml
