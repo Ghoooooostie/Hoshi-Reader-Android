@@ -833,7 +833,6 @@ fun ReaderWebView(
     }
     fun requestVisibleReaderPageTranslations() {
         if (!effectiveSettings.readerAiFullPageTranslationEnabled) return
-        if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel) return
         if (stateHolder.isWebViewRestoring) return
         collectVisibleReaderPageTranslationTargets { visible ->
             visible.forEach { target ->
@@ -2218,7 +2217,7 @@ fun ReaderWebView(
         effectiveSettings.viewMode,
         webView,
     ) {
-        if (!effectiveSettings.readerAiFullPageTranslationEnabled || effectiveSettings.viewMode == ReaderViewMode.VisualNovel) {
+        if (!effectiveSettings.readerAiFullPageTranslationEnabled) {
             clearReaderPageTranslations()
         }
     }
@@ -2243,7 +2242,6 @@ fun ReaderWebView(
         readerPosition.displayedPosition.progress,
     ) {
         if (!effectiveSettings.readerAiFullPageTranslationEnabled) return@LaunchedEffect
-        if (effectiveSettings.viewMode == ReaderViewMode.VisualNovel) return@LaunchedEffect
         if (stateHolder.isWebViewRestoring) return@LaunchedEffect
         if (webView == null) return@LaunchedEffect
         delay(350)
@@ -3011,7 +3009,7 @@ fun ReaderWebView(
         if (showTranslationAi) {
             ReaderTranslationAiSheet(
                 settings = effectiveSettings,
-                fullPageTranslationSupported = effectiveSettings.viewMode != ReaderViewMode.VisualNovel,
+                fullPageTranslationSupported = true,
                 translationProvider = TranslationProvider.fromId(advancedAiSettingsState?.translationProviderId),
                 onTranslationProviderChange = { provider ->
                     scope.launch {

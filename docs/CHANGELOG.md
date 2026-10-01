@@ -14,6 +14,10 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   ModernMt, QQ TransSmart, QQ IMT, Alibaba, Youdao, Caiyun, Translate.com,
   Yandex, Volcengine, and Papago. The source can be switched from the reader
   translation sheet and needs no API key.
+- Enable full-page Reader translation in Visual Novel mode. VN screens now show
+  paragraph translations like paginated and continuous modes; translations are keyed
+  by source structure (`vn-<raw>-<depth>-<tag>`) so they stay correct across screen
+  changes instead of leaking between screens.
 - Add a translation background opacity setting to the reader translation style
   section. The grey highlight behind revealed translations can now be made more
   transparent or hidden entirely (0%).
