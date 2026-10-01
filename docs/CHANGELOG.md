@@ -14,6 +14,9 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
   ModernMt, QQ TransSmart, QQ IMT, Alibaba, Youdao, Caiyun, Translate.com,
   Yandex, Volcengine, and Papago. The source can be switched from the reader
   translation sheet and needs no API key.
+- Add a translation background opacity setting to the reader translation style
+  section. The grey highlight behind revealed translations can now be made more
+  transparent or hidden entirely (0%).
 
 ### Fixed
 

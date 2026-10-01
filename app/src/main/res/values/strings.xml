@@ -361,6 +361,8 @@
     <string name="reader_translation_ai_style_color">Translation color</string>
     <string name="reader_translation_ai_style_color_supporting">Fully transparent follows the current body text color.</string>
     <string name="reader_translation_ai_style_opacity">Translation opacity</string>
+    <string name="reader_translation_ai_style_background_opacity">Translation background opacity</string>
+    <string name="reader_translation_ai_style_background_opacity_supporting">Background of revealed translations. Set to 0% to hide it.</string>
     <string name="reader_search" comment="Reader Contents panel tab label, distinct from dictionary search placeholder.">Search</string>
     <string name="reader_search_in_book">Search in this book</string>
     <string name="reader_search_empty_prompt">Enter text to search this book</string>

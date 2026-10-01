@@ -13,6 +13,7 @@ __HOSHI_PARAGRAPH_SPACING_CSS__
     --hoshi-sasayaki-background-color: __HOSHI_SASAYAKI_BACKGROUND_COLOR__;
     --hoshi-translation-color: __HOSHI_TRANSLATION_COLOR__;
     --hoshi-translation-opacity: __HOSHI_TRANSLATION_OPACITY__;
+    --hoshi-translation-revealed-background: __HOSHI_TRANSLATION_REVEALED_BACKGROUND__;
     --hoshi-vn-background-image: none;
     --hoshi-vn-text-background: transparent;
     --hoshi-vn-text-padding: 0px;
@@ -143,7 +144,7 @@ html[data-hoshi-reader-eink-mode="true"] .hoshi-read-aloud-sentence {
     display: none !important;
 }
 .hoshi-reader-translation-revealed {
-    background-color: rgba(127, 127, 127, 0.18);
+    background-color: var(--hoshi-translation-revealed-background, rgba(127, 127, 127, 0.18));
 }
 .hoshi-vn-stage {
     height: var(--hoshi-reader-visible-height, var(--page-height, 100vh));

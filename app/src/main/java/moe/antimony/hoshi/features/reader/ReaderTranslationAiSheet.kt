@@ -180,6 +180,29 @@ internal fun ReaderTranslationAiSheet(
                             onSettingsChange(settings.copy(translationOpacity = value.coerceReaderTranslationOpacity()))
                         },
                     )
+                    TranslationAiDivider(palette)
+                    val backgroundOpacity = settings.translationRevealedBackgroundOpacity
+                        .coerceReaderTranslationRevealedBackgroundOpacity()
+                    TranslationAiSliderRow(
+                        label = stringResource(R.string.reader_translation_ai_style_background_opacity),
+                        value = "${(backgroundOpacity * 100).roundToInt()}%",
+                        sliderValue = backgroundOpacity,
+                        onValueChange = { value ->
+                            onSettingsChange(
+                                settings.copy(
+                                    translationRevealedBackgroundOpacity =
+                                        value.coerceReaderTranslationRevealedBackgroundOpacity(),
+                                ),
+                            )
+                        },
+                        valueRange = ReaderTranslationRevealedBackgroundOpacityMin..
+                            ReaderTranslationRevealedBackgroundOpacityMax,
+                        steps = readerTranslationRevealedBackgroundOpacitySliderSteps(),
+                    )
+                    TranslationAiSupportingText(
+                        text = stringResource(R.string.reader_translation_ai_style_background_opacity_supporting),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = metrics.appearanceRowVerticalPaddingDp.dp),
+                    )
                     if (colorPickerOpen) {
                         ReaderColorPickerDialog(
                             title = stringResource(R.string.reader_translation_ai_style_color),
@@ -456,6 +479,8 @@ private fun TranslationAiSliderRow(
     value: String,
     sliderValue: Float,
     onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float> = ReaderTranslationOpacityMin..ReaderTranslationOpacityMax,
+    steps: Int = readerTranslationOpacitySliderSteps(),
 ) {
     val metrics = readerSheetDensityMetrics()
     Column(
@@ -475,8 +500,8 @@ private fun TranslationAiSliderRow(
         Slider(
             value = sliderValue,
             onValueChange = onValueChange,
-            valueRange = ReaderTranslationOpacityMin..ReaderTranslationOpacityMax,
-            steps = readerTranslationOpacitySliderSteps(),
+            valueRange = valueRange,
+            steps = steps,
         )
     }
 }

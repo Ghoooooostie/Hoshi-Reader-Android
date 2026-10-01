@@ -775,6 +775,23 @@ class ReaderSettingsTest {
     }
 
     @Test
+    fun translationRevealedBackgroundCssDefaultsToGreyHighlightAndZeroHidesIt() {
+        val defaultCss = ReaderContentStyles.styleTag(ReaderSettings())
+
+        assertTrue(defaultCss.contains("--hoshi-translation-revealed-background: rgba(127, 127, 127, 0.18);"))
+
+        val hidden = ReaderSettings(translationRevealedBackgroundOpacity = 0f)
+        assertEquals("transparent", hidden.translationRevealedBackgroundCss())
+        assertTrue(
+            ReaderContentStyles.styleTag(hidden)
+                .contains("--hoshi-translation-revealed-background: transparent;"),
+        )
+
+        val custom = ReaderSettings(translationRevealedBackgroundOpacity = 0.5f)
+        assertEquals("rgba(127, 127, 127, 0.50)", custom.translationRevealedBackgroundCss())
+    }
+
+    @Test
     fun readerGaijiUsesReaderTextColorMaskForEverySemanticClass() {
         val contentCss = ReaderContentStyles.styleTag(
             settings = ReaderSettings(
