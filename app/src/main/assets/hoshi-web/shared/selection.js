@@ -674,6 +674,12 @@ window.hoshiSelection = {
 
     selectText(x, y, maxLength, rectX = x, rectY = y) {
         const hitElement = document.elementFromPoint(x, y);
+        // 译文（含朗读跟读译文）不应触发查词：点击译文区域直接当作空命中，
+        // 同时返回一个特殊标记，让宿主既不查词也不把它当成"点击空白处"。
+        if (hitElement?.closest('.hoshi-reader-translation')) {
+            this.clearSelection();
+            return 'translation';
+        }
         if (hitElement?.closest('a')) {
             return this.linkTapResult();
         }

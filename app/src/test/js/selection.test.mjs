@@ -492,6 +492,23 @@ test('shared selection treats svg containers as reader taps while preserving svg
     assert.equal(clearCount, 1);
 });
 
+test('shared selection ignores taps on reader translation text', () => {
+    const { document, selection, window } = loadSelection('日本語。');
+    window.getSelection = () => null;
+    let posted = false;
+    selection.postTextSelected = () => { posted = true; };
+    let clearCount = 0;
+    selection.clearSelection = () => { clearCount += 1; };
+
+    document.pointElement = hitElement(['.hoshi-reader-translation']);
+    const result = selection.selectText(1, 1, 10);
+
+    assert.equal(result, 'translation');
+    assert.equal(posted, false);
+    assert.equal(selection.selection, null);
+    assert.equal(clearCount, 1);
+});
+
 test('shared selection can select the whole sentence from a hit point', () => {
     const { document, selection, textNode } = loadSelection('一文目です。二文目です。三文目です。');
     const secondSentenceOffset = '一文目です。'.length;
