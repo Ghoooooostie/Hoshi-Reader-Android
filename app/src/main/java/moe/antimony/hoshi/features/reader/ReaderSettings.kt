@@ -57,7 +57,7 @@ internal const val ReaderPageSwipeThresholdMaxPx = 360
 internal const val ReaderPageSwipeThresholdStepPx = 18
 internal const val ReaderTranslationColorFollowText = 0x00000000L
 internal const val ReaderTranslationOpacityDefault = 0.72f
-internal const val ReaderTranslationOpacityMin = 0.3f
+internal const val ReaderTranslationOpacityMin = 0.0f
 internal const val ReaderTranslationOpacityMax = 1.0f
 internal const val ReaderTranslationOpacityStep = 0.02f
 internal const val ReaderTranslationRevealedBackgroundOpacityDefault = 0.18f
@@ -125,7 +125,7 @@ data class ReaderSettings(
     val readerAiTranslationFallbackEnabled: Boolean = false,
     /** 译文颜色；alpha 为 0（[ReaderTranslationColorFollowText]）表示跟随正文颜色。 */
     val translationColor: Long = ReaderTranslationColorFollowText,
-    /** 译文不透明度（0.3 - 1.0）。 */
+    /** 译文不透明度（0 - 1，0 表示完全隐藏译文）。 */
     val translationOpacity: Float = ReaderTranslationOpacityDefault,
     /** 译文背景（已显示高亮）不透明度（0 - 1，0 表示隐藏背景）。 */
     val translationRevealedBackgroundOpacity: Float = ReaderTranslationRevealedBackgroundOpacityDefault,

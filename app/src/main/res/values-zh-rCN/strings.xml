@@ -359,6 +359,7 @@
     <string name="reader_translation_ai_style_color">译文颜色</string>
     <string name="reader_translation_ai_style_color_supporting">完全透明（alpha 为 0）表示跟随正文颜色。</string>
     <string name="reader_translation_ai_style_opacity">译文透明度</string>
+    <string name="reader_translation_ai_style_opacity_supporting">译文文字的不透明度。设为 0% 可完全隐藏译文。</string>
     <string name="reader_translation_ai_style_background_opacity">译文背景透明度</string>
     <string name="reader_translation_ai_style_background_opacity_supporting">已显示译文底色。设为 0% 可隐藏。</string>
     <string name="reader_search" comment="Reader Contents panel tab label, distinct from dictionary search placeholder.">搜索</string>

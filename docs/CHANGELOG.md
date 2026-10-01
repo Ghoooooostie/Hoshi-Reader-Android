@@ -21,6 +21,8 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 - Add a translation background opacity setting to the reader translation style
   section. The grey highlight behind revealed translations can now be made more
   transparent or hidden entirely (0%).
+- Lower the translation opacity range to 0-100% (was 30-100%). 0% hides the
+  translation text entirely.
 
 ### Fixed
 

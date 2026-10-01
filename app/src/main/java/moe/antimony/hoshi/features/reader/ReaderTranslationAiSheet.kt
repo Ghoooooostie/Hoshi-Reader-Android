@@ -180,6 +180,10 @@ internal fun ReaderTranslationAiSheet(
                             onSettingsChange(settings.copy(translationOpacity = value.coerceReaderTranslationOpacity()))
                         },
                     )
+                    TranslationAiSupportingText(
+                        text = stringResource(R.string.reader_translation_ai_style_opacity_supporting),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = metrics.appearanceRowVerticalPaddingDp.dp),
+                    )
                     TranslationAiDivider(palette)
                     val backgroundOpacity = settings.translationRevealedBackgroundOpacity
                         .coerceReaderTranslationRevealedBackgroundOpacity()
