@@ -43,7 +43,6 @@ function readerSource(url, options = {}) {
         )
         .replace('__HOSHI_READER_TRANSLATION_SCRIPT__', options.translationScript ?? readerTranslationSource())
         .replaceAll('__HOSHI_RESTORE_TOKEN_LITERAL__', JSON.stringify('restore-token'))
-        .replaceAll('__HOSHI_BOTTOM_OVERLAP_PX__', String(options.bottomOverlapPx ?? 0))
         .replaceAll('__HOSHI_VERTICAL_PADDING_BLOCK_RATIO__', '0')
         .replaceAll('__HOSHI_VERTICAL_PADDING_GAP_RATIO__', '0')
         .replaceAll('__HOSHI_IMAGE_WIDTH_VIEWPORT_RATIO__', '1')
@@ -217,6 +216,10 @@ class TestElement extends TestNode {
         this.childNodes = normalized;
     }
 
+    matches(selector) {
+        return selector.split(',').some((item) => item.trim().toUpperCase() === this.tagName);
+    }
+
     closest(selector) {
         const selectors = selector.split(',').map((item) => item.trim().toUpperCase());
         let node = this;
@@ -280,6 +283,17 @@ class TestRange {
         this.insertionIndex = null;
     }
 
+    get startContainer() { return this.startNode; }
+    get endContainer() { return this.endNode; }
+    get collapsed() { return this.startNode === this.endNode && this.startOffset === this.endOffset; }
+
+    cloneRange() {
+        const range = new TestRange();
+        range.setStart(this.startNode, this.startOffset);
+        range.setEnd(this.endNode, this.endOffset);
+        return range;
+    }
+
     selectNodeContents(node) {
         this.node = node;
         this.startNode = node;
@@ -311,16 +325,17 @@ class TestRange {
         const before = value.slice(0, this.startOffset);
         const selected = value.slice(this.startOffset, this.endOffset);
         const after = value.slice(this.endOffset);
-        const replacements = [];
-        if (before) replacements.push(new TestText(before));
+        // DOM Range extraction retains the original start text node. Earlier
+        // cue ranges can still reference its prefix when wrapping in reverse.
+        textNode.nodeValue = before;
+        const replacements = [textNode];
         if (after) replacements.push(new TestText(after));
         replacements.forEach((node) => {
             node.parentNode = parent;
         });
         parent.childNodes.splice(index, 1, ...replacements);
-        textNode.parentNode = null;
         this.insertionParent = parent;
-        this.insertionIndex = before ? index + 1 : index;
+        this.insertionIndex = index + 1;
         if (selected) fragment.appendChild(new TestText(selected));
         return fragment;
     }
@@ -494,6 +509,7 @@ function loadReader(body, sourceUrl = readerPaginatedUrl, options = {}) {
     const css = options.css ?? { highlights: { delete() {}, set() {} } };
     vm.runInNewContext(readerSource(sourceUrl, options), {
         CSS: css,
+        Highlight: Set,
         document,
         Node: { ELEMENT_NODE: 1, TEXT_NODE: 3 },
         NodeFilter: { SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 },
@@ -691,16 +707,16 @@ test('paged and continuous readers use shared media setup', () => {
     });
 });
 
-test('paged and continuous readers expose visible viewport height separately from page height', () => {
+test('paged and continuous readers use actual viewport height', () => {
     const paginatedBody = new TestElement('body');
-    const paginated = loadReader(paginatedBody, readerPaginatedUrl, { bottomOverlapPx: 37 });
+    const paginated = loadReader(paginatedBody, readerPaginatedUrl);
     paginated.reader.initialize();
 
-    assert.equal(paginated.document.documentElement.style.getPropertyValue('--page-height'), '837px');
+    assert.equal(paginated.document.documentElement.style.getPropertyValue('--page-height'), '800px');
     assert.equal(paginated.document.documentElement.style.getPropertyValue('--hoshi-reader-visible-height'), '800px');
 
     const continuousBody = new TestElement('body');
-    const continuous = loadReader(continuousBody, readerContinuousUrl, { bottomOverlapPx: 37 });
+    const continuous = loadReader(continuousBody, readerContinuousUrl);
     continuous.reader.initialize();
 
     assert.equal(continuous.document.documentElement.style.getPropertyValue('--hoshi-continuous-height'), '800px');
@@ -1079,8 +1095,9 @@ test('Sasayaki highlight applies active DOM state without CSS Highlight API', ()
         reader.applySasayakiCues([{ id: 'cue', start: 0, length: 4 }]);
         reader.highlightSasayakiCue('cue', false);
 
-        const wrapper = body.firstChild;
-        assert.equal(body.childNodes.length, 1);
+        const wrappers = body.childNodes.filter((node) => node.nodeType === 1);
+        const wrapper = wrappers[0];
+        assert.equal(wrappers.length, 1);
         assert.equal(wrapper.nodeType, 1);
         assert.equal(wrapper.classList.contains('hoshi-sasayaki-cue'), true);
         assert.equal(wrapper.classList.contains('hoshi-sasayaki-active'), true);
@@ -1356,3 +1373,217 @@ test('reader initialization requires XHTML document.head like iOS', () => {
         assert.throws(() => reader.initialize(), /appendChild/);
     }
 });
+
+test('Sasayaki assigns Japanese boundary punctuation identically for batch and single cues', () => {
+    const cases = [
+        ['「こんにちは。」', [5], ['「こんにちは。」']],
+        ['「そうか。わかった。」', [3, 4], ['「そうか。', 'わかった。」']],
+        ['そうか……わかった。', [3, 4], ['そうか……', 'わかった。']],
+        ['「……本当！？」', [2], ['「……本当！？」']],
+        ['彼は言った。「行こう」', [5, 3], ['彼は言った。', '「行こう」']],
+        ['『「本当？」』', [2], ['『「本当？」』']],
+        ['前文。　「次の文。」', [2, 3], ['前文。', '「次の文。」']],
+        ['𠮟った――「え？」', [3, 1], ['𠮟った――', '「え？」']],
+    ];
+    for (const sourceUrl of [readerPaginatedUrl, readerContinuousUrl]) {
+        for (const [text, lengths, expected] of cases) {
+            const body = new TestElement('body');
+            // Every character lives in a separate inline node.
+            for (const char of text) {
+                const span = new TestElement('span');
+                span.appendChild(new TestText(char));
+                body.appendChild(span);
+            }
+            const { reader } = loadReader(body, sourceUrl);
+            let start = 0;
+            const cues = lengths.map((length, id) => {
+                const cue = { id: String(id), start, length };
+                start += length;
+                return cue;
+            });
+            const texts = (results) => Array.from(results, ({ ranges }) =>
+                ranges.map(({ node, start, end }) => node.textContent.slice(start, end)).join(''));
+            assert.deepEqual(texts(reader.collectSasayakiCueRanges(cues)), expected, text);
+            for (let i = 0; i < cues.length; i++) {
+                assert.deepEqual(texts(reader.collectSasayakiCueRanges([cues[i]])), [expected[i]], text);
+            }
+        }
+    }
+});
+
+test('Sasayaki boundary expansion stops at paragraphs, breaks, media, whitespace and unknown symbols', () => {
+    for (const sourceUrl of [readerPaginatedUrl, readerContinuousUrl]) {
+        for (const barrier of ['p', 'br', 'img', ' ', '🙂', '.']) {
+            const body = new TestElement('body');
+            body.appendChild(new TestText('前'));
+            if (barrier === 'p') {
+                const paragraph = new TestElement('p');
+                paragraph.appendChild(new TestText('……次。'));
+                body.appendChild(paragraph);
+            } else {
+                body.appendChild(['br', 'img'].includes(barrier) ? new TestElement(barrier) : new TestText(barrier));
+                body.appendChild(new TestText('……次。'));
+            }
+            const { reader } = loadReader(body, sourceUrl);
+            const result = reader.collectSasayakiCueRanges([{ id: 'first', start: 0, length: 1 }, { id: 'next', start: 1, length: 1 }]);
+            const texts = Array.from(result, ({ ranges }) => ranges.map(({ node, start, end }) => node.textContent.slice(start, end)).join(''));
+            assert.deepEqual(texts, ['前', ['🙂', '.'].includes(barrier) ? '次。' : '……次。'], barrier);
+            assert.equal(reader.collectSasayakiCueRanges([{ id: 'empty', start: 0, length: 0 }])[0].ranges.length, 0);
+        }
+    }
+});
+
+test('Sasayaki punctuation uses the same bounds in wrappers and e-ink geometry after reapplying cues', () => {
+    for (const sourceUrl of [readerPaginatedUrl, readerContinuousUrl]) {
+        for (const eInk of [false, true]) {
+            const body = new TestElement('body');
+            body.appendChild(new TestText('「一。」『二！？』'));
+            const { reader } = loadReader(body, sourceUrl);
+            reader.isEInkMode = () => eInk;
+            const cues = [{ id: 'a', start: 0, length: 1 }, { id: 'b', start: 1, length: 1 }];
+            for (let iteration = 0; iteration < 2; iteration++) {
+                reader.applySasayakiCues(cues);
+                const texts = cues.map(({ id }) => eInk
+                    ? Array.from(reader.cueGeometryRanges.get(id), (r) => r.startNode.textContent.slice(r.startOffset, r.endOffset)).join('')
+                    : Array.from(reader.cueWrappers.get(id), (node) => node.textContent).join(''));
+                assert.deepEqual(texts, ['「一。」', '『二！？』']);
+            }
+        }
+    }
+});
+
+test('Sasayaki DOM punctuation indexing preserves the existing walker character offsets', () => {
+    for (const sourceUrl of [readerPaginatedUrl, readerContinuousUrl]) {
+        const body = new TestElement('body');
+        body.appendChild(new TestText('一'));
+        const script = new TestElement('script');
+        script.appendChild(new TestText('ignored'));
+        body.appendChild(script);
+        body.appendChild(new TestText('「二。」'));
+        const { reader } = loadReader(body, sourceUrl);
+        reader.buildNodeOffsets();
+        const cue = { id: 'cue', start: reader.nodeStartOffsets.get(body.childNodes[2]), length: 1 };
+        const [{ ranges }] = reader.collectSasayakiCueRanges([cue]);
+        assert.equal(ranges.map(({ node, start, end }) => node.textContent.slice(start, end)).join(''), '「二。」');
+    }
+});
+
+test('Sasayaki includes ruby base punctuation without reading annotation text or layout', () => {
+    for (const sourceUrl of [readerPaginatedUrl, readerContinuousUrl]) {
+        const body = new TestElement('body');
+        body.appendChild(new TestText('「'));
+        const ruby = new TestElement('ruby');
+        ruby.appendChild(new TestText('𠮟'));
+        const rt = new TestElement('rt');
+        const styledAnnotation = new TestElement('div');
+        styledAnnotation.appendChild(new TestText('しか'));
+        rt.appendChild(styledAnnotation);
+        ruby.appendChild(rt);
+        body.appendChild(ruby);
+        body.appendChild(new TestText('。」'));
+        const { reader } = loadReader(body, sourceUrl);
+        const [{ ranges }] = reader.collectSasayakiCueRanges([{ id: 'a', start: 0, length: 1 }]);
+        assert.equal(ranges.map(({ node, start, end }) => node.textContent.slice(start, end)).join(''), '「𠮟。」');
+    }
+});
+
+
+for (const sourceUrl of [readerPaginatedUrl, readerContinuousUrl]) {
+    test(`${sourceUrl.pathname.split('/').pop()} persists ruby and edits exact raw ranges through pending selection`, () => {
+        const body = new TestElement('body');
+        body.appendChild(new TestText('あ 、𠮟'));
+        const ruby = new TestElement('ruby');
+        const base = new TestElement('span');
+        const bold = new TestElement('b'); bold.appendChild(new TestText('東'));
+        base.appendChild(bold); base.appendChild(new TestText('京'));
+        ruby.appendChild(base);
+        const rp = new TestElement('rp'); rp.appendChild(new TestText('(')); ruby.appendChild(rp);
+        const rt = new TestElement('rt'); rt.appendChild(new TestText('とうきょう')); ruby.appendChild(rt);
+        body.appendChild(ruby);
+        body.appendChild(new TestText('、東京'));
+        const { reader, window, document } = loadReader(body, sourceUrl, {
+            highlightsScript: fs.readFileSync(new URL('../../main/assets/hoshi-web/reader/highlights.js', import.meta.url), 'utf8'),
+        });
+        reader.buildNodeOffsets();
+        const highlights = window.hoshiHighlights;
+        const select = (offset, length) => {
+            const segments = highlights.collectSegments(offset, length);
+            const range = document.createRange();
+            range.setStart(segments[0].node, segments[0].start);
+            range.setEnd(segments.at(-1).node, segments.at(-1).end);
+            window.getSelection = () => ({ rangeCount: 1, getRangeAt: () => range, removeAllRanges() {} });
+        };
+        select(4, 2);
+        assert.equal(highlights.prepareHighlightSelection(), true);
+        window.getSelection = () => null;
+        const created = highlights.createHighlight('yellow', 'ruby');
+        assert.equal(created.start, 2);
+        assert.equal(created.offset, 4);
+        assert.equal(created.text, '東京');
+        assert.equal(created.textFurigana, '東京(とうきょう)');
+        select(3, 3);
+        const overlap = highlights.createHighlight('blue', 'overlap');
+        assert.equal(overlap.action, 'created');
+        assert.equal(overlap.text, '𠮟東京');
+        assert.equal(overlap.textFurigana, '𠮟東京(とうきょう)');
+        select(7, 2);
+        assert.equal(highlights.createHighlight('pink', 'repeated').textFurigana, null);
+        assert.equal(highlights.highlights.size, 3);
+        select(4, 2);
+        assert.equal(highlights.createHighlight('green', 'unused').action, 'recolored');
+        assert.equal(highlights.highlights.get('ruby').color, 'green');
+        assert.equal(highlights.highlights.size, 3);
+        select(4, 2);
+        assert.equal(highlights.createHighlight('green', 'unused').action, 'removed');
+        assert.equal(highlights.highlights.size, 2);
+        assert.equal(highlights.textForRange(0, 9).text, 'あ 、𠮟東京、東京');
+        assert.equal(highlights.textForRange(4, 2).textFurigana, '東京(とうきょう)');
+        // Reloading persisted data must also rebuild exact-range identity.
+        const restored = loadReader(new TestElement('body'), sourceUrl, {
+            highlightsScript: fs.readFileSync(new URL('../../main/assets/hoshi-web/reader/highlights.js', import.meta.url), 'utf8'),
+        });
+        restored.document.body.appendChild(new TestText('あ 、𠮟東京、東京'));
+        restored.window.hoshiHighlights.applyHighlights([{ id: 'saved', color: 'blue', offset: 3, text: '𠮟東京' }]);
+        assert.equal(restored.window.hoshiHighlights.findHighlight(3, 3), 'saved');
+        assert.equal(restored.window.hoshiHighlights.findHighlight(3, 2), null);
+    });
+}
+
+for (const sourceUrl of [readerPaginatedUrl, readerContinuousUrl]) {
+    test(`${sourceUrl.pathname.split('/').pop()} search highlight uses normalized offsets and stays transient`, () => {
+        const body = new TestElement('body');
+        body.appendChild(new TestText('前「𠮟 、'));
+        const ruby = new TestElement('ruby');
+        ruby.appendChild(new TestText('猫'));
+        const rt = new TestElement('rt'); rt.appendChild(new TestText('ねこ')); ruby.appendChild(rt);
+        body.appendChild(ruby);
+        body.appendChild(new TestText('。」後'));
+        const registry = new Map();
+        const { reader, window } = loadReader(body, sourceUrl, {
+            css: { highlights: registry },
+            highlightsScript: fs.readFileSync(new URL('../../main/assets/hoshi-web/reader/highlights.js', import.meta.url), 'utf8'),
+        });
+        reader.buildNodeOffsets();
+        const highlights = window.hoshiHighlights;
+        highlights.showSearchHighlight(1, 2);
+        const text = () => Array.from(registry.get('hoshi-search') ?? [], range =>
+            range.startContainer.textContent.slice(range.startOffset, range.endOffset)).join('');
+        assert.equal(text(), '𠮟 、猫');
+        assert.equal(highlights.highlights.size, 0);
+        highlights.showSearchHighlight(3, 1);
+        assert.equal(text(), '後');
+        highlights.showSearchHighlight(2, 0);
+        assert.equal(text(), '');
+        highlights.showSearchHighlight(1, 2);
+        highlights.clearSearchHighlight();
+        assert.equal(text(), '');
+        highlights.showSearchHighlight(1, 2);
+        reader.paginate('forward');
+        assert.equal(text(), '');
+        highlights.showSearchHighlight(1, 2);
+        reader.highlightSasayakiCue({ id: 'cue', start: 3, length: 1 }, false);
+        assert.equal(text(), '𠮟 、猫');
+        reader.highlightSasayakiCue({ id: 'cue', start: 3, length: 1 }, true);
+        assert.equal(text(), '');
+    });
+}

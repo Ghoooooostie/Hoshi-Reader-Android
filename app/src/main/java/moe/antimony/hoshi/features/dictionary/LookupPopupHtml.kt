@@ -75,6 +75,7 @@ internal object LookupPopupHtml {
         eInkMode: Boolean = false,
         audioSettings: AudioSettings = AudioSettings(),
         noAudioFoundText: String = "No audio found",
+        audioLoadingText: String = "Loading...",
         ankiSettings: AnkiPopupSettings = AnkiPopupSettings(),
         fontFaceCss: String = "",
         popupScale: Double = 1.0,
@@ -212,6 +213,7 @@ internal object LookupPopupHtml {
                     window.compactPitchAccents = ${normalizedSettings.compactPitchAccents};
                     window.audioSources = ${audioSourcesJson(audioSettings)};
                     window.noAudioFoundText = ${JsonPrimitive(noAudioFoundText)};
+                    window.audioLoadingText = ${JsonPrimitive(audioLoadingText)};
                     window.audioRequestEndpoint = "https://appassets.androidplatform.net/audio";
                     window.dictionaryMediaRequestEndpoint = "https://appassets.androidplatform.net/image";
                     window.disablePopupImageViewportMaxHeight = true;
@@ -220,7 +222,6 @@ internal object LookupPopupHtml {
                     window.needsAudio = ${ankiSettings.needsAudio};
                     window.allowDupes = ${ankiSettings.allowDupes};
                     window.useAnkiConnect = ${ankiSettings.useAnkiConnect};
-                    window.embedMedia = ${ankiSettings.embedMedia};
                     window.compactGlossariesAnki = ${ankiSettings.compactGlossaries};
                     window.ankiFormats = ${ankiFormatsJson(ankiSettings)};
                     window.ankiBackendAvailable = ${ankiSettings.isBackendAvailable};

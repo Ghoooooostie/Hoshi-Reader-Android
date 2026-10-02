@@ -30,12 +30,17 @@ data class SasayakiMatchDependencies(
     val bookEntry: BookEntry,
     val bookRepository: SasayakiSidecarRepository,
     val epubBookParser: EpubBookParser,
+    val characterCount: Int? = null,
 )
 
-fun sasayakiSubtitleMatchSummary(matchData: SasayakiMatchData?): String? =
-    matchData?.matchRateText()
+internal fun sasayakiSubtitleMatchSummary(matchData: SasayakiMatchData?, characterCount: Int? = null): String? =
+    if (matchData != null && characterCount != null && characterCount > 0) {
+        matchData.characterCoverageText(characterCount)
+    } else {
+        null
+    }
 
-data class SasayakiSubtitleMatchUiState(
+internal data class SasayakiSubtitleMatchUiState(
     val selectedFileName: String? = null,
     val isMatching: Boolean = false,
     val errorMessage: String? = null,
@@ -58,7 +63,7 @@ data class SasayakiSubtitleMatchUiState(
         copy(isMatching = false, errorMessage = errorMessage)
 }
 
-data class SasayakiSubtitleSelectionTransition(
+internal data class SasayakiSubtitleSelectionTransition(
     val state: SasayakiSubtitleMatchUiState,
     val shouldStartMatching: Boolean,
 )

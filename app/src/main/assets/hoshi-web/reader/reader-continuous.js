@@ -111,6 +111,8 @@ __HOSHI_READER_TRANSLATION_SCRIPT__
     }
     this.nodeStartOffsets = offsets;
     this.nodeStartRawOffsets = rawOffsets;
+    // Wrapping/unwrapping moves text nodes and invalidates live CSS Ranges.
+    if (window.hoshiHighlights?.searchRange) window.hoshiHighlights.refreshSearchHighlight();
   },
   countCharsBeforeViewport: function(node, vertical) {
     var text = node.textContent || '';
@@ -288,6 +290,7 @@ __HOSHI_READER_SASAYAKI_SCRIPT__
     return this.sasayakiMediaStopsBetween(this.sasayakiScrollPosition(), endScroll, true, true);
   },
   showSasayakiMediaStop: function(stop) {
+    window.hoshiHighlights?.clearSearchHighlight?.();
     var scroll = Number(stop && stop.scroll);
     if (!Number.isFinite(scroll)) return null;
     var root = document.scrollingElement || document.documentElement;
@@ -301,6 +304,7 @@ __HOSHI_READER_SASAYAKI_SCRIPT__
     return this.calculateProgress();
   },
   highlightSasayakiCue: function(cue, reveal) {
+    if (reveal) window.hoshiHighlights?.clearSearchHighlight?.();
     this.clearSasayakiCue();
     var cueId = typeof cue === 'string' ? cue : cue.id;
     if (this.isEInkMode()) {
@@ -455,6 +459,7 @@ __HOSHI_READER_SASAYAKI_SCRIPT__
     return true;
   },
   paginate: function(direction) {
+    window.hoshiHighlights?.clearSearchHighlight?.();
     var vertical = this.isVertical();
     var root = document.scrollingElement || document.documentElement;
     var before = vertical ? window.scrollX : root.scrollTop;

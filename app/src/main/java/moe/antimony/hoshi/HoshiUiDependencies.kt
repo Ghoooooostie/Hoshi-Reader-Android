@@ -9,6 +9,7 @@ import moe.antimony.hoshi.dictionary.DictionaryRepository
 import moe.antimony.hoshi.epub.BookRepository
 import moe.antimony.hoshi.epub.EpubBookParser
 import moe.antimony.hoshi.features.audio.AudioSettingsRepository
+import moe.antimony.hoshi.features.audio.AudioRequestHandler
 import moe.antimony.hoshi.features.audio.LocalAudioRepository
 import moe.antimony.hoshi.features.advancedai.AdvancedAiClient
 import moe.antimony.hoshi.features.advancedai.AdvancedAiSettingsRepository
@@ -38,6 +39,7 @@ internal class HoshiUiDependencies @Inject constructor(
     private val dictionaryRepositoryProvider: Lazy<DictionaryRepository>,
     private val readerSettingsRepositoryProvider: Lazy<ReaderSettingsRepository>,
     private val dictionarySettingsRepositoryProvider: Lazy<DictionarySettingsRepository>,
+    private val audioRequestHandlerProvider: Lazy<AudioRequestHandler>,
     private val audioSettingsRepositoryProvider: Lazy<AudioSettingsRepository>,
     private val advancedAiSettingsRepositoryProvider: Lazy<AdvancedAiSettingsRepository>,
     private val advancedAiClientProvider: Lazy<AdvancedAiClient>,
@@ -66,6 +68,7 @@ internal class HoshiUiDependencies @Inject constructor(
     val dictionaryRepository: DictionaryRepository get() = dictionaryRepositoryProvider.get()
     val readerSettingsRepository: ReaderSettingsRepository get() = readerSettingsRepositoryProvider.get()
     val dictionarySettingsRepository: DictionarySettingsRepository get() = dictionarySettingsRepositoryProvider.get()
+    val audioRequestHandler: AudioRequestHandler get() = audioRequestHandlerProvider.get()
     val audioSettingsRepository: AudioSettingsRepository get() = audioSettingsRepositoryProvider.get()
     val advancedAiSettingsRepository: AdvancedAiSettingsRepository get() = advancedAiSettingsRepositoryProvider.get()
     val advancedAiClient: AdvancedAiClient get() = advancedAiClientProvider.get()

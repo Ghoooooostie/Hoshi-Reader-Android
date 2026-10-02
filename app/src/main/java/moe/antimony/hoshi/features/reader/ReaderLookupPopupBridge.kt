@@ -525,7 +525,11 @@ internal object ReaderLookupPopupWebBridge {
     private fun isSupported(): Boolean =
         WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)
 
-    fun install(webView: WebView, callbackHolder: ReaderLookupPopupBridgeCallbackHolder) {
+    fun install(
+        webView: WebView,
+        callbackHolder: ReaderLookupPopupBridgeCallbackHolder,
+        isActive: () -> Boolean = { true },
+    ) {
         if (!isSupported()) return
         WebViewCompat.addWebMessageListener(
             webView,
@@ -535,7 +539,7 @@ internal object ReaderLookupPopupWebBridge {
             val data = message.data ?: return@addWebMessageListener
             val parsed = ReaderLookupPopupBridgeMessage.fromJson(data) ?: return@addWebMessageListener
             webView.post {
-                callbackHolder.callbacks.onMessage(parsed)
+                if (isActive()) callbackHolder.callbacks.onMessage(parsed)
             }
         }
     }

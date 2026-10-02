@@ -9,6 +9,7 @@
     <string name="action_back">Back</string>
     <string name="action_forward">Forward</string>
     <string name="action_close">Close</string>
+    <string name="reader_open_failed">Couldn\'t open book</string>
     <string name="action_share">Share</string>
     <string name="action_import" comment="Generic import action label.">Import</string>
     <string name="action_export">Export</string>
@@ -38,7 +39,7 @@
     <string name="dialog_error_title">Error</string>
     <string name="import_select_epub_book">Select a .epub EPUB book file.</string>
     <string name="import_select_srt_subtitle">Select a .srt subtitle file.</string>
-    <string name="import_select_audiobook">Select a .mp3, .m4b, or .opus audiobook file.</string>
+    <string name="import_select_audiobook">Select a .mp3, .m4b, .m4a, or .opus audiobook file.</string>
     <string name="import_select_audio_database">Select a .db audio database file.</string>
     <string name="import_select_dictionary_archive">Select a .zip dictionary archive file.</string>
     <string name="import_select_hoshi_backup">Select a .hoshi Hoshi backup file.</string>
@@ -107,7 +108,7 @@
     <string name="settings_anki">Anki</string>
     <string name="settings_profiles" comment="Settings row label, intentionally matching the Profiles screen title.">Profiles</string>
     <string name="settings_display">Theme</string>
-    <string name="settings_appearance">Reading Settings</string>
+    <string name="settings_appearance">Appearance</string>
     <string name="settings_behavior">Behavior</string>
     <string name="settings_advanced">Advanced</string>
     <string name="settings_report_issue">Report an Issue</string>
@@ -298,7 +299,7 @@
     <string name="profiles_delete_title_format" comment="Profile delete confirmation, intentionally matching book and imported-font delete confirmation formats.">Delete \"%1$s\"?</string>
     <string name="profiles_default_cannot_delete">The default profile cannot be deleted.</string>
     <string name="bookshelf_profile">Profile</string>
-    <string name="bookshelf_profile_automatic">Automatic</string>
+    <string name="bookshelf_profile_automatic" comment="Automatically choose the content language profile for a book.">Automatic</string>
     <string name="bookshelf_profile_automatic_uses_format">Uses %1$s</string>
     <string name="reader_behavior_volume_keys_turn_pages">Volume Keys Turn Pages</string>
     <string name="reader_behavior_volume_keys_navigate_popup_terms">Volume Keys Navigate Popup Terms</string>
@@ -532,7 +533,7 @@
     <string name="sync_clear_cache_confirmation">Hoshi will clear cached Google Drive folder IDs and remote cover thumbnails. Local books are not deleted.</string>
     <string name="sync_sign_out_title">Sign out of Google Drive?</string>
     <string name="sync_sign_out_confirmation">Hoshi will disconnect Google Drive and clear cached Drive folders. Local books are not deleted.</string>
-    <string name="sync_mode_auto">Auto</string>
+    <string name="sync_mode_auto" comment="Automatic synchronization mode.">Auto</string>
     <string name="sync_mode_manual">Manual</string>
     <string name="sync_google_drive" comment="Sync provider label, intentionally matching the bookshelf remote Google Drive section.">Google Drive</string>
     <string name="sync_device_client_id">Device client ID</string>
@@ -656,7 +657,6 @@
     <string name="anki_check_duplicates_all_models">Check for duplicates across all models</string>
     <string name="anki_duplicate_check_scope">Duplicate Check Scope</string>
     <string name="anki_compact_glossaries" comment="Anki setting label, intentionally matching dictionary compact glossaries.">Compact Glossaries</string>
-    <string name="anki_embed_media">Embed media</string>
     <string name="anki_droid_force_sync">Sync AnkiDroid after adding card</string>
     <string name="anki_droid_force_sync_description">Starts AnkiDroid sync after a card is added. AnkiDroid may ignore syncs run more often than every 5 minutes.</string>
     <string name="anki_fields">Fields</string>
@@ -799,15 +799,18 @@
     <string name="sasayaki_remove_audio">Remove</string>
     <string name="sasayaki_storage_copied">Copied to app storage. The original audiobook file can be deleted.</string>
     <string name="sasayaki_storage_linked">Linked to the external audiobook file. Keep the original file available.</string>
-    <string name="sasayaki_storage_select_audio">Select a .mp3, .m4b, or .opus audiobook</string>
-    <string name="sasayaki_subtitle_match">Subtitle Match</string>
+    <string name="sasayaki_storage_select_audio">Select a .mp3, .m4b, .m4a, or .opus audiobook</string>
+    <string name="sasayaki_export_srt">Export SRT</string>
+    <string name="sasayaki_srt_saved">SRT file saved.</string>
+    <string name="sasayaki_srt_export_failed">Could not export subtitles. Please try again.</string>
+    <string name="sasayaki_current_match">Current Match</string>
     <string name="sasayaki_no_subtitle_match">No match</string>
     <string name="sasayaki_no_chapters">No chapters found in this audiobook.</string>
     <string name="sasayaki_unknown_chapter">Chapter</string>
     <string name="sasayaki_current_chapter">Current chapter</string>
     <string name="sasayaki_skip_cue">1 sentence</string>
     <string name="sasayaki_skip_seconds_format">%1$d seconds</string>
-    <string name="sasayaki_settings_description">Open the Reader Sasayaki menu to load a .mp3, .m4b, or .opus audiobook. Subtitle matching is available from the Resources tab when you have a matching .srt file.</string>
+    <string name="sasayaki_settings_description">Open the Reader Sasayaki menu to load a .mp3, .m4b, .m4a, or .opus audiobook. In Resources, match an .srt subtitle file or transcribe Japanese audio on this device.</string>
     <string name="sasayaki_select_srt_file">Select an .srt subtitle file.</string>
     <string name="sasayaki_selected_srt">Selected SRT</string>
     <string name="sasayaki_open_srt_failed">Unable to open selected SRT.</string>
@@ -925,7 +928,7 @@
     <string name="display_settings_eink_mode">E-ink Optimization</string>
     <string name="display_settings_eink_appearance">E-ink Appearance</string>
     <string name="display_settings_eink_explanation">E-ink optimization uses a black-and-white palette. Turning it off restores your saved palette and accent color.</string>
-    <string name="reader_settings_profile_title">Reading Settings · %1$s</string>
+    <string name="reader_settings_profile_title">Appearance · %1$s</string>
     <string name="read_aloud">Read Aloud</string>
     <string name="read_aloud_start">Start reading</string>
     <string name="read_aloud_settings">Read Aloud Settings</string>
@@ -970,4 +973,60 @@
          因此这里只保留空数组；中文条目见 values-zh-rCN 的同名数组。
          每项格式为「组名::标签::说明」。 -->
     <string-array name="deinflection_group_translations" />
+    <string name="dictionary_frequency_sort_order">Sort order</string>
+    <string name="dictionary_frequency_dictionary">Frequency dictionary</string>
+    <string name="dictionary_frequency_auto" comment="Automatic dictionary lookup frequency ordering.">Auto</string>
+    <string name="dictionary_frequency_ascending">Ascending</string>
+    <string name="dictionary_frequency_descending">Descending</string>
+    <string name="dictionary_frequency_disabled">Disabled</string>
+    <string name="dictionary_import_file_error_format">%1$s: %2$s</string>
+    <string name="dictionary_import_native_error_format">Dictionary importer: %1$s</string>
+    <string name="dictionary_import_file_access_error">Cannot access the dictionary file.</string>
+    <string name="dictionary_import_archive_error">The dictionary archive is invalid or damaged.</string>
+    <string name="dictionary_import_index_error">The dictionary index is missing or invalid.</string>
+    <string name="dictionary_import_contents_error">No supported dictionary entries were found.</string>
+    <string name="dictionary_import_io_error">Could not read or save the dictionary files.</string>
+    <string name="audio_source_jpod101" translatable="false">JapanesePod101</string>
+    <string name="audio_source_language_pod101" translatable="false">LanguagePod101</string>
+    <string name="audio_source_jisho" translatable="false">Jisho</string>
+    <string name="sasayaki_match_source_subtitles">Subtitles</string>
+    <string name="sasayaki_transcription">Transcription</string>
+    <string name="sasayaki_transcription_description">Transcribe Japanese audio and match it to the book.</string>
+    <string name="sasayaki_transcription_select_audio">Import an audiobook using the Audiobook section above.</string>
+    <string name="sasayaki_transcription_start">Transcribe</string>
+    <string name="sasayaki_transcription_resume">Resume</string>
+    <string name="sasayaki_transcription_realign">Match Again</string>
+    <string name="sasayaki_transcription_pause">Pause</string>
+    <string name="sasayaki_transcription_preparing">Preparing transcription…</string>
+    <string name="sasayaki_transcription_downloading">Downloading transcription files… %1$d%%</string>
+    <string name="sasayaki_transcription_progress">Transcribing and matching…</string>
+    <string name="sasayaki_transcription_paused">Transcription paused</string>
+    <string name="sasayaki_transcription_complete">Transcription complete</string>
+    <string name="sasayaki_transcription_awaiting_download">Waiting for download confirmation</string>
+    <string name="sasayaki_transcription_download_title">Download transcription files?</string>
+    <string name="sasayaki_transcription_download_message">Transcription needs about %1$d MiB of additional files (speech model and processing components). Downloaded files can be reused offline. Your audio stays on this device.</string>
+    <string name="sasayaki_transcription_download_action">Download and transcribe</string>
+    <string name="sasayaki_transcription_saved_progress">Transcribed %1$s / %2$s</string>
+    <string name="sasayaki_transcription_remaining">About %1$d min left</string>
+    <string name="sasayaki_transcription_aligning">Aligning with book…</string>
+    <string name="sasayaki_transcription_pausing">Saving progress…</string>
+    <string name="sasayaki_transcription_clear">Clear Transcription</string>
+    <string name="sasayaki_transcription_clear_confirmation">Clear transcription?</string>
+    <string name="sasayaki_transcription_clear_message">Only transcription data will be cleared. The current match will be kept.</string>
+    <string name="sasayaki_transcription_error_audio">Couldn’t read this audio. Check that the file is complete, accessible, and in a supported format, then try again.</string>
+    <string name="sasayaki_transcription_error_resources">Couldn’t download or verify transcription files. Check your connection and available storage, then try again.</string>
+    <string name="sasayaki_transcription_error_recognition">Japanese speech recognition couldn’t start or complete. Restart the app and try again; if it repeats, switch to Lightweight mode.</string>
+    <string name="sasayaki_transcription_error_match">Couldn’t match the transcription to this book. Check that the book opens correctly and matches this audio.</string>
+    <string name="sasayaki_transcription_error_storage">Couldn’t save transcription progress. Check available storage and that the book is still available.</string>
+    <string name="sasayaki_transcription_busy">Another book is being transcribed.</string>
+    <string name="about_ffmpeg_license" translatable="false">FFmpeg 9.0.2 · LGPL 2.1+</string>
+    <string name="about_ffmpeg_source">FFmpeg source code</string>
+    <string name="about_transcription_license">Transcription component licenses</string>
+    <string name="sasayaki_transcription_speed">Transcription speed</string>
+    <string name="sasayaki_transcription_light">Lightweight</string>
+    <string name="sasayaki_transcription_balanced">Balanced</string>
+    <string name="sasayaki_transcription_fast">Fast</string>
+    <string name="sasayaki_transcription_light_description">Uses fewer resources, with slower transcription.</string>
+    <string name="sasayaki_transcription_balanced_description">Balances transcription speed and everyday use.</string>
+    <string name="sasayaki_transcription_fast_description">Faster transcription; may generate more heat.</string>
 </resources>

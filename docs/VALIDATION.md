@@ -19,6 +19,20 @@ build behavior:
 ./gradlew lint
 ```
 
+For transcription runtime packaging or binding transforms, also run
+`./gradlew -p buildSrc test` and `python3 tools/build-transcription-audio.py --check`.
+When changing the FFmpeg decoder or its CMake configuration, build all component
+ABIs with `python3 tools/build-transcription-audio.py --ndk <NDK-29.0.14206865>
+--cmake <CMake-3.31.6>`. Commit the generated
+`app/src/main/assets/transcription-audio-runtime.json` with those sources.
+Before shipping the APK, publish `build/transcription-audio/distribution` using
+`tools/publish-transcription-components.py --catalog <catalog> --directory <distribution>
+--notice app/src/main/res/raw/ffmpeg_license.txt --extra <generated-source-archive>
+--target <remote-commit>`. Include the generated source archive so the component
+can be rebuilt independently of the APK.
+This publishes an immutable component prerelease and never replaces existing
+files. Use `--remote-check --catalog <catalog>` to verify public download hashes.
+
 Run a release build when changing `minSdk`, `targetSdk`, `compileSdk`, ABI
 filters, signing, native packaging, or other release packaging behavior:
 
@@ -57,9 +71,24 @@ For reader web asset changes, run the focused JavaScript tests:
 node --test app/src/test/js/*.test.mjs
 ```
 
+## Sasayaki Subtitle Export
+
+- From Resources, export the current match using both Subtitles and Transcription.
+  Save through the system document picker, cancel and retry, and open the system
+  share sheet without selecting a recipient. Verify UTF-8 text, cue times and
+  multiline text survive export/import. Only matched cues are exported.
+- During transcription, export a partial match without pausing or changing Reader
+  or playback position; later matches must not alter the already prepared file.
+  `SasayakiSrtTest` covers both-source rematching and timestamp rounding;
+  `SasayakiSubtitleExportTest` covers readable shared URIs, snapshot persistence,
+  picker cancellation, and save failure recovery using test-owned cache files.
+
 ## Device And Emulator Safety
 
 - Preserve app data by default.
+- `am instrument` can exit with shell status 0 despite failing tests. Require its
+  final `OK (N tests)` summary; inspect `FAILURES`, `INSTRUMENTATION_FAILED`, and
+  test stack traces before reporting a device run as passed.
 - Do not run `connectedDebugAndroidTest`, `connectedAndroidTest`,
   `installDebugAndroidTest`, or any connected instrumentation task that clears,
   reinstalls, or uninstalls app data unless the user explicitly permits a
@@ -85,6 +114,50 @@ node --test app/src/test/js/*.test.mjs
   fixtures instead of depending on these ignored local files.
 
 ## Reader And Lookup
+
+- Dictionary tab history: search A, follow a definition link to B, swipe back to
+  A, switch to Settings and return. A and its scroll/expanded definitions must
+  remain visible; forward must still reach B and back must return to A. Also
+  switch tabs while on B, repeat after a child lookup, and start a fresh search
+  to verify old history is cleared. `DictionarySearchSessionTest` checks WebView
+  session retention with in-memory pages without changing installed app data.
+  Record the Settings-to-Dictionary transition and inspect the first visible
+  frames for blank results. Check external lookup followed by Settings does not
+  show a keyboard on Settings; repeated Dictionary selection still focuses search.
+  `RetainedTabContentTest` checks that inactive content remains attached, has a
+  CREATED lifecycle, and cannot consume another tab's Back action.
+
+- Book search: verify literal spaces/punctuation, case-insensitive matches,
+  paragraph/`br` boundaries, ruby exclusion, complete bracketed sentence
+  snippets, 100-result limit, and supplementary-plane characters before/inside
+  matches. In paginated, continuous and VN modes with horizontal/vertical
+  writing, jump within/across chapters and to the current position, then
+  search again rapidly; only the latest restored target should receive a blue
+  mark. Check actual painting, not just Range geometry. Page navigation and
+  other jumps clear the mark; jump history must not recreate it. Search marks
+  never appear in saved Highlights or sidecars. Punctuation-only queries remain
+  searchable but a zero-normalized-length result paints no mark.
+  `ReaderSearchHighlightWebViewTest` uses in-memory content to verify blue
+  pixels and clearing in all six mode/writing-direction combinations, without
+  opening books or changing preferences. Standalone reader WebView fixtures must
+  inject `readerViewportCssLayout(...).cssVariables()` using the measured view
+  dimensions and wait for `HoshiReaderRestore`; loading only the shell script
+  can leave VN with a zero-height clipped viewport. Build instrumentation
+  separately and use `adb install -r` plus the explicit class runner; do not use connected
+  Gradle tasks on a device with user data.
+
+- In paginated, continuous, and VN modes, use the native selection color menu
+  on plain text and ruby split across styled nodes. Contents should show base
+  text with parenthesized readings, while old highlights without readings still
+  show plain text. Select exactly the same raw range to recolor without adding
+  a record, then choose its current color to remove it. Partial overlaps and
+  repeated text at different positions remain independent. Include whitespace,
+  punctuation and supplementary characters before/inside the range; verify
+  Contents jumps, chapter changes, restart and sync preserve location/readings.
+  In VN, also complete progressive reveal, leave/return to rebuild the screen,
+  and check both overlapping highlights still paint their full visible ranges.
+  Selecting only a visible part of a cross-screen highlight creates a separate
+  range rather than editing the complete stored range. Preserve device data.
 
 ### Theme
 
@@ -131,7 +204,10 @@ panels, dialogs, menus, and Process Text lookup:
   Across all four tabs, check that bottom/side navigation has a consistent tint
   and that the status-bar inset matches its page. Dictionary search must retain
   this continuity both with the keyboard open and after showing results; its
-  field remains distinguishable, with explicit field/top-bar outlines in E-ink.
+  field remains distinguishable, with an explicit field outline in E-ink and no
+  extra separator below the search header, above the bottom tabs, or beside the
+  navigation rail. Verify both portrait bottom tabs and landscape side navigation
+  on a device; they use separate shell layouts.
   Compare strongly tinted system palettes and manual blue/red/green accents:
   page, navigation, nested controls and overlays should keep a subtle neutral
   tint and distinct tonal levels. Group dividers should remain visible without
@@ -139,7 +215,7 @@ panels, dialogs, menus, and Process Text lookup:
   Repeat in dark mode and confirm E-ink still uses full black/white boundaries.
 - Light and dark E-ink: compare every tonal container with ordinary mode and
   verify actual outlines on groups, nested controls, filled buttons, segmented
-  tracks/selections, popups, panels and navigation boundaries. Lazy groups need a
+  tracks/selections, popups and panels. Lazy groups need a
   continuous closed outline with one row, multiple rows and during scrolling.
   E-ink optimization sits directly below automatic switching. Enabling it hides
   palette/accent choices and shows an explanation; automatic switching stays available. With
@@ -199,6 +275,18 @@ Dictionary tab. Cover cold start, an existing foreground task, two consecutive
 identical links, URL-encoded Japanese text, and missing or blank `text`; empty
 text must open a cleared, focused Dictionary search instead of an empty popup.
 
+Validate Dictionary pull-to-clear after a normal search and after an app-mode
+lookup deep link. At the top of the results, pull past the trigger threshold:
+only the search field should clear, focus, and show the keyboard. Results,
+recursive popups, and back/forward history must remain usable. Repeat with an
+empty field and after hiding the keyboard; type a new query and confirm the
+old results remain until search is submitted. A pull below the threshold must
+not clear the field or results. Explicit blank external lookups must still
+reset the search as described above.
+Also tap the search field's clear button after a normal search and an app-mode
+lookup deep link, with the keyboard hidden: the field must clear, gain focus,
+and show the keyboard while preserving results and navigation history.
+
 Manual reader validation should cover:
 
 - Reader Translation (AI) full-page translation: turn on full-page translation and confirm
@@ -208,8 +296,26 @@ Manual reader validation should cover:
   revealing it, and turning full-page translation off must restore long-press sentence
   translation/analysis popups. Verify always-visible and on-long-press display modes across
   paginated and continuous modes, chapter changes, and re-opening the panel.
+- Renderer termination in paginated, continuous and VN modes: after moving
+  beyond the saved bookmark (including a continuous scroll before its idle
+  save), terminate the renderer and verify the loading frame restores the latest
+  accepted position, settings, highlights and Sasayaki cue. Repeat during
+  restore and after an internal fragment jump. Open lookup and native selection
+  before termination; neither may survive or reappear from a stale callback.
+  Check paused and playing Sasayaki, including an image auto-page hold, then
+  verify navigation and Close during/after recovery. Trigger renderer exit only
+  on the intended test WebView; do not force-stop the app or clear its data.
+
 - cover image pages and multi-image illustration pages.
+- `ReaderViewportWebViewTest` uses generated content without changing books or
+  preferences to check vertical page height/padding, forward traversal to the
+  last text and end-position restore at zero/nonzero padding and normal/large
+  fonts. Run it via the explicit instrumentation runner with data-preserving
+  APK installation; never use connected Gradle tasks on an existing device.
 - paginated, continuous, and VN modes in vertical and horizontal writing.
+  Check default and enlarged line heights with ruby and inline images: glyphs,
+  readings, and images must remain visible without overlapping adjacent lines;
+  page/scroll progress and restoring the same passage must remain stable.
 - VN block and sentence screens, reveal speed 0/45/120, blank-area click
   advance, text lookup taps, links, images, restore, and chapter boundaries.
 - VN cross-screen lookup with a word split at the current-screen boundary:
@@ -489,9 +595,28 @@ Preserve existing app data when validating statistics:
 Validate relevant dictionary/audio changes with:
 
 - recommended dictionary downloads for JMdict, JMnedict, Jiten, and Jitendex.
-- manual multi-dictionary import with one invalid archive, confirming later
-  archives still import and failures are reported.
-- Low Memory Usage Mode with a large Yomitan archive.
+- lookup frequency sorting in Auto/Ascending/Descending/Disabled modes across
+  Reader, Dictionary, recursive popups and Process Text; explicit dictionary
+  selection, equal/missing frequencies, disable/delete/reorder, update renames,
+  profile switching and restart. Scan controls, frequency sort order and the
+  conditional dictionary selector must share one Lookup card: dividers inside,
+  rounded corners only on the outer group. `DictionaryFrequencyNativeTest` exercises the
+  JNI bridge using generated dictionaries in a unique cache directory. Build
+  with `./gradlew assembleDebug :app:assembleDebugAndroidTest`, install both
+  APKs using `adb install -r`, and run only this class with `adb shell am
+  instrument -w -e class moe.antimony.hoshi.dictionary.DictionaryFrequencyNativeTest
+  moe.antimony.hoshi.debug.test/androidx.test.runner.AndroidJUnitRunner`;
+  do not use connected Gradle tasks that reinstall or clear app data.
+- manual multi-dictionary import with invalid/unreadable archives, confirming
+  later archives still import and the error dialog lists each filename and
+  reason in English/Chinese. Check all-failed and mixed batches, Unicode names,
+  empty native diagnostics, cancellation and preservation of installed data.
+  `DictionaryImportNativeTest` uses generated cache fixtures to verify native
+  errors, including Unicode paths; run it with the same data-preserving
+  instrumentation procedure as `DictionaryFrequencyNativeTest`.
+- Low Memory Usage Mode with a large Yomitan archive. Automatic dictionary
+  updates must use low-memory import even with this setting off; manual imports
+  and updates must follow the setting, and automatic updates must not change it.
 - dictionary row long-press deletion, keeping the left reorder handle dedicated
   to dragging.
 - term/frequency/pitch/Kanji import, enable, reorder, delete, and update behavior
@@ -504,6 +629,50 @@ Validate relevant dictionary/audio changes with:
   but disabled afterward. Confirm a failed or interrupted download leaves no
   partial font and restores the enabled action, then verify numbered strokes in
   Reader, Dictionary, and Process Text Kanji popups.
+- local-first audio latency: with an enabled local source before slow or
+  unreachable remote sources, default playback/autoplay and mining must use
+  the local recording without requesting later sources. Opening the full
+  recording menu may load remote candidates, but must not block concurrent
+  default playback. Verify empty earlier sources still fall through in order.
+  Long-press with delayed sources: the menu must appear with localized loading
+  rows immediately, start all enabled sources concurrently, and make each
+  completed source selectable in configured order. Select a later source while
+  an earlier source is pending and verify playback/mining share its URL, even
+  if autoplay or mining began before that selection. Concurrent default mining
+  must not cancel a requested playback. Close
+  or reset the popup during loading; late results must not reopen its menu.
+  With definitions already scrolled, swipe inside the recording menu at its
+  top/bottom and with too few rows to overflow: definitions must stay still,
+  and the menu must not stretch or glow from overscroll.
+  With overflowing rows, internal menu scrolling must still work; after
+  dismissal, definitions must scroll normally again. In a short bottom popup,
+  open a long recording list: it must fit above or below the audio button
+  without covering it, including as delayed candidates arrive. Repeat with
+  the trigger near the bottom and popup scales 0.8, 1, and 2.
+- default remote word audio: new settings list JapanesePod101, LanguagePod101,
+  then Jisho. Upgrade from an enabled and a disabled old built-in proxy source;
+  verify in-place expansion, retained custom/local sources and ordering, and
+  persistence after restart. Existing custom entries using the old proxy URL
+  must remain custom entries. Disable/reorder the new sources and verify
+  playback and the candidate menu in Reader (all modes), Dictionary, Process
+  Text, and recursive popups. Check kanji with reading and kana-only queries,
+  a missing JapanesePod101 recording falling through to later sources, and all
+  sources unavailable. Select a Jisho/LanguagePod101 candidate and verify Anki
+  exports that recording; JapanesePod101's `audiomp3.php` URL must export as MP3,
+  never as PHP or the known placeholder recording. Use deterministic HTTP/HTML
+  fixtures in JVM tests; live service availability is a separate manual check.
+  `AnkiRemoteAudioDeviceTest` is an opt-in live test for all three sources and
+  actual AnkiDroid MP3 export. It requires initialized AnkiDroid with Hoshi's
+  existing database-access grant, uses in-memory settings, and deletes only
+  its three uniquely named notes in `finally`. Exported content-addressed media
+  can remain in Anki's media collection. AnkiDroid may append filename suffixes;
+  validate saved sound references and extensions rather than exact filenames.
+  Build/install the test APK with the
+  same data-preserving commands as `AnkiTagsDeviceTest` below, then run:
+
+  ```bash
+  adb shell am instrument -w -e class moe.antimony.hoshi.features.anki.AnkiRemoteAudioDeviceTest -e ankiRemoteAudioSmoke true moe.antimony.hoshi.debug.test/androidx.test.runner.AndroidJUnitRunner
+  ```
 - local audio database source ordering and per-source enable controls with
   imported MP3 and Opus `android.db` files. Disable the highest-priority source
   and confirm lookup playback and Anki audio export use the next enabled source;
@@ -584,9 +753,17 @@ Validate relevant dictionary/audio changes with:
   and the last format cannot be deleted. Confirming a deck/model fetch resets
   every format mapping while retaining IDs, names, icons, and tags.
 - Duplicate-note search through AnkiConnect `guiBrowse` and the AnkiDroid card
-  browser deep link for collection, deck, and deck-root scopes, including the
+  browser Intent for collection, deck, and deck-root scopes, including the
   all-models option and the global hide-search-button setting. Confirm the
   search button is absent when duplicate checking reports no matching note.
+  First select an unrelated deck in AnkiDroid, then open a matching note from
+  Hoshi: results must honor Hoshi’s scope without prompting to search all decks.
+  Do not combine a URI `search` parameter with the Intent extras: AnkiDroid
+  prioritizes the URI and retains its previous deck filter.
+  With an existing `あり難い` note, verify the `あり難い` dictionary result also
+  shows the duplicate icon and disables mining when duplicates are disallowed.
+  AnkiDroid first-field checksums must follow Anki’s NFC normalization before
+  HTML stripping; do not use NFKC, which would also fold full-width/half-width forms.
 - Exact cloze output for repeated matches, incorrect stored offsets, and
   supplementary-plane characters; selected-glossary fallback `None`,
   `{glossary-first}`, monolingual, bilingual, and both category fallback
@@ -668,7 +845,13 @@ Validate relevant sync/update/Sasayaki changes with:
   remote-only bookshelf list, pull-to-refresh, import, long-press delete,
   transient network behavior, manual import/export result dialogs,
   reader-open import-only behavior, auto-export timing, close/background flush,
-  statistics merge/replace, and Sasayaki last-position sync.
+  statistics merge/replace, and Sasayaki last-position sync. For automatic
+  bookshelf refresh, test offline/DNS failure, stalled OAuth token and Drive
+  list responses, and connection reset: cached entries remain visible without
+  an error dialog. Repeat via manual refresh/import/export and confirm a
+  localized error. HTTP authorization/server errors and TLS failures must stay
+  visible even during automatic refresh. OAuth and Drive connect/read waits
+  use 10-second timeouts (not a total-operation deadline).
 - GitHub update prompts, skip-version, manual checks, completed-download
   prompts, user-triggered install, same-version APK cleanup, and split APK
   updates on arm64-v8a and armeabi-v7a targets.
@@ -684,6 +867,139 @@ Validate relevant sync/update/Sasayaki changes with:
   sequence should be recovered while repeated prefix text remains unmatched,
   and a large local text gap should recover only from a coherent later cue
   sequence.
+- Sasayaki highlight rendering changes: on a real WebView, compare unhighlighted
+  text and active cues in horizontal/vertical writing with ruby and publisher
+  `text-emphasis`. Verify complete glyph edges, ruby, and emphasis marks as well
+  as stable text positions. CSS Highlight API availability and unchanged Range
+  geometry alone do not establish correct painting. In VN, repeat the first cue
+  pass, revisit cues on the same screen, then leave and return to rebuild the
+  screen; check both normal and E-ink modes.
+- Sasayaki transcription: import MP3/M4B/M4A or Opus through the audiobook card
+  and select Transcription; there must be no second audio picker or permanent
+  model-download notice. Starting with missing or invalid models or runtime files asks to download
+  the missing size before any network request; cancelling or leaving Reader
+  dismisses the request without writing an empty transcript or changing existing
+  progress. Cached models plus runtime files and realignment must not prompt.
+  Verify a model-only cache requests just the runtime, and fully cached resources
+  work offline. Runtime files must be read-only and SHA-256 verified before native
+  loading; corrupt or cancelled downloads must not publish a library. Check release
+  APKs contain no FFmpeg/ONNX/sherpa native libraries, and component release assets
+  match the URLs, byte sizes and hashes embedded in `transcription-runtime.json`. Display processed/total
+  audio time only once, both while running and paused; resuming must retain it
+  during preparation so the controls do not jump as the source is loaded. Check model
+  download/progress, pause, close/reopen the sheet, and background/foreground the
+  app. Closing the sheet must keep transcription progressing while reading;
+  reopening must show that same task with Pause enabled. Match coverage and usable
+  cues must grow while transcription is still running, without requiring Pause.
+  Check first-batch publication and throttled updates after further batches,
+  including slow matching (no queue of obsolete snapshots), silence (no redundant
+  rematching), a partial sentence extended by later speech, and a previously
+  unmatched gap gaining a right-hand anchor. Live updates must preserve the
+  playback position, current page, VN typewriter reveal, lookup popup, and image
+  hold/automatic resume. Completion must agree with a fresh full alignment.
+  The opt-in `SasayakiIncrementalMatchDeviceTest` accepts `-e matchBookRoot <root>`;
+  it reads an existing book/transcript without writing sidecars and places timing
+  and allocation results in `cache/incremental-match-benchmark/report.json`.
+  Verify Lightweight/Balanced/Fast defaults to Balanced and persists across restart.
+  Preset selection is locked while running; pausing, changing preset and resuming
+  must retain committed progress, and closing/reopening the sheet keeps the choice.
+  With cached models, `SasayakiTranscriptionDeviceTest` compares all three presets'
+  native token text/order/timestamps on an explicit scratch `realClip`, and checks
+  cancellation in Fast followed by resume in Lightweight. Pure pipeline tests cover
+  out-of-order completion, bounded work, silence ordering and failure/cancellation.
+  After pausing, Resume
+  must work without changing tabs to refresh the audio source. Backgrounding
+  the app must not actively pause the task; while its process can execute,
+  completed batches continue advancing and returning shows the latest progress.
+  A pending download confirmation must remain unconfirmed through a background/
+  foreground cycle. Removing the Reader route saves and pauses, including when
+  waiting for download approval; reopening offers Resume. Configuration recreation
+  must not be treated as leaving the route. Background execution is best-effort,
+  with no foreground service or WorkManager guarantee; after process reclamation,
+  starting again resumes the saved checkpoint;
+  incomplete speech segments must neither vanish nor duplicate. Changing the
+  source or duration starts a new transcript. Complete transcripts offer
+  realignment; confirming Clear Transcription keeps the existing match. Verify
+  another book cannot start concurrent transcription, and deleting the active
+  book cannot recreate its files. Check download/decoder failures use localized
+  errors and leave usable checkpoints; retry with cached models while offline
+  and confirm no downloading label appears. Keep the screen awake while the
+  Reader transcription task is active, including with its sheet closed.
+  Compare highlighted passages and timing with the book/audio, especially
+  introductions, repeated text, ruby, silence, omitted sentences and audio ends.
+  Reproduce ASR omissions with PCM from the production decoder, preserving its
+  equal-weight channel mixing and absolute sample clock; generic FFmpeg mono
+  conversion can change the input gain. Confirm the original token text and
+  timestamps on the target device before comparing segment boundaries or padding;
+  desktop quantized inference can differ even with identical PCM and model files.
+  Inspect energy scores and actual recognition input ranges to distinguish
+  skipped speech from words omitted by recognition.
+  Check quiet openings, changes in background level, expressive loud dialogue,
+  short replies with syllable gaps, and final words just after a 20-second hard
+  cut. Segment rejection must not discard a short continuation of accepted speech.
+  Around silence-separated ASR segments, verify the next word's first character
+  survives even if its model timestamp falls inside leading context. Compare
+  continuous and checkpoint-resumed output for missing or duplicated prefixes;
+  keep hard-cut speech context. Existing transcripts may recover short word
+  fragments between real anchors; short entirely omitted interior cues can share
+  a neighboring highlight but must not receive fabricated independent word times.
+  Partial-word repair must not bridge token-free long silence. Explicitly recognized words after a
+  long pause must retain their token times. Check kana/kanji rewrites around a
+  local exact phrase and punctuation, a missing whole reply beside a recognized
+  prefix, ambiguous readings on either side of a sentence boundary, and a partial
+  ruby reading error sharing one base character. Repaired syllables must preserve
+  the exact syllables' timing; deleted letters inside a spoken word must not allocate
+  a neighbor's token to an independent omitted cue. A single short cue enclosed by reliable
+  anchors and complete speech tokens should retain the book's wording even when ASR
+  mishears it; check rewritten short replies, numeric values, contracted phrases,
+  and `%`/`％` output. Contextual cross-cue allocation must not split a recognized
+  neighboring word to invent a missing interjection. Long estimated token intervals must
+  retain recognized words, sentence endings, and supported rewrites without a fixed
+  duration cap. A short suffix attached to the next sentence's exact anchor must stay
+  with the recognized earlier sentence when its local context supports that ownership;
+  let a wholly omitted interior sentence share a neighbor rather than take that suffix
+  as its own cue. Check one- and two-character
+  endings, a fully or partially recognized middle sentence, and competing endings
+  including ruby readings. Check omitted questions split by commas, missing sentences
+  beside long first/last tokens, and short cries/replies with ordinary token durations,
+  both with and without an inter-cue pause. Include mixed gaps containing a missing
+  sentence-ending character, a whole omitted reply and/or a missing next-word opening:
+  restore edge fragments only to their own cues before assigning the whole reply.
+  Check short neighboring cues with contiguous recognized context; context must stop
+  at missing text or a long audio pause, and inferred text must not become new evidence.
+  Grouping must preserve the opposite cue's timing,
+  keep text/time ranges non-overlapping, update IDs/offsets and unmatched counts, stop
+  at real intervening matches and never propagate across chapter boundaries or book ends.
+  Sparse sentences must retain supported fragments; dense cues must also split around
+  token-free gaps across long silence. Distinguish unmatched ASR wording from silence,
+  including overlapping same-frame multi-character tokens. Incremental matching must
+  agree with full alignment.
+  Character coverage and subtitle cue match rate are different metrics; neither
+  alone verifies transcript accuracy. Exclude toc/caution/colophon source paths
+  for both SRT and transcription, retaining existing SRT multi-volume behavior.
+  `SasayakiTranscriptionReaderTest` checks asynchronous audio-source readiness,
+  download confirmation/cancellation, a single progress display, closing/reopening
+  controls, completion during reading and background/foreground continuation
+  using isolated cache fixtures. `SasayakiAudioDecoderDeviceTest` checks native
+  stereo downmixing, anti-alias filtering, absolute seek phase, MP3/Opus gapless beginnings,
+  AAC decoding, consistent first-audio-track selection, bounded descriptor slices,
+  and failure cleanup using generated
+  WAV and tracked synthetic compressed tones. Run it after native audio changes;
+  all fixtures live in cache and do not change books or preferences. Native
+  decoder tests require the verified runtime cache. To provision it explicitly,
+  run `SasayakiRuntimeDeviceTest#installRuntimeFromPublishedUrls` with
+  `-e downloadRuntime true`; this downloads only the pinned components and
+  verifies subsequent preparation emits no download prompt/progress. The separate
+  `verifiedPrivateLibrariesLoadAndCachedFilesWorkOffline` method uses isolated
+  cache storage and accepts `-e runtimePayloads <scratch-directory>` for local
+  payloads or `-e downloadRuntime true` for public download verification.
+  `SasayakiTranscriptionDeviceTest` also checks the Kotlin decoder boundary; its optional
+  native ASR test needs verified models and runtime files in the app's no-backup directories
+  and an explicit `-e realClip` scratch audio path; otherwise it is skipped and
+  never downloads models. Build the test APK separately, install with `adb
+  install -r`, and run the explicit class with `am instrument`. Remove only
+  the scratch audio afterwards. Also pause within the final 1.5 seconds: an
+  Android checkpoint must still offer Resume until all audio is processed.
 - Sasayaki linked and copied Ogg Opus playback with `testdata/opus_test.opus`.
   Confirm its title and artist metadata, all 22 `CHAPTERnnn` chapter entries,
   current-chapter centering without first flashing the default list position

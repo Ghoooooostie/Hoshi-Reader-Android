@@ -29,7 +29,6 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -74,14 +73,14 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import moe.antimony.hoshi.LocalHoshiUiDependencies
 import moe.antimony.hoshi.R
 import moe.antimony.hoshi.content.ContentLanguageProfile
-import moe.antimony.hoshi.features.audio.AudioRequestHandler
 import moe.antimony.hoshi.features.audio.AudioSettings
+import moe.antimony.hoshi.features.audio.withLocalizedSourceNames
 import moe.antimony.hoshi.features.audio.WordAudioPlayer
 import moe.antimony.hoshi.features.anki.AnkiViewModel
 import moe.antimony.hoshi.features.advancedai.sentenceSuccessContent
@@ -178,7 +177,9 @@ internal fun dictionarySearchPopupOptions(
 )
 
 @Composable
-fun DictionarySearchView(
+internal fun DictionarySearchView(
+    session: DictionarySearchSession,
+    isActive: Boolean,
     readerSettings: ReaderSettings,
     focusRequestKey: Int = 0,
     pendingLookupRequest: PendingDictionaryLookupRequest? = null,
@@ -196,9 +197,9 @@ fun DictionarySearchView(
     val uiState by searchViewModel.uiState.collectAsStateWithLifecycle()
     val ankiUiState by ankiViewModel.uiState.collectAsStateWithLifecycle()
     val profileState by appContainer.profileRepository.state.collectAsStateWithLifecycle()
-    var rootIframeAtTop by remember { mutableStateOf(true) }
-    var childHistories by remember { mutableStateOf<Map<String, ReaderPopupHistoryCounts>>(emptyMap()) }
-    var iframeHostWebView by remember { mutableStateOf<WebView?>(null) }
+    var rootIframeAtTop by session.rootAtTop
+    var childHistories by session.childHistories
+    var iframeHostWebView by remember(session) { mutableStateOf(session.webView) }
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     var searchBarBottomDp by remember { mutableStateOf(0.0) }
     var pullDistancePx by remember { mutableFloatStateOf(0f) }
@@ -207,13 +208,12 @@ fun DictionarySearchView(
     var suppressAutomaticFocus by remember {
         mutableStateOf(pendingLookupRequest?.query?.isNotBlank() == true)
     }
-    val localAudioRepository = appContainer.localAudioRepository
     val dictionaryRepository = appContainer.dictionaryRepository
     val fontManager = appContainer.readerFontManager
     val fontLibraryState by fontManager.libraryState.collectAsStateWithLifecycle()
     val fontFaceCss = remember(fontManager, fontLibraryState.revision) { fontManager.popupFontFaceCss() }
     val rootContentLanguageProfile = profileState.effectiveContentLanguageProfile
-    val readerPopupBridgeHolder = remember { ReaderLookupPopupBridgeCallbackHolder() }
+    val readerPopupBridgeHolder = session.bridge
     val popupDarkMode = hoshiSurfaces.page.luminance() < 0.5f
     val popupOptions = dictionarySearchPopupOptions(
         readerSettings = readerSettings,
@@ -245,6 +245,8 @@ fun DictionarySearchView(
     }
     val noAudioFoundText = stringResource(R.string.audio_no_audio_found)
     val deinflectionLabelsJson = remember(context) { DeinflectionLabels.javascriptObject(context) }
+    val audioLoadingText = stringResource(R.string.loading)
+    val popupAudioSettings = uiState.audioSettings.withLocalizedSourceNames()
     val readerPopupIframeDocument = remember(
         uiState.dictionaryStyles,
         uiState.dictionarySettings,
@@ -255,12 +257,13 @@ fun DictionarySearchView(
         readerSettings.popupReducedMotionSwipeThreshold,
         popupDarkMode,
         readerSettings.eInkMode,
-        uiState.audioSettings,
+        popupAudioSettings,
         ankiUiState.popupSettings,
         fontFaceCss,
         readerSettings.popupScale,
         rootContentLanguageProfile,
         noAudioFoundText,
+        audioLoadingText,
         deinflectionLabelsJson,
     ) {
         LookupPopupHtml.renderIframeDocument(
@@ -274,8 +277,9 @@ fun DictionarySearchView(
             reducedMotionSwipeThreshold = readerSettings.popupReducedMotionSwipeThreshold,
             darkMode = popupDarkMode,
             eInkMode = readerSettings.eInkMode,
-            audioSettings = uiState.audioSettings,
+            audioSettings = popupAudioSettings,
             noAudioFoundText = noAudioFoundText,
+            audioLoadingText = audioLoadingText,
             ankiSettings = ankiUiState.popupSettings,
             fontFaceCss = fontFaceCss,
             popupScale = readerSettings.popupScale,
@@ -287,12 +291,12 @@ fun DictionarySearchView(
     val readerPopupIframeUrl = remember(readerPopupIframeDocument) {
         readerLookupPopupIframeUrl(readerPopupIframeDocument.hashCode())
     }
-    val readerPopupResourceHandler = remember(context, assets, fontManager, localAudioRepository, dictionaryRepository) {
+    val readerPopupResourceHandler = remember(context, assets, fontManager, appContainer.audioRequestHandler, dictionaryRepository) {
         ReaderLookupPopupResourceHandler(
             context = context.applicationContext,
             assets = assets,
             fontManager = fontManager,
-            audioRequestHandler = AudioRequestHandler(localAudioRepository),
+            audioRequestHandler = appContainer.audioRequestHandler,
             imageRequestHandler = DictionaryImageRequestHandler(dictionaryRepository::dictionaryMedia),
             iframeDocument = { currentReaderPopupIframeDocument.value },
         )
@@ -334,15 +338,36 @@ fun DictionarySearchView(
     fun requestSearchFocus() {
         localFocusRequestKey += 1
     }
+    fun clearQueryAndFocus() {
+        searchViewModel.updateQuery("")
+        suppressAutomaticFocus = false
+        requestSearchFocus()
+    }
+    LifecycleResumeEffect(iframeHostWebView) {
+        iframeHostWebView?.onResume()
+        onPauseOrDispose { iframeHostWebView?.onPause() }
+    }
+    LaunchedEffect(isActive) {
+        if (isActive) {
+            requestSearchFocus()
+        } else {
+            suppressAutomaticFocus = false
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+        }
+    }
     val runLookup = {
         childHistories = emptyMap()
         rootIframeAtTop = true
         searchViewModel.runLookup()
     }
     LaunchedEffect(profileState.effectiveProfile.id) {
-        childHistories = emptyMap()
-        rootIframeAtTop = true
-        pullDistancePx = 0f
+        if (session.profileId != profileState.effectiveProfile.id) {
+            session.profileId = profileState.effectiveProfile.id
+            childHistories = emptyMap()
+            rootIframeAtTop = true
+            pullDistancePx = 0f
+        }
         searchViewModel.onEffectiveProfileChanged(profileState.effectiveProfile.id)
     }
     LaunchedEffect(focusRequestKey) {
@@ -625,6 +650,7 @@ fun DictionarySearchView(
         when {
             uiState.hasResults -> {
                 DictionarySearchIframeHost(
+                    session = session,
                     callbackHolder = readerPopupBridgeHolder,
                     resourceHandler = readerPopupResourceHandler,
                     rootAtTop = rootIframeAtTop,
@@ -640,13 +666,11 @@ fun DictionarySearchView(
                                 hasQuery = uiState.query.isNotEmpty(),
                             )
                         ) {
-                            DictionaryPullResetAction.ResetAndFocus -> {
-                                childHistories = emptyMap()
-                                rootIframeAtTop = true
-                                searchViewModel.resetSearch()
+                            DictionaryPullResetAction.ClearQueryAndFocus -> clearQueryAndFocus()
+                            DictionaryPullResetAction.FocusOnly -> {
+                                suppressAutomaticFocus = false
                                 requestSearchFocus()
                             }
-                            DictionaryPullResetAction.FocusOnly -> requestSearchFocus()
                             DictionaryPullResetAction.None -> Unit
                         }
                         pullDistancePx = 0f
@@ -667,11 +691,6 @@ fun DictionarySearchView(
                             onForward = ::navigateRootIframeForward,
                         ),
                 )
-                ReaderLookupPopupIframeSync(
-                    webView = iframeHostWebView,
-                    payloads = iframePayloads,
-                    rootHighlight = null,
-                )
             }
             uiState.errorMessage != null -> DictionarySearchMessage(
                 text = requireNotNull(uiState.errorMessage).asString(),
@@ -680,6 +699,15 @@ fun DictionarySearchView(
             uiState.hasSearched && !uiState.isSearching -> DictionarySearchMessage(
                 text = "",
                 modifier = Modifier.fillMaxSize(),
+            )
+        }
+        // Reentry starts before layout: never collapse the retained iframe to a zero-size
+        // placeholder. Empty/profile resets still need to clear its stack immediately.
+        if (iframePayloads.isEmpty() || (viewport.width > 0 && viewport.height > 0 && searchBarBottomDp > 0)) {
+            ReaderLookupPopupIframeSync(
+                webView = iframeHostWebView,
+                payloads = iframePayloads,
+                rootHighlight = null,
             )
         }
         if (uiState.hasResults && pullDistancePx > 1f) {
@@ -695,8 +723,9 @@ fun DictionarySearchView(
             query = uiState.query,
             isSearching = uiState.isSearching,
             onQueryChange = searchViewModel::updateQuery,
+            onClear = ::clearQueryAndFocus,
             onSubmit = runLookup,
-            focusRequestKey = if (suppressAutomaticFocus) {
+            focusRequestKey = if (!isActive || suppressAutomaticFocus) {
                 null
             } else {
                 focusRequestKey to localFocusRequestKey
@@ -716,6 +745,7 @@ fun DictionarySearchView(
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun DictionarySearchIframeHost(
+    session: DictionarySearchSession,
     callbackHolder: ReaderLookupPopupBridgeCallbackHolder,
     resourceHandler: ReaderLookupPopupResourceHandler,
     rootAtTop: Boolean,
@@ -731,7 +761,8 @@ private fun DictionarySearchIframeHost(
     val currentOnPullStarted = rememberUpdatedState(onPullStarted)
     val currentOnPullDistance = rememberUpdatedState(onPullDistance)
     val currentOnPullReleased = rememberUpdatedState(onPullReleased)
-    AndroidView(
+    DictionarySearchSessionWebView(
+        session = session,
         modifier = modifier.fillMaxSize(),
         factory = { viewContext ->
             WebView(viewContext).apply {
@@ -741,20 +772,6 @@ private fun DictionarySearchIframeHost(
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 ReaderLookupPopupWebBridge.install(this, callbackHolder)
                 webViewClient = LookupPopupIframeWebViewClient(resourceHandler)
-                installDictionaryPullTouchObserver(
-                    rootAtTop = { currentRootAtTop.value },
-                    pullGestureCanStart = { event ->
-                        val density = resources.displayMetrics.density
-                        dictionarySearchPullGestureCanStart(
-                            popups = currentPopupFrames.value,
-                            x = androidPixelsToCssPixels(event.x, density).toDouble(),
-                            y = androidPixelsToCssPixels(event.y, density).toDouble(),
-                        )
-                    },
-                    onPullStarted = { currentOnPullStarted.value() },
-                    onPullDistance = { currentOnPullDistance.value(it) },
-                    onPullReleased = { currentOnPullReleased.value(it) },
-                )
                 loadDataWithBaseURL(
                     "https://appassets.androidplatform.net/dictionary/iframe-host.html",
                     lookupPopupIframeHostHtml(),
@@ -764,6 +781,22 @@ private fun DictionarySearchIframeHost(
                 )
                 onWebViewChanged(this)
             }
+        },
+        onAttach = { webView ->
+            webView.installDictionaryPullTouchObserver(
+                rootAtTop = { currentRootAtTop.value },
+                pullGestureCanStart = { event ->
+                    val density = webView.resources.displayMetrics.density
+                    dictionarySearchPullGestureCanStart(
+                        popups = currentPopupFrames.value,
+                        x = androidPixelsToCssPixels(event.x, density).toDouble(),
+                        y = androidPixelsToCssPixels(event.y, density).toDouble(),
+                    )
+                },
+                onPullStarted = { currentOnPullStarted.value() },
+                onPullDistance = { currentOnPullDistance.value(it) },
+                onPullReleased = { currentOnPullReleased.value(it) },
+            )
         },
         update = { webView ->
             webView.webViewClient = LookupPopupIframeWebViewClient(resourceHandler)
@@ -908,6 +941,7 @@ private fun DictionarySearchTopBar(
     query: String,
     isSearching: Boolean,
     onQueryChange: (String) -> Unit,
+    onClear: () -> Unit,
     onSubmit: () -> Unit,
     focusRequestKey: Any?,
     contentLanguageProfile: ContentLanguageProfile,
@@ -930,14 +964,12 @@ private fun DictionarySearchTopBar(
                 query = query,
                 isSearching = isSearching,
                 onQueryChange = onQueryChange,
+                onClear = onClear,
                 onSubmit = onSubmit,
                 focusRequestKey = focusRequestKey,
                 contentLanguageProfile = contentLanguageProfile,
                 modifier = Modifier.fillMaxWidth(),
             )
-        }
-        if (LocalHoshiEInkMode.current) {
-            HorizontalDivider(color = hoshiSurfaces.outline)
         }
     }
 }
@@ -947,6 +979,7 @@ private fun DictionarySearchBar(
     query: String,
     isSearching: Boolean,
     onQueryChange: (String) -> Unit,
+    onClear: () -> Unit,
     onSubmit: () -> Unit,
     focusRequestKey: Any?,
     contentLanguageProfile: ContentLanguageProfile,
@@ -1021,7 +1054,7 @@ private fun DictionarySearchBar(
             }
             if (query.isNotEmpty()) {
                 IconButton(
-                    onClick = { onQueryChange("") },
+                    onClick = onClear,
                     modifier = Modifier.size(34.dp),
                 ) {
                     ClearGlyph(modifier = Modifier.size(24.dp))

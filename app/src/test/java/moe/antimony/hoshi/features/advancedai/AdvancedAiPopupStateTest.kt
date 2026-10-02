@@ -97,6 +97,7 @@ class AdvancedAiPopupStateTest {
 
     private fun resolveUiText(text: UiText): String =
         when (text) {
+            is UiText.Joined -> text.parts.joinToString(text.separator) { resolveUiText(it) }
             is UiText.Literal -> text.value
             is UiText.Resource -> when (text.id) {
                 R.string.advanced_ai_word_analysis_title -> "AI 词语分析"
